@@ -1,19 +1,20 @@
 import { Button } from '@/components/ui/button'
 import { loginService } from '@/services/auth.service'
-import useAuthStore from '@/stores/useAuthStore'
+import useAuthStore from '@/stores/authStore'
 import { isAxiosError } from 'axios'
 import { useState } from 'react'
+import { shallow } from 'zustand/shallow'
 
 const Home = () => {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
-    const setAccess = useAuthStore((state) => state.setAccess)
+    const [access, setAccess, logOut] = useAuthStore((state) => [state.access, state.setAccess, state.logOut], shallow)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
             const response = await loginService(username, password)
-            setAccess(response.data.tokens.access)
+            setAccess(response.tokens.access)
         } catch (error) {
             if (isAxiosError(error)) {
                 console.error(error.response?.data.message || 'An error occurred')
@@ -21,6 +22,15 @@ const Home = () => {
                 console.error('An error occurred')
             }
         }
+    }
+
+    if (access) {
+        return (
+            <div>
+                Logged in
+                <Button onClick={logOut}>Log out</Button>
+            </div>
+        )
     }
 
     return (
