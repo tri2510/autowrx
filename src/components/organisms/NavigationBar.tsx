@@ -115,30 +115,6 @@ const NavigationBar = ({}) => {
           )} */}
         </>
       )}
-
-      {isAuthorized && (
-        <DaMenu
-          trigger={
-            <div className="cursor-pointer flex !h-10 items-center da-btn-sm text-da-gray-medium da-nav-bar-icon da-btn-plain ml-2">
-              <HiMenu size={22} />
-            </div>
-          }
-        >
-          <Link
-            to="/manage-users"
-            className="flex items-center px-4 py-2 gap-2 da-menu-item da-label-regular"
-          >
-            <TbUsers className="text-base" /> Manage Users
-          </Link>
-          <Link
-            to="/manage-features"
-            className="flex items-center px-4 py-2 gap-2 da-menu-item da-label-regular"
-          >
-            <TbStack2 className="text-base" /> Manage Features
-          </Link>
-        </DaMenu>
-      )}
-
       <DaNavUser />
     </header>
   )
