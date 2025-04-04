@@ -50,6 +50,7 @@ const config: any = {
     url: 'https://kit.digitalauto.tech',
   },
   strictAuth: false,
+  enableSupport: true,
 }
 
 export default config

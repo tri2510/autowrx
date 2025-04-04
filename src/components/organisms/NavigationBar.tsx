@@ -12,6 +12,7 @@ import useSelfProfileQuery from '@/hooks/useSelfProfile'
 import { FaCar } from 'react-icons/fa'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import { IoIosHelpBuoy } from 'react-icons/io'
+import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
 
 const NavigationBar = ({}) => {
@@ -25,14 +26,29 @@ const NavigationBar = ({}) => {
         <DaImage src="/imgs/logo-wide.png" className="da-nav-bar-logo" />
       </Link>
 
+      {config && config.enableBranding && (
+        <div className="ml-4 text-sm text-white/90">
+          <a
+            href="https://digital.auto"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/90 hover:text-white no-underline"
+          >
+            digital.auto
+          </a>
+        </div>
+      )}
+
       <div className="grow"></div>
 
-      <Link to="https://forms.office.com/e/P5gv3U3dzA">
-        <div className="h-full flex text-orange-600 font-semibold da-txt-medium items-center text-skye-600 mr-4 hover:underline">
-          <IoIosHelpBuoy className="mr-1 animate-pulse" size={24} />
-          Support
-        </div>
-      </Link>
+      {config && config.enableSupport && (
+        <Link to="https://forms.office.com/e/P5gv3U3dzA">
+          <div className="h-full flex text-orange-600 font-semibold da-txt-medium items-center text-skye-600 mr-4 hover:underline">
+            <IoIosHelpBuoy className="mr-1 animate-pulse" size={24} />
+            Support
+          </div>
+        </Link>
+      )}
 
       {user && (
         <>
@@ -99,7 +115,6 @@ const NavigationBar = ({}) => {
           )} */}
         </>
       )}
-
       <DaNavUser />
     </header>
   )

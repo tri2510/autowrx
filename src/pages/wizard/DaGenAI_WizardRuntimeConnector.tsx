@@ -1,27 +1,23 @@
 import { forwardRef, useState, useEffect, useImperativeHandle } from 'react'
-// import { socketio } from '@/services/socketio.service'
 import useRuntimeStore from '@/stores/runtimeStore'
 import { shallow } from 'zustand/shallow'
-// import useModelStore from '@/stores/modelStore'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
 import useWizardGenAIStore from '@/pages/wizard/useGenAIWizardStore'
 import usePermissionHook from '@/hooks/usePermissionHook'
 import { PERMISSIONS } from '@/data/permission'
-
 import { io } from 'socket.io-client'
 
 interface KitConnectProps {
-  // code: string;
   kitServerUrl?: string
   hideLabel?: boolean
   targetPrefix: string
   usedAPIs: string[]
-  // allKit: any[];
   onActiveRtChanged?: (newActiveKitId: string | undefined) => void
   onLoadedMockSignals?: (signals: []) => void
   onNewLog?: (log: string) => void
   onAppExit?: (code: any) => void
   onDeployResponse?: (log: string, isDone: boolean) => void
+  onKitAvailabilityChange?: (isAvailable: boolean) => void
 }
 
 const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
@@ -36,10 +32,14 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
       onNewLog,
       onAppExit,
       onDeployResponse,
+      onKitAvailabilityChange,
     },
     ref,
   ) => {
-    // const socketio = io(kitServerUrl || DEFAULT_KIT_SERVER);
+    // Create a storage key based on the targetPrefix so that selections
+    // for runtime and kit are kept separate.
+    const storageKey = `last-wizard-rt-${targetPrefix.toLowerCase()}`
+
     const [socketio, setSocketIo] = useState<any>(null)
     const [activeRtId, setActiveRtId] = useState<string | undefined>('')
     const [allRuntimes, setAllRuntimes] = useState<any>([])
@@ -74,7 +74,7 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
 
     useEffect(() => {
       if (rawApisPackage) {
-        if (activeRtId && activeRtId==rawApisPackage?.kit_id) {
+        if (activeRtId && activeRtId == rawApisPackage?.kit_id) {
           setActiveApis(rawApisPackage?.result || {})
         }
       }
@@ -123,6 +123,7 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
       socketio.emit('messageToKit', {
         cmd: 'run_python_app',
         to_kit_id: activeRtId,
+        usedAPIs: usedAPIs, // Match current method of DaRuntimeConnector
         data: {
           code: code,
         },
@@ -140,13 +141,9 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
         data: {},
       })
     }
+
     const deploy = () => {
-      console.log(
-        'Deploy app to RuntimeID: ',
-        activeRtId,
-        ' with the SDV code: ',
-        wizardPrototype.code,
-      )
+      console.log('Deploy vehicle app to target: ', activeRtId)
       if (wizardPrototype && wizardPrototype.id && currentUser) {
         socketio.emit('messageToKit', {
           cmd: 'deploy_request',
@@ -200,7 +197,6 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
         console.log('Kit Server URL is undefined')
         return
       }
-      console.log('Try to connect to KIT Server URL: ', kitServerUrl)
       const socket = io(kitServerUrl, {
         transports: ['websocket'],
         reconnectionAttempts: 5,
@@ -223,7 +219,6 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
     }, [kitServerUrl])
 
     useEffect(() => {
-      // console.log('Wizard Active RuntimeID: ', wizardActiveRtId)
       console.log('Wizard Active RuntimeID: ', activeRtId)
       if (!socketio) return
 
@@ -256,71 +251,73 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
         unregisterClient()
         socketio.disconnect()
       }
-    }, [socketio]) // Remove socketio?.connected to prevent un-necessary change
+    }, [socketio])
 
+    // Store activeRtId using the prefix-specific storage key
     useEffect(() => {
       console.log(`activeRtId`, activeRtId)
       if (activeRtId) {
-        localStorage.setItem('last-wizard-rt', activeRtId)
+        localStorage.setItem(storageKey, activeRtId)
       }
-    }, [activeRtId])
+    }, [activeRtId, storageKey])
 
     useEffect(() => {
-      // console.log(`activeRtId `, wizardActiveRtId)
-      if (wizardActiveRtId) {
+      // Autoselect runtime if the targetPrefix starts with "runtime-" for simulation use cases
+      if (
+        targetPrefix.toLowerCase().startsWith('runtime-') &&
+        wizardActiveRtId
+      ) {
         setActiveRtId(wizardActiveRtId)
       }
-    }, [wizardActiveRtId])
+    }, [wizardActiveRtId, targetPrefix])
 
     useEffect(() => {
       if (allRuntimes && allRuntimes.length > 0) {
-        if (activeRtId) return // Do not change activeRtId if it's already set by the user
+        if (activeRtId) return // Do not change if already set by the user
 
         let onlineRuntimes = allRuntimes.filter((rt: any) => rt.is_online)
 
         if (onlineRuntimes.length <= 0) {
           console.log(`setActiveRtId(undefined) cause: no onlineRuntimes`)
           setActiveRtId(undefined)
-          setWizardActiveRtId(undefined)
+          if (targetPrefix.toLowerCase().startsWith('runtime-')) {
+            setWizardActiveRtId(undefined)
+          }
           return
         }
 
-        // Try to find the default runtime with kit_id starting with 'RunTime-ETAS-E2E'
-        let defaultRuntime = onlineRuntimes.find((rt: any) =>
-          rt.kit_id.startsWith('RunTime-ETAS-E2E'),
-        )
-
-        if (defaultRuntime) {
-          console.log(`setActiveRtId to defaultRuntime`, defaultRuntime.kit_id)
-          setActiveRtId(defaultRuntime.kit_id)
-          setWizardActiveRtId(defaultRuntime.kit_id)
-          localStorage.setItem('last-wizard-rt', defaultRuntime.kit_id)
-          return
-        }
-
-        // If not found, use the last selected runtime from localStorage if it's online
-        let lastOnlineRuntime = localStorage.getItem('last-wizard-rt')
+        // First, try to use the last selected runtime from localStorage.
+        let lastOnlineRuntime = localStorage.getItem(storageKey)
         if (
           lastOnlineRuntime &&
           onlineRuntimes.some((rt: any) => rt.kit_id === lastOnlineRuntime)
         ) {
-          console.log(`lastOnlineRuntime `, lastOnlineRuntime)
+          console.log(`Using last online runtime: `, lastOnlineRuntime)
           setActiveRtId(lastOnlineRuntime)
-          setWizardActiveRtId(lastOnlineRuntime)
+          if (targetPrefix.toLowerCase().startsWith('runtime-')) {
+            setWizardActiveRtId(lastOnlineRuntime)
+          }
           return
         }
 
-        // If none of the above, set activeRtId to the first online runtime
-        console.log(`setActiveRtId `, onlineRuntimes[0].kit_id)
+        // Otherwise, set activeRtId to the first available online kit.
+        console.log(
+          `setActiveRtId to first available kit: `,
+          onlineRuntimes[0].kit_id,
+        )
         setActiveRtId(onlineRuntimes[0].kit_id)
-        setWizardActiveRtId(onlineRuntimes[0].kit_id)
-        localStorage.setItem('last-wizard-rt', onlineRuntimes[0].kit_id)
+        if (targetPrefix.toLowerCase().startsWith('runtime-')) {
+          setWizardActiveRtId(onlineRuntimes[0].kit_id)
+        }
+        localStorage.setItem(storageKey, onlineRuntimes[0].kit_id)
       } else {
         console.log(`setActiveRtId(undefined) cause: noRuntime`)
         setActiveRtId(undefined)
-        setWizardActiveRtId(undefined)
+        if (targetPrefix.toLowerCase().startsWith('runtime-')) {
+          setWizardActiveRtId(undefined)
+        }
       }
-    }, [allRuntimes])
+    }, [allRuntimes, activeRtId, storageKey, targetPrefix])
 
     const onConnected = () => {
       registerClient()
@@ -356,34 +353,25 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
         const parts = kit_id.split('-')
         return parts[parts.length - 1]
       }
-      // console.log(data)
-      let kits = [...data].filter((kit: any) => {
-        // return new Date().getTime() - new Date(kit.last_seen).getTime() < 100000000
-        return kit.is_online
-      })
+      // Filter kits that are online
+      let kits = [...data].filter((kit: any) => kit.is_online)
 
-      // First filter the kits
+      // Filter kits based on the targetPrefix (e.g. "runtime-", "kit-", etc.)
       let sortedKits = kits.filter((rt) =>
         rt.kit_id
           .toLowerCase()
           .startsWith(targetPrefix ? targetPrefix.toLowerCase() : 'runtime-'),
       )
 
-      // Then sort by online status and kit_id
+      // Sort the filtered kits by online status and by kit_id numeric parts
       sortedKits.sort((a, b) => {
-        // Sort by online status first
         if (a.is_online !== b.is_online) {
           return b.is_online - a.is_online
         }
-
-        // Extract the parts after the last hyphen
         const aLastPart = getLastPart(a.kit_id)
         const bLastPart = getLastPart(b.kit_id)
-
-        // Compare numeric parts if they are numbers, otherwise compare as strings
         const aNumeric = parseInt(aLastPart, 10)
         const bNumeric = parseInt(bLastPart, 10)
-
         if (!isNaN(aNumeric) && !isNaN(bNumeric)) {
           return aNumeric - bNumeric
         } else {
@@ -392,7 +380,15 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
       })
 
       setAllRuntimes(sortedKits)
-      setAllWizardRuntimes(sortedKits)
+      console.log('Sorted Kit at WizardRuntimeConnector: ', sortedKits)
+
+      // Only update the global wizard store if the targetPrefix starts with "runtime-"
+      if (targetPrefix && targetPrefix.toLowerCase().startsWith('runtime-')) {
+        setAllWizardRuntimes(sortedKits)
+      }
+
+      if (onKitAvailabilityChange)
+        onKitAvailabilityChange(sortedKits.length > 0)
     }
 
     const onBroadCastToClient = (payload: any) => {
@@ -402,8 +398,10 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
     const onKitReply = (payload: any) => {
       if (!payload) return
 
-      if (payload.cmd == 'deploy_request' || payload.cmd == 'deploy-request') {
-        // console.log(payload)
+      if (
+        payload.cmd === 'deploy_request' ||
+        payload.cmd === 'deploy-request'
+      ) {
         if (onDeployResponse) {
           onDeployResponse(payload.result, payload.is_finish)
         }
@@ -414,7 +412,7 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
           onNewLog(payload.result || '')
         }
       }
-      if (payload.cmd == 'run_python_app') {
+      if (payload.cmd === 'run_python_app') {
         if (payload.isDone) {
           if (setAppLog) {
             setAppLog(`Exit code ${payload.code}\r\n`)
@@ -435,27 +433,19 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
         }
       }
 
-      if (payload.cmd == 'apis-value') {
-        // console.log(`apis-value `, activeRtId)
-        // console.log(payload)
+      if (payload.cmd === 'apis-value') {
         if (payload.result) {
           setRawApisPackage(payload)
-          // console.log(`receive apis-value`)
-          // setActiveApis(payload.result)
         }
       }
 
-      if (payload.cmd == 'list_mock_signal') {
+      if (payload.cmd === 'list_mock_signal') {
         if (!onLoadedMockSignals) return
         if (payload && payload.data && Array.isArray(payload.data)) {
           onLoadedMockSignals(payload.data)
         }
       }
     }
-
-    useEffect(() => {
-      console.log('isAuthorized, ', isAuthorized)
-    }, [isAuthorized])
 
     return (
       <div>
@@ -464,30 +454,45 @@ const DaGenAI_WizardRuntimeConnector = forwardRef<any, KitConnectProps>(
             <label className="mr-3 da-small-medium">Runtime:</label>
           )}
           {isAuthorized ? (
-            <select
-              aria-label="deploy-select"
-              className={`border rounded da-label-small px-2 py-1 w-full min-w-[100px] text-da-gray-dark bg-gray-200 !cursor-pointer`}
-              value={activeRtId as any}
-              onChange={(e) => {
-                // console.log(`setActiveRtId(e.target.value) `, e.target.value)
-                setActiveRtId(e.target.value)
-              }}
-            >
-              {allRuntimes &&
-                allRuntimes.map((rt: any) => {
-                  return (
-                    <option
-                      value={rt.kit_id}
-                      key={rt.kit_id}
-                      disabled={!rt.is_online}
-                    >
-                      <div className="text-[20px] flex items-center disabled:text-white text-white !cursor-pointer">
-                        {rt.is_online ? '🟢' : '🟡'} {rt.name}
-                      </div>
-                    </option>
-                  )
-                })}
-            </select>
+            allRuntimes && allRuntimes.length > 0 ? (
+              <div className="border pr-2 rounded-md overflow-hidden">
+                <select
+                  aria-label="deploy-select"
+                  className="text-sm font-medium px-2 py-1 w-full min-w-[100px] text-da-gray-dark outline-none ring-0 !cursor-pointer"
+                  value={activeRtId as any}
+                  onChange={(e) => {
+                    console.log(
+                      `Change target at WizardRuntimeConnector: `,
+                      e.target.value,
+                    )
+                    setActiveRtId(e.target.value)
+                    e.preventDefault()
+                  }}
+                >
+                  {allRuntimes.map((rt: any) => {
+                    return (
+                      <option
+                        value={rt.kit_id}
+                        key={rt.kit_id}
+                        disabled={!rt.is_online}
+                      >
+                        <div className="text-[20px] flex items-center disabled:text-white text-white !cursor-pointer">
+                          {rt.is_online ? '🟢' : '🟡'} {rt.name}
+                        </div>
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+            ) : (
+              <div>
+                No{' '}
+                {targetPrefix
+                  ? targetPrefix.toLowerCase().replace(/-/g, '')
+                  : 'runtime'}{' '}
+                available
+              </div>
+            )
           ) : (
             <div>You dont have permission to deploy</div>
           )}
