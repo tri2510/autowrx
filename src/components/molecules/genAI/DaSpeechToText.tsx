@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, lazy } from 'react'
-import { TbMicrophoneFilled, TbPlayerStopFilled } from 'react-icons/tb'
+import {
+  TbMicrophone,
+  TbMicrophoneFilled,
+  TbPlayerStopFilled,
+} from 'react-icons/tb'
 import { cn } from '@/lib/utils'
 import { retry } from '@/lib/retry'
 
@@ -17,6 +21,7 @@ import {
 type DaSpeechToTextProps = {
   onRecognize: (text: string) => void
   prompt?: string
+  iconClassName?: string
 }
 
 const BouncingDotsLoader = () => {
@@ -51,6 +56,7 @@ const BouncingDotsLoader = () => {
 const DaSpeechToText: React.FC<DaSpeechToTextProps> = ({
   onRecognize,
   prompt,
+  iconClassName,
 }) => {
   const [isListening, setIsListening] = useState(false)
   const [isMicActive, setIsMicActive] = useState(false)
@@ -222,7 +228,7 @@ const DaSpeechToText: React.FC<DaSpeechToTextProps> = ({
     <button
       onClick={handleClick}
       className={cn(
-        'flex cursor-pointer items-center rounded-lg p-1 px-2 text-da-primary-500 hover:bg-da-primary-100',
+        'flex cursor-pointer items-center rounded-lg p-1 px-2 hover:text-da-primary-500 group text-da-gray-medium hover:bg-da-primary-100',
         isListening && 'bg-da-primary-100',
       )}
     >
@@ -242,8 +248,14 @@ const DaSpeechToText: React.FC<DaSpeechToTextProps> = ({
         </>
       ) : (
         <>
-          <TbMicrophoneFilled className="mr-1 size-6 text-da-primary-500" />
-          <p className="font-medium text-da-gray-medium">Voice input</p>
+          <TbMicrophone
+            className={cn(
+              'mr-1 size-5 text-da-primary-500',
+              iconClassName,
+              'group-hover:text-da-primary-500',
+            )}
+          />
+          <p className="font-medium">Voice input</p>
         </>
       )}
     </button>

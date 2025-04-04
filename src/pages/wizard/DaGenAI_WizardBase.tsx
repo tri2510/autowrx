@@ -7,7 +7,6 @@ import { toast } from 'react-toastify'
 import useAuthStore from '@/stores/authStore'
 import default_generated_code from '@/data/default_generated_code'
 import { cn, useClickOutside } from '@/lib/utils'
-import { TbHistory, TbRotate, TbSettings } from 'react-icons/tb'
 import useGenAIWizardStore from '@/pages/wizard/useGenAIWizardStore.js'
 import DaPopup from '@/components/atoms/DaPopup'
 import DaText from '@/components/atoms/DaText'
@@ -17,6 +16,14 @@ import usePermissionHook from '@/hooks/usePermissionHook'
 import { PERMISSIONS } from '@/data/permission'
 import Prompt_Templates from '../../../instance/prompt_templates.js'
 import { retry } from '@/lib/retry.js'
+import {
+  PiGear,
+  PiLightbulb,
+  PiMagicWand,
+  PiSparkle,
+  PiXCircle,
+} from 'react-icons/pi'
+import MarkdownRender from './MarkdownRender.js'
 
 const DaSpeechToText = lazy(() =>
   retry(() => import('../../components/molecules/genAI/DaSpeechToText.js')),
@@ -25,7 +32,6 @@ const DaSpeechToText = lazy(() =>
 type DaGenAI_WizardBaseProps = {
   type: 'GenAI_Python' | 'GenAI_Dashboard' | 'GenAI_Widget'
   onCodeGenerated: (code: string) => void
-  onLoadingChange: (loading: boolean) => void
   className?: string
 }
 
@@ -33,9 +39,8 @@ const DaGenAI_WizardBase = ({
   type,
   className = '',
   onCodeGenerated,
-  onLoadingChange,
 }: DaGenAI_WizardBaseProps) => {
-  const { wizardPrompt, setWizardPrompt, resetWizardStore } =
+  const { wizardPrompt, wizardPrototype, setWizardPrompt, resetWizardStore } =
     useGenAIWizardStore()
   const [selectedAddOn, setSelectedAddOn] = useState<AddOn | undefined>(
     undefined,
@@ -54,10 +59,11 @@ const DaGenAI_WizardBase = ({
     setWizardGeneratedCode,
     setPrototypeData,
     setCodeGenerating,
+    wizardModelId,
   } = useGenAIWizardStore()
   const [openSelectorPopup, setOpenSelectorPopup] = useState(false)
   const [promptTemplates, setPromptTemplates] = useState<any[]>([])
-
+  const [loading, setLoading] = useState(false)
   const prompt = wizardPrompt
   const setPrompt = setWizardPrompt
 
@@ -75,14 +81,11 @@ const DaGenAI_WizardBase = ({
     customPayload: addOn.customPayload,
   }))
 
-  // -------------------------------
-  // Updated handleGenerate using POST with manual SSE stream parsing
-  // -------------------------------
   const handleGenerate = async () => {
     if (!selectedAddOn) return
     onCodeGenerated('')
     setCodeGenerating(true)
-    onLoadingChange(true)
+    setLoading(true)
     setUniqueLogs([])
 
     if (selectedAddOn.isMock) {
@@ -90,14 +93,17 @@ const DaGenAI_WizardBase = ({
       onCodeGenerated(default_generated_code)
       setPrototypeData({ code: default_generated_code })
       setCodeGenerating(false)
-      onLoadingChange(false)
+      setLoading(false)
       return
     }
 
     try {
       // Create the payload using the add-on’s customPayload function.
-      const payload = selectedAddOn.customPayload(prompt)
-      console.log('Payload:', payload)
+      // Determine the profile with a fallback.
+      const profile = wizardPrototype.model_id || 'spring_ai_azure_vector_store'
+      // Create the payload using the add-on’s customPayload function with the profile.
+      const payload = selectedAddOn.customPayload(prompt, profile)
+      console.log('Payload at wizard base', payload)
 
       const options = {
         method: 'POST',
@@ -141,17 +147,62 @@ const DaGenAI_WizardBase = ({
               try {
                 const eventObj = JSON.parse(eventData)
                 if (eventObj.message && eventObj.message.content) {
-                  const { type: contentType, payload: eventPayload } =
-                    eventObj.message.content
+                  const {
+                    type: contentType,
+                    payload: eventPayload,
+                    thoughts,
+                  } = eventObj.message.content
+
                   if (contentType === 'code') {
+                    setUniqueLogs((prevLogs) => {
+                      let newLogs = prevLogs.filter(
+                        (log) => log.source !== 'selected_signals',
+                      )
+                      if (thoughts && thoughts.trim()) {
+                        const cleanThoughts = thoughts
+                          .replace(/```(?:json)?|```/g, '')
+                          .trim()
+                        const existingIndex = newLogs.findIndex(
+                          (log) => log.source === 'code',
+                        )
+                        if (existingIndex !== -1) {
+                          newLogs[existingIndex] = {
+                            source: 'code',
+                            content: cleanThoughts,
+                          }
+                        } else {
+                          newLogs.push({
+                            source: 'code',
+                            content: cleanThoughts,
+                          })
+                        }
+                      }
+                      return newLogs
+                    })
                     onCodeGenerated(eventPayload)
                     setWizardGeneratedCode(eventPayload)
                   } else if (contentType === 'selected_signals') {
-                    // Split the signal string by '%n' and join with newline.
-                    const signals = eventPayload
-                      .split('%n')
-                      .filter((signal: any) => signal.trim() !== '')
-                    const formattedSignals = signals.join('\n')
+                    // Process selected signals.
+                    let signals: string[] = []
+                    if (thoughts && thoughts.trim()) {
+                      const cleanThoughts = thoughts
+                        .replace(/```(?:json)?|```/g, '')
+                        .trim()
+                      try {
+                        signals = JSON.parse(cleanThoughts)
+                      } catch (err) {
+                        console.error('Error parsing thoughts JSON:', err)
+                        signals = eventPayload
+                          .split('%n')
+                          .filter((s: string) => s.trim() !== '')
+                      }
+                    } else if (eventPayload) {
+                      signals = eventPayload
+                        .split('%n')
+                        .filter((s: string) => s.trim() !== '')
+                    }
+                    const formattedSignals =
+                      '### Selected Signals  \n' + signals.join('  \n') + '\n'
                     setUniqueLogs((prevLogs) => {
                       const existingIndex = prevLogs.findIndex(
                         (log) => log.source === contentType,
@@ -169,6 +220,14 @@ const DaGenAI_WizardBase = ({
                         { source: contentType, content: formattedSignals },
                       ]
                     })
+                  } else if (contentType === 'error') {
+                    // Handle error response.
+                    setUniqueLogs((prevLogs) => [
+                      ...prevLogs,
+                      { source: contentType, content: eventPayload },
+                    ])
+                    console.error('Error from AI service:', eventPayload)
+                    toast.error(eventPayload)
                   }
                 }
               } catch (e) {
@@ -187,12 +246,9 @@ const DaGenAI_WizardBase = ({
       toast.error('Error generating AI content')
     } finally {
       setCodeGenerating(false)
-      onLoadingChange(false)
+      setLoading(false)
     }
   }
-  // -------------------------------
-  // End updated handleGenerate
-  // -------------------------------
 
   useClickOutside(dropdownRef, () => {
     setShowDropdown(false)
@@ -208,9 +264,7 @@ const DaGenAI_WizardBase = ({
     }
   }, [prompt])
 
-  // -------------------------------
   // Rehydrate the add-on from localStorage
-  // -------------------------------
   useEffect(() => {
     const storedAddOnStr = localStorage.getItem('lastUsed_GenAIWizardGenerator')
     let selected: AddOn | undefined = undefined
@@ -237,92 +291,112 @@ const DaGenAI_WizardBase = ({
   }, [])
 
   return (
-    <div className={cn('flex h-full w-full rounded px-4', className)}>
-      <div className="flex h-full w-full flex-col overflow-y-auto border-none pl-0.5 pr-2">
-        <div className="flex w-full items-center justify-between">
-          <div className="space-x-2">
-            <div className="relative flex">
-              {promptTemplates && promptTemplates.length > 0 && (
+    <div className={cn('flex flex-col h-full w-full py-1', className)}>
+      <div className="flex h-full w-full flex-col overflow-y-auto border-none py-2 px-3">
+        {uniqueLogs && uniqueLogs.length > 0 ? (
+          <div className="flex flex-col mt-0 h-full mb-2 space-y-2 overflow-y-auto rounded-md bg-gray-200 p-3 text-da-gray-darkest text-sm">
+            {uniqueLogs.map((log, index) => (
+              <div key={index} className="flex flex-col w-full">
+                <MarkdownRender markdownText={log.content} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center w-full h-full">
+            <PiSparkle className="size-10 text-da-gray-darkest" />
+            <div className="text-xl text-da-gray-darkest font-semibold mt-2">
+              Create vehicle apps with GenAI
+            </div>
+            <div className="max-w-[30vw] text-center mt-1">
+              Start your session by entering what the vehicle should do. If you
+              are not satisfied with the results, clear the input and insert a
+              new text.
+            </div>
+          </div>
+        )}
+
+        {/* Prompt Textarea */}
+        <div className="flex flex-col h-fit w-full ">
+          <div className="flex w-full items-center justify-between">
+            <div className="space-x-2">
+              <div className="relative flex">
+                {promptTemplates && promptTemplates.length > 0 && (
+                  <DaButton
+                    variant="plain"
+                    size="sm"
+                    onClick={() => setShowDropdown(!showDropdown)}
+                  >
+                    <PiLightbulb className="mr-1 size-5" />
+                    Examples
+                  </DaButton>
+                )}
+
+                {showDropdown && (
+                  <div
+                    ref={dropdownRef}
+                    className="absolute top-6 z-10 mt-2 w-full min-w-full max-h-[20vh] rounded-lg border border-gray-300 bg-white shadow-lg overflow-y-auto scroll"
+                  >
+                    {promptTemplates &&
+                      promptTemplates.length > 0 &&
+                      promptTemplates.map((template) => (
+                        <div
+                          key={template.title}
+                          className="da-txt-small flex w-full min-w-full shrink-0 cursor-pointer border-b p-2 hover:bg-da-gray-light"
+                          onClick={() => {
+                            setPrompt(template.prompt)
+                            setShowDropdown(!showDropdown)
+                          }}
+                        >
+                          {template.title}
+                        </div>
+                      ))}
+                  </div>
+                )}
                 <DaButton
                   variant="plain"
                   size="sm"
-                  onClick={() => setShowDropdown(!showDropdown)}
+                  onClick={() => resetWizardStore()}
                 >
-                  <TbHistory className="mr-1 size-4" />
-                  History
+                  <PiXCircle className="mr-1 size-5" />
+                  Clear
                 </DaButton>
-              )}
-
-              {showDropdown && (
-                <div
-                  ref={dropdownRef}
-                  className="absolute top-6 z-10 mt-2 w-full min-w-full rounded-lg border border-gray-300 bg-white shadow-lg"
+                <DaButton
+                  variant="plain"
+                  size="sm"
+                  onClick={() => setOpenSelectorPopup(true)}
                 >
-                  {promptTemplates &&
-                    promptTemplates.length > 0 &&
-                    promptTemplates.map((template) => (
-                      <div
-                        key={template.title}
-                        className="da-txt-small flex w-full min-w-full shrink-0 cursor-pointer border-b p-2 hover:bg-da-gray-light"
-                        onClick={() => {
-                          setPrompt(template.prompt)
-                          setShowDropdown(!showDropdown)
-                        }}
-                      >
-                        {template.title}
-                      </div>
-                    ))}
-                </div>
-              )}
+                  <PiGear className="mr-1 size-5" />
+                  Settings
+                </DaButton>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col p-2 mt-2 border border-da-gray-medium rounded-md">
+            <DaTextarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Ask AI to generate based on this prompt..."
+              className="w-full h-[15vh] shadow-none !outline-none focus:outline-none"
+              textareaClassName="flex h-full resize-none focus:ring-0 !shadow-none border-none text-da-gray-darkest !text-base"
+            />
+            <div className="flex justify-between p-2">
+              <Suspense>
+                <DaSpeechToText
+                  onRecognize={setPrompt}
+                  prompt={prompt}
+                  iconClassName="text-da-gray-medium"
+                />
+              </Suspense>
               <DaButton
-                variant="plain"
-                size="sm"
-                onClick={() => resetWizardStore()}
+                onClick={handleGenerate}
+                className="!px-5 !rounded-full"
+                variant="solid"
+                disabled={wizardPrompt.length === 0 || loading}
               >
-                <TbRotate className="mr-1 size-4 rotate-[270deg]" />
-                Clear
-              </DaButton>
-              <DaButton
-                variant="plain"
-                size="sm"
-                onClick={() => setOpenSelectorPopup(true)}
-              >
-                <TbSettings className="mr-1 size-4" />
-                Settings
+                <PiMagicWand className="size-5 mr-2" /> Generate
               </DaButton>
             </div>
           </div>
-
-          {/* Speech to Text component */}
-          <Suspense>
-            <DaSpeechToText onRecognize={setPrompt} prompt={prompt} />
-          </Suspense>
-        </div>
-
-        {/* Prompt Textarea */}
-        <div className="mt-1 flex h-full w-full">
-          <DaTextarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Ask AI to generate based on this prompt..."
-            className="w-full h-full"
-            textareaClassName="flex h-full resize-none !bg-gray-50 text-da-gray-darkest !text-lg"
-          />
-        </div>
-
-        {/* Status Section */}
-        <div className="da-label-small-medium mb-1 mt-2">Status</div>
-        <div className="flex flex-col mt-0 h-full mb-2 space-y-2 overflow-y-auto flex-shrink-0 max-h-[100px] xl:max-h-[150px] 2xl:max-h-[200px] rounded-md bg-da-gray-darkest p-3 text-white text-sm">
-          {uniqueLogs.map((log, index) => (
-            <div key={index} className="flex flex-col w-full">
-              <div className="uppercase text-xs font-bold p-1 mb-2 bg-white/25 w-fit h-fit rounded-md mr-1">
-                {log.source}
-              </div>
-              <div className="flex whitespace-pre-wrap leading-relaxed">
-                {log.content}
-              </div>
-            </div>
-          ))}
         </div>
 
         {/* Generator Selector Popup */}
