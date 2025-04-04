@@ -4,7 +4,6 @@ import { HomePartners } from '@/components/organisms/HomePartners'
 import PrototypeSummary from '@/components/organisms/PrototypeSummary'
 import { useState } from 'react'
 import PageGenAIWizard from '@/pages/wizard/PageGenAIWizard'
-import DaGenAI_WizardSimulateDashboard from '@/pages/wizard/DaGenAI_WizardSimulateDashboard'
 
 // const PageOrganisms = () => {
 //   return (

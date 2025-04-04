@@ -3,11 +3,7 @@ import HomologationLeftSection from './DaHomologationLeftSection'
 import HomologationRegulationResult from './DaHomologationRegulationResult'
 import { VehicleAPI } from '@/types/api.type'
 
-interface HomologationProps {
-  isWizard?: boolean
-}
-
-const Homologation = ({ isWizard }: HomologationProps) => {
+const Homologation = () => {
   const [selectedAPIs, setSelectedAPIs] = useState<Set<VehicleAPI>>(new Set([]))
 
   return (
@@ -17,7 +13,6 @@ const Homologation = ({ isWizard }: HomologationProps) => {
         <HomologationLeftSection
           selectedAPIs={selectedAPIs}
           setSelectedAPIs={setSelectedAPIs}
-          isWizard={isWizard}
         />
         {/* Divider */}
         <div className="border-r mt-5 mb-2  border-r-gray-200" />
