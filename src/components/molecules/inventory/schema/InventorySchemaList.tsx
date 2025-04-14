@@ -25,7 +25,7 @@ function InventorySchemaList() {
       toast.success('Deleted schema successfully!')
       await refetch()
     } catch (err: unknown) {
-      toast.error((error as Error).message || 'Failed to delete schema.')
+      toast.error((err as Error).message || 'Failed to delete schema.')
     } finally {
       setLoading(false)
     }
