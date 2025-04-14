@@ -18,10 +18,7 @@ const handleThrowError = (
       `Error ${action} ${type}:`,
       error.response?.data || error.message,
     )
-    throw (
-      new Error(error.response?.data?.message) ||
-      new Error(`Failed to fetch ${type}`)
-    )
+    throw new Error(error.response?.data?.message || `Failed to fetch ${type}`)
   }
   console.error(
     `Unexpected error ${action} ${type}:`,
