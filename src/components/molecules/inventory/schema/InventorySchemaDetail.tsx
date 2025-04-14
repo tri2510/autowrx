@@ -33,7 +33,7 @@ const InventorySchemaDetail: React.FC = () => {
         await refetch()
         navigate('/inventory/schemas') // Navigate back to list after delete
       } catch (err: unknown) {
-        toast.error((error as Error).message || 'Failed to delete schema.')
+        toast.error((err as Error).message || 'Failed to delete schema.')
         setLoading(false)
       }
     }
