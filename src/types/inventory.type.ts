@@ -31,6 +31,11 @@ export interface InventorySchema {
   created_at: string
 }
 
+export interface InventorySchemaPopulated {
+  name: string
+  id: string
+}
+
 export interface InventorySchemaFormData {
   name: string
   description?: string
@@ -48,4 +53,27 @@ export type UpdateInventorySchemaPayload = Partial<
   Omit<InventorySchemaFormData, 'schema_definition'>
 > & {
   schema_definition?: Record<string, any>
+}
+
+export interface InventoryInstance {
+  id: string
+  name: string
+  schema: InventorySchemaPopulated
+  data: Record<string, any>
+  created_by?: User
+  created_at: string
+}
+
+export type InventoryInstanceFormData = {
+  name: string
+  data: Record<string, any>
+}
+
+export type InventoryInstanceCreatePayload = InventoryInstanceFormData
+
+export type InventoryInstanceUpdatePayload = Omit<
+  InventoryInstanceFormData,
+  'data'
+> & {
+  data?: Record<string, any>
 }

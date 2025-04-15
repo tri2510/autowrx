@@ -94,6 +94,14 @@ const InventorySchemaUpdate = lazy(() =>
       import('@/components/molecules/inventory/schema/InventorySchemaUpdate'),
   ),
 )
+const InventoryInstanceCreate = lazy(() =>
+  retry(
+    () =>
+      import(
+        '@/components/molecules/inventory/instance/InventoryInstanceCreate'
+      ),
+  ),
+)
 
 const routesConfig: RouteConfig[] = [
   {
@@ -347,11 +355,24 @@ const routesConfig: RouteConfig[] = [
           },
           {
             path: 'schemas/:schemaId',
-            element: (
-              <SuspenseProvider>
-                <InventorySchemaDetail />
-              </SuspenseProvider>
-            ),
+            children: [
+              {
+                index: true,
+                element: (
+                  <SuspenseProvider>
+                    <InventorySchemaDetail />
+                  </SuspenseProvider>
+                ),
+              },
+              {
+                path: 'instances/new',
+                element: (
+                  <SuspenseProvider>
+                    <InventoryInstanceCreate />
+                  </SuspenseProvider>
+                ),
+              },
+            ],
           },
           {
             path: 'schemas/:schemaId/edit',
