@@ -1,4 +1,3 @@
-// src/components/schemas/SchemaUpdate.tsx
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import InventorySchemaForm from './InventorySchemaForm' // Adjust path
@@ -36,7 +35,7 @@ const InventorySchemaUpdate: React.FC = () => {
     try {
       await updateSchemaService(schemaId, formData)
       await refetch()
-      navigate(`/inventory/schemas/${schemaId}`) // Navigate back to the detail page
+      navigate(`/inventory/schema/${schemaId}`) // Navigate back to the detail page
     } catch (err: unknown) {
       setSubmissionError((err as Error).message || 'Failed to update schema.')
       setIsSubmitting(false) // Stop submitting loading indicator on error

@@ -171,7 +171,7 @@ const InventorySchemaForm: React.FC<SchemaFormProps> = ({
 
       {/* Action Buttons */}
       <div className="flex justify-end space-x-3 pt-4 border-t mt-6">
-        <Link to="/inventory/schemas">
+        <Link to="/inventory/schema">
           <DaButton variant="outline-nocolor">Cancel</DaButton>
         </Link>
         <DaButton

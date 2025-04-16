@@ -1,4 +1,3 @@
-// src/components/schemas/SchemaDetail.tsx
 import React, { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { deleteSchemaService } from '@/services/inventory.service'
@@ -31,7 +30,7 @@ const InventorySchemaDetail: React.FC = () => {
         await deleteSchemaService(schema.id)
         toast.success('Deleted schema successfully!')
         await refetch()
-        navigate('/inventory/schemas') // Navigate back to list after delete
+        navigate('/inventory/schema') // Navigate back to list after delete
       } catch (err: unknown) {
         toast.error((err as Error).message || 'Failed to delete schema.')
         setLoading(false)
@@ -77,7 +76,7 @@ const InventorySchemaDetail: React.FC = () => {
           {self?.id === schema.created_by?.id && (
             <div className="flex flex-shrink-0 space-x-2">
               <Link
-                to={`/inventory/schemas/${schema.id}/edit`} // Adjust route as needed
+                to={`/inventory/schema/${schema.id}/edit`} // Adjust route as needed
               >
                 <DaButton size="sm">
                   <TbEdit size={18} className="mr-1" /> Edit

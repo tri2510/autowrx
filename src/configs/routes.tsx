@@ -338,7 +338,7 @@ const routesConfig: RouteConfig[] = [
             ],
           },
           {
-            path: 'schemas',
+            path: 'schema',
             element: (
               <SuspenseProvider>
                 <InventorySchemaList />
@@ -346,7 +346,7 @@ const routesConfig: RouteConfig[] = [
             ),
           },
           {
-            path: 'schemas/new',
+            path: 'schema/new',
             element: (
               <SuspenseProvider>
                 <InventorySchemaCreate />
@@ -354,7 +354,7 @@ const routesConfig: RouteConfig[] = [
             ),
           },
           {
-            path: 'schemas/:schemaId',
+            path: 'schema/:schemaId',
             children: [
               {
                 index: true,
@@ -365,7 +365,7 @@ const routesConfig: RouteConfig[] = [
                 ),
               },
               {
-                path: 'instances/new',
+                path: 'instance/new',
                 element: (
                   <SuspenseProvider>
                     <InventoryInstanceCreate />
@@ -375,7 +375,7 @@ const routesConfig: RouteConfig[] = [
             ],
           },
           {
-            path: 'schemas/:schemaId/edit',
+            path: 'schema/:schemaId/edit',
             element: (
               <SuspenseProvider>
                 <InventorySchemaUpdate />
