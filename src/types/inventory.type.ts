@@ -42,17 +42,12 @@ export interface InventorySchemaFormData {
   schema_definition: string
 }
 
-export type CreateInventorySchemaPayload = Omit<
-  InventorySchemaFormData,
-  'schema_definition'
-> & {
-  schema_definition: Record<string, any>
-}
+export type CreateInventorySchemaPayload = InventorySchemaFormData
 
 export type UpdateInventorySchemaPayload = Partial<
   Omit<InventorySchemaFormData, 'schema_definition'>
 > & {
-  schema_definition?: Record<string, any>
+  schema_definition?: string
 }
 
 export interface InventoryInstance {
@@ -69,11 +64,16 @@ export type InventoryInstanceFormData = {
   data: Record<string, any>
 }
 
-export type InventoryInstanceCreatePayload = InventoryInstanceFormData
-
-export type InventoryInstanceUpdatePayload = Omit<
+export type InventoryInstanceCreatePayload = Omit<
   InventoryInstanceFormData,
   'data'
 > & {
-  data?: Record<string, any>
+  data: string
+  schema: string
 }
+
+export type InventoryInstanceUpdatePayload = Partial<
+  Omit<InventoryInstanceFormData, 'data'> & {
+    data?: string
+  }
+>
