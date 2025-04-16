@@ -355,30 +355,25 @@ const routesConfig: RouteConfig[] = [
           },
           {
             path: 'schema/:schemaId',
-            children: [
-              {
-                index: true,
-                element: (
-                  <SuspenseProvider>
-                    <InventorySchemaDetail />
-                  </SuspenseProvider>
-                ),
-              },
-              {
-                path: 'instance/new',
-                element: (
-                  <SuspenseProvider>
-                    <InventoryInstanceCreate />
-                  </SuspenseProvider>
-                ),
-              },
-            ],
+            element: (
+              <SuspenseProvider>
+                <InventorySchemaDetail />
+              </SuspenseProvider>
+            ),
           },
           {
             path: 'schema/:schemaId/edit',
             element: (
               <SuspenseProvider>
                 <InventorySchemaUpdate />
+              </SuspenseProvider>
+            ),
+          },
+          {
+            path: 'instance/new',
+            element: (
+              <SuspenseProvider>
+                <InventoryInstanceCreate />
               </SuspenseProvider>
             ),
           },

@@ -4,7 +4,7 @@ import { deleteSchemaService } from '@/services/inventory.service'
 import useGetInventorySchema from '@/hooks/useGetInventorySchema'
 import { DaButton } from '@/components/atoms/DaButton'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
-import { TbEdit, TbLoader, TbTrash } from 'react-icons/tb'
+import { TbEdit, TbLoader, TbPlus, TbTrash } from 'react-icons/tb'
 import DaText from '@/components/atoms/DaText'
 import dayjs from 'dayjs'
 import DaUserProfile from '../../DaUserProfile'
@@ -75,10 +75,15 @@ const InventorySchemaDetail: React.FC = () => {
           </div>
           {self?.id === schema.created_by?.id && (
             <div className="flex flex-shrink-0 space-x-2">
+              <Link to={`/inventory/instance/new?schemaId=${schema.id}`}>
+                <DaButton size="sm">
+                  <TbPlus size={18} className="mr-1" /> New Instance
+                </DaButton>
+              </Link>
               <Link
                 to={`/inventory/schema/${schema.id}/edit`} // Adjust route as needed
               >
-                <DaButton size="sm">
+                <DaButton variant="plain" size="sm">
                   <TbEdit size={18} className="mr-1" /> Edit
                 </DaButton>
               </Link>
