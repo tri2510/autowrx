@@ -4,6 +4,7 @@ import { List } from '@/types/common.type'
 import {
   CreateInventorySchemaPayload,
   InventoryInstance,
+  InventoryInstanceCreatePayload,
   InventoryInstanceFormData,
   InventorySchema,
   InventorySchemaFormData,
@@ -64,7 +65,7 @@ export const createSchemaService = async (
     // Parse the stringified JSON before sending
     const payload: CreateInventorySchemaPayload = {
       ...schemaData,
-      schema_definition: JSON.parse(schemaData.schema_definition),
+      schema_definition: schemaData.schema_definition,
     }
     const response = await serverAxios.post<InventorySchema>(
       '/inventory/schemas',
@@ -92,13 +93,9 @@ export const updateSchemaService = async (
   schemaData: Partial<InventorySchemaFormData>,
 ) => {
   try {
-    const { schema_definition, ...rest } = schemaData
-    const payload: UpdateInventorySchemaPayload = {
-      ...rest,
-      // Parse schema_definition only if it exists and is a string
-      ...(typeof schema_definition === 'string' && {
-        schema_definition: JSON.parse(schema_definition),
-      }),
+    const payload: UpdateInventorySchemaPayload = { ...schemaData }
+    if (!payload.schema_definition) {
+      delete payload.schema_definition
     }
 
     const response = await serverAxios.patch<InventorySchema>(
@@ -116,16 +113,18 @@ export const updateSchemaService = async (
 
 export const createInstanceService = async (
   schemaId: string,
-  data: InventoryInstanceFormData,
+  formData: InventoryInstanceFormData,
 ) => {
   try {
+    const payload: InventoryInstanceCreatePayload = {
+      ...formData,
+      data: JSON.stringify(formData.data),
+      schema: schemaId,
+    }
+
     const response = await serverAxios.post<InventoryInstance>(
       '/inventory/instances',
-      {
-        schema: schemaId,
-        data: data.data,
-        name: data.name,
-      },
+      payload,
     )
     return response.data
   } catch (error: any) {
