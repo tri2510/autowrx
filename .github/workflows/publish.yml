@@ -29,22 +29,17 @@ jobs:
           mkdir -p release-package
           zip -r "release-package/release.zip" . -x "*.git*" "node_modules/*" "release-package/*" "*.zip"
 
-      - name: Create package.json for archive
+      - name: Copy and patch package.json
         run: |
-          cat > release-package/package.json <<EOF
-          {
-            "name": "@tri2510/release-archive",
-            "version": "${GIT_TAG}",
-            "description": "Release archive for autowrx ${GIT_TAG}",
-            "main": "release.zip",
-            "files": [
-              "release.zip"
-            ],
-            "publishConfig": {
-              "registry": "https://npm.pkg.github.com/"
-            }
-          }
-          EOF
+          cp package.json release-package/package.json
+          jq \
+            --arg version "$GIT_TAG" \
+            '.version=$version
+            | .main="release.zip"
+            | .files=["release.zip"]
+            | .publishConfig={"registry":"https://npm.pkg.github.com/"}' \
+            release-package/package.json > release-package/tmp.json
+          mv release-package/tmp.json release-package/package.json
 
       - name: Publish archive to GitHub Packages
         run: npm publish
