@@ -35,7 +35,7 @@ jobs:
             | .version=$ver 
             | .private=false 
             | .main="index.js" 
-            | .files=["dist", "index.js"] 
+            | .files=["dist", "index.js", "src", "scripts", "config", "package.json"]
             | .repository={ "type":"git", "url":"https://github.com/tri2510/autowrx.git" } 
             | .publishConfig.registry="https://npm.pkg.github.com/"' \
             package.json > release-package/package.json
