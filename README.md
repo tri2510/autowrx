@@ -1,4 +1,4 @@
-# NVM setup
+# NVM setup 2
 
 Setup nvm to automatically change to compatible node version
 
