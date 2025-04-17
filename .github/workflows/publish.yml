@@ -24,25 +24,16 @@ jobs:
       - name: Extract tag name
         run: echo "GIT_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
-      - name: Create release archive
+      - name: Copy source files
         run: |
           mkdir -p release-package
-          zip -r "release-package/release.zip" . -x "*.git*" "node_modules/*" "release-package/*" "*.zip"
+          rsync -av --exclude=node_modules --exclude=.git --exclude=release-package ./ release-package/
 
-      - name: Copy and patch package.json
+      - name: Update package.json for publishing
         run: |
-          cp package.json release-package/package.json
-          jq \
-            --arg version "$GIT_TAG" \
-            'del(.private)
-            | .version=$version
-            | .main="release.zip"
-            | .files=["release.zip"]
-            | .publishConfig={"registry":"https://npm.pkg.github.com/"}' \
-            release-package/package.json > release-package/tmp.json
-          mv release-package/tmp.json release-package/package.json
+          jq '.name="@tri2510/release-archive" | .version=env.GIT_TAG | .private=false | .publishConfig.registry="https://npm.pkg.github.com/"' package.json > release-package/package.json
 
-      - name: Publish archive to GitHub Packages
+      - name: Publish full project to GitHub Packages
         run: npm publish
         working-directory: release-package
         env:
@@ -52,4 +43,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-archive-${{ env.GIT_TAG }}
-          path: release-package/release.zip
+          path: release-package
