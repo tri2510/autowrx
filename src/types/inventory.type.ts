@@ -59,6 +59,10 @@ export interface InventoryInstance {
   created_at: string
 }
 
+export type InventoryInstanceDetail = Omit<InventoryInstance, 'schema'> & {
+  schema: InventorySchema
+}
+
 export type InventoryInstanceFormData = {
   name: string
   data: Record<string, any>

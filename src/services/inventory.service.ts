@@ -6,6 +6,8 @@ import {
   InventoryInstance,
   InventoryInstanceCreatePayload,
   InventoryInstanceFormData,
+  InventoryInstanceDetail,
+  InventoryInstanceUpdatePayload,
   InventorySchema,
   InventorySchemaFormData,
   UpdateInventorySchemaPayload,
@@ -132,5 +134,71 @@ export const createInstanceService = async (
       throw new Error('Schema not found')
     }
     handleThrowError(error, 'creating', 'inventory instance')
+  }
+}
+
+export const listInventoryInstancesService = async (params = {}) => {
+  try {
+    const response = await serverAxios.get<List<InventoryInstance>>(
+      '/inventory/instances',
+      {
+        params,
+      },
+    )
+    return response.data
+  } catch (error) {
+    handleThrowError(error, 'fetching', 'inventory instances')
+  }
+}
+
+export const getInventoryInstanceService = async (instanceId: string) => {
+  try {
+    const response = await serverAxios.get<InventoryInstanceDetail>(
+      `/inventory/instances/${instanceId}`,
+    )
+    return response.data
+  } catch (error) {
+    if ((error as AxiosError).response?.status === 404) {
+      throw new Error('Instance not found')
+    }
+    handleThrowError(error, 'fetching', 'inventory instance by id')
+  }
+}
+
+export const updateInventoryInstanceService = async (
+  instanceId: string,
+  formData: InventoryInstanceFormData,
+) => {
+  try {
+    const payload: InventoryInstanceUpdatePayload = {
+      ...formData,
+      ...(formData.data && {
+        data: JSON.stringify(formData.data),
+      }),
+    }
+    if (!payload.data) {
+      delete payload.data
+    }
+    const response = await serverAxios.patch<InventoryInstance>(
+      `/inventory/instances/${instanceId}`,
+      payload,
+    )
+    return response.data
+  } catch (error) {
+    if ((error as AxiosError).response?.status === 404) {
+      throw new Error('Instance not found')
+    }
+    handleThrowError(error, 'updating', 'inventory instance by id')
+  }
+}
+
+export const deleteInventoryInstanceService = async (instanceId: string) => {
+  try {
+    return serverAxios.delete(`/inventory/instances/${instanceId}`)
+  } catch (error) {
+    if ((error as AxiosError).response?.status === 404) {
+      throw new Error('Instance not found')
+    }
+    handleThrowError(error, 'deleting', 'inventory instance by id')
   }
 }

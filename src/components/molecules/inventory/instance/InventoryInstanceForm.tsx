@@ -4,28 +4,33 @@ import { RJSFSchema } from '@rjsf/utils'
 import { DaButton } from '@/components/atoms/DaButton'
 import { TbLoader } from 'react-icons/tb'
 import { DaInput } from '@/components/atoms/DaInput'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IChangeEvent } from '@rjsf/core'
 import { InventoryInstanceFormData } from '@/types/inventory.type'
 import { DaSelect, DaSelectItem } from '@/components/atoms/DaSelect'
 import useGetInventorySchema from '@/hooks/useGetInventorySchema'
 import DaLoading from '@/components/atoms/DaLoading'
 import useListInventorySchemas from '@/hooks/useListInventorySchemas'
+import DaTooltip from '@/components/atoms/DaTooltip'
 
 type InventoryInstanceFormProps = {
   initialSchemaId?: string | null
+  initialData?: InventoryInstanceFormData
   onSubmit: (schemaId: string, data: InventoryInstanceFormData) => void
   loading?: boolean
   error?: string | null
   onCancel?: () => void
+  isUpdating?: boolean
 }
 
 const InventoryInstanceForm = ({
   initialSchemaId,
+  initialData,
   onSubmit,
   loading,
   error,
   onCancel,
+  isUpdating,
 }: InventoryInstanceFormProps) => {
   const [formData, setFormData] = useState({})
 
@@ -47,6 +52,14 @@ const InventoryInstanceForm = ({
   useEffect(() => {
     if (initialSchemaId) setSchemaId(initialSchemaId)
   }, [initialSchemaId])
+
+  // Update state with initial data if provided
+  useEffect(() => {
+    if (initialData) {
+      setInstanceName(initialData.name)
+      setFormData(initialData.data)
+    }
+  }, [initialData])
 
   const handleSubmitBtnClick = () => {
     setTriedSubmitting(true)
@@ -80,6 +93,20 @@ const InventoryInstanceForm = ({
       setInstanceNameError(instanceName ? '' : 'Instance name is required.')
     }
   }, [triedSubmitting, schema, instanceName])
+
+  const OptionalTooltipWrapper = useCallback(
+    ({ children }: { children: React.ReactNode }) => {
+      if (isUpdating) {
+        return (
+          <DaTooltip content="Updating schema is not allowed.">
+            {children}
+          </DaTooltip>
+        )
+      }
+      return <>{children}</>
+    },
+    [isUpdating],
+  )
 
   if (isLoading) {
     return (
@@ -120,13 +147,19 @@ const InventoryInstanceForm = ({
       >
         Schema <span className="text-red-500">*</span>
       </label>
-      <DaSelect value={schemaId} onValueChange={(value) => setSchemaId(value)}>
-        {schemaList?.results.map((schema) => (
-          <DaSelectItem key={schema.id} value={schema.id}>
-            {schema.name}
-          </DaSelectItem>
-        ))}
-      </DaSelect>
+      <OptionalTooltipWrapper>
+        <DaSelect
+          disabled={isUpdating}
+          value={schemaId}
+          onValueChange={(value) => setSchemaId(value)}
+        >
+          {schemaList?.results.map((schema) => (
+            <DaSelectItem key={schema.id} value={schema.id}>
+              {schema.name}
+            </DaSelectItem>
+          ))}
+        </DaSelect>
+      </OptionalTooltipWrapper>
 
       {schemaError && (
         <div className="text-red-600 da-txt-small mt-2">{schemaError}</div>
@@ -176,6 +209,8 @@ const InventoryInstanceForm = ({
               <>
                 <TbLoader className="mr-1 animate-spin" /> Submitting...
               </>
+            ) : isUpdating ? (
+              'Update Instance'
             ) : (
               'Create Instance'
             )}

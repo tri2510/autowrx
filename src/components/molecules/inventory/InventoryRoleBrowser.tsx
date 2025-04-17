@@ -7,10 +7,15 @@ import { TbListTree } from 'react-icons/tb'
 const InventoryRoleBrowser = () => {
   return (
     <div className="container">
-      <div className="flex-1 min-w-0 flex justify-between">
+      <div className="flex-1 min-w-0 flex gap-2">
         <DaText variant="title" className="text-da-primary-500">
           Role Browser
         </DaText>
+        <Link className="ml-auto" to="/inventory/instance">
+          <DaButton variant="outline-nocolor" size="sm">
+            <TbListTree className="mr-1" /> Instances
+          </DaButton>
+        </Link>
         <Link to="/inventory/schema">
           <DaButton variant="outline-nocolor" size="sm">
             <TbListTree className="mr-1" /> Schemas
