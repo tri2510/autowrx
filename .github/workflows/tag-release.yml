@@ -19,14 +19,14 @@ jobs:
       - run: yarn build
 
       - name: Simulate tag
-        run: |
-          echo "GIT_TAG=v1.0.0" >> $GITHUB_ENV
+        run: echo "GIT_TAG=v1.0.0" >> $GITHUB_ENV
 
       - name: Create release archive
         run: |
           mkdir -p dist
-          zip -r dist/release-$GIT_TAG.zip . -x "*.git*" "node_modules/*" "dist/*" "*.zip"
-          unzip -l dist/release-$GIT_TAG.zip
+          zip -r "dist/release-${GIT_TAG}.zip" . -x "*.git*" "node_modules/*" "dist/*" "*.zip"
+          unzip -l "dist/release-${GIT_TAG}.zip"
+
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
