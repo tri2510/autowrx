@@ -3,7 +3,7 @@ name: Publish to GitHub Packages
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
 
 jobs:
   publish:
@@ -16,9 +16,27 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com/'
+          cache: 'yarn'
 
       - run: yarn install --frozen-lockfile
       - run: yarn build
-      - run: npm publish
+
+      - name: Extract tag name
+        run: echo "GIT_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+      - name: Publish to GitHub Packages
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release archive
+        run: |
+          mkdir -p dist
+          zip -r "dist/release-${{ env.GIT_TAG }}.zip" . -x "*.git*" "node_modules/*" "dist/*" "*.zip"
+          unzip -l "dist/release-${{ env.GIT_TAG }}.zip"
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-archive-${{ env.GIT_TAG }}
+          path: dist/release-*.zip
