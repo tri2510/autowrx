@@ -34,7 +34,8 @@ jobs:
           cp package.json release-package/package.json
           jq \
             --arg version "$GIT_TAG" \
-            '.version=$version
+            'del(.private)
+            | .version=$version
             | .main="release.zip"
             | .files=["release.zip"]
             | .publishConfig={"registry":"https://npm.pkg.github.com/"}' \
