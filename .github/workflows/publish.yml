@@ -24,20 +24,36 @@ jobs:
       - name: Extract tag name
         run: echo "GIT_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
-      - name: Publish to GitHub Packages
-        run: |
-          npm publish || echo "Skipping npm publish due to auth error"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create release archive
         run: |
-          mkdir -p dist
-          zip -r "dist/release-${{ env.GIT_TAG }}.zip" . -x "*.git*" "node_modules/*" "dist/*" "*.zip"
-          unzip -l "dist/release-${{ env.GIT_TAG }}.zip"
+          mkdir -p release-package
+          zip -r "release-package/release.zip" . -x "*.git*" "node_modules/*" "release-package/*" "*.zip"
+
+      - name: Create package.json for archive
+        run: |
+          cat > release-package/package.json <<EOF
+          {
+            "name": "@tri2510/release-archive",
+            "version": "${GIT_TAG}",
+            "description": "Release archive for autowrx ${GIT_TAG}",
+            "main": "release.zip",
+            "files": [
+              "release.zip"
+            ],
+            "publishConfig": {
+              "registry": "https://npm.pkg.github.com/"
+            }
+          }
+          EOF
+
+      - name: Publish archive to GitHub Packages
+        run: npm publish
+        working-directory: release-package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
           name: release-archive-${{ env.GIT_TAG }}
-          path: dist/release-*.zip
+          path: release-package/release.zip
