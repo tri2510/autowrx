@@ -1,10 +1,12 @@
-name: Tag Release (PR Test)
+name: Tag Release
 
 on:
-  pull_request:
+  push:
+    tags:
+      - '*'
 
 jobs:
-  test-release:
+  release:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,8 +20,8 @@ jobs:
       - run: yarn install --frozen-lockfile
       - run: yarn build
 
-      - name: Simulate tag
-        run: echo "GIT_TAG=v1.0.0" >> $GITHUB_ENV
+      - name: Extract tag name
+        run: echo "GIT_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
       - name: Create release archive
         run: |
@@ -30,5 +32,5 @@ jobs:
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
-          name: release-archive
+          name: release-archive-${{ env.GIT_TAG }}
           path: dist/release-*.zip
