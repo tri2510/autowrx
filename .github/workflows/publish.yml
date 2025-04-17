@@ -31,7 +31,14 @@ jobs:
 
       - name: Update package.json for publishing
         run: |
-          jq '.name="@tri2510/release-archive" | .version=env.GIT_TAG | .private=false | .publishConfig.registry="https://npm.pkg.github.com/"' package.json > release-package/package.json
+          jq --arg ver "$GIT_TAG" '.name="@tri2510/release-archive" 
+            | .version=$ver 
+            | .private=false 
+            | .main="index.js" 
+            | .files=["dist", "index.js"] 
+            | .repository={ "type":"git", "url":"https://github.com/tri2510/autowrx.git" } 
+            | .publishConfig.registry="https://npm.pkg.github.com/"' \
+            package.json > release-package/package.json
 
       - name: Publish full project to GitHub Packages
         run: npm publish
