@@ -1,0 +1,29 @@
+name: Tag Release (PR Test)
+
+on:
+  pull_request:
+
+jobs:
+  test-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+
+      - name: Simulate tag
+        run: |
+          echo "GIT_TAG=v1.0.0" >> $GITHUB_ENV
+
+      - name: Create release archive
+        run: |
+          mkdir -p dist
+          zip -r dist/release-$GIT_TAG.zip . -x "*.git*" "node_modules/*" "dist/*" "*.zip"
+          unzip -l dist/release-$GIT_TAG.zip
