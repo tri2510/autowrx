@@ -1,8 +1,5 @@
 name: Release Archive
 
-permissions:
-  contents: write
-
 on:
   push:
     tags:
@@ -36,25 +33,19 @@ jobs:
           tar -czf "$TAR_NAME" -C archive .
           echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
 
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ env.RELEASE_TAG }}
+          path: ${{ env.TAR_NAME }}
+
       - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+        if: always()
         continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          release_name: Release ${{ env.RELEASE_TAG }}
-          draft: false
-          prerelease: false
-
-      - name: Upload release asset
-        if: steps.create_release.outputs.upload_url != ''
-        uses: actions/upload-release-asset@v1
+          name: Release ${{ env.RELEASE_TAG }}
+          files: ${{ env.TAR_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.TAR_NAME }}
-          asset_name: ${{ env.TAR_NAME }}
-          asset_content_type: application/gzip
