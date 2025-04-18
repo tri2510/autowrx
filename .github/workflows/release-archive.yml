@@ -33,8 +33,22 @@ jobs:
           tar -czf "$TAR_NAME" -C archive .
           echo "TAR_NAME=$TAR_NAME" >> $GITHUB_ENV
 
-      - name: Upload release archive
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ github.event.repository.name }}-${{ env.RELEASE_TAG }}
-          path: ${{ env.TAR_NAME }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          release_name: Release ${{ env.RELEASE_TAG }}
+          draft: false
+          prerelease: false
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.TAR_NAME }}
+          asset_name: ${{ env.TAR_NAME }}
+          asset_content_type: application/gzip
