@@ -28,8 +28,8 @@ const InventorySchemaDetail: React.FC = () => {
       try {
         setLoading(true)
         await deleteSchemaService(schema.id)
-        toast.success('Deleted schema successfully!')
         await refetch()
+        toast.success('Deleted schema successfully!')
         navigate('/inventory/schema') // Navigate back to list after delete
       } catch (err: unknown) {
         toast.error((err as Error).message || 'Failed to delete schema.')
@@ -105,7 +105,7 @@ const InventorySchemaDetail: React.FC = () => {
                     Delete Schema
                   </DaText>
 
-                  <DaText>
+                  <DaText variant="small">
                     This action cannot be undone and will delete schema with all
                     associated data, including: instances, relations and
                     instance relations. Please proceed with caution.
