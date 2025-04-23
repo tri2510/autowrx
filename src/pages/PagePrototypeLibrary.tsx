@@ -271,8 +271,15 @@ const PagePrototypeLibrary = () => {
             label="Select or Drop Zip File"
             isImage={false}
             validate={async (file) => {
-              await handleFileChange(file)
-              return null
+              const maxFileSize = 10 * 1024 * 1024; // 10 MB
+              if (!file.name.endsWith('.zip')) {
+                return 'Only .zip files are allowed.';
+              }
+              if (file.size > maxFileSize) {
+                return 'File size must be less than 10 MB.';
+              }
+              await handleFileChange(file);
+              return null;
             }}
             onFileUpload={(url) => {
               if (url === '') {
