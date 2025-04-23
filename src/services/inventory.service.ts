@@ -3,6 +3,8 @@ import { serverAxios } from './base'
 import { List } from '@/types/common.type'
 import {
   CreateInventorySchemaPayload,
+  InventoryInstance,
+  InventoryInstanceFormData,
   InventorySchema,
   InventorySchemaFormData,
   UpdateInventorySchemaPayload,
@@ -109,5 +111,27 @@ export const updateSchemaService = async (
       throw new Error('Schema not found')
     }
     handleThrowError(error, 'updating', 'inventory schema by id')
+  }
+}
+
+export const createInstanceService = async (
+  schemaId: string,
+  data: InventoryInstanceFormData,
+) => {
+  try {
+    const response = await serverAxios.post<InventoryInstance>(
+      '/inventory/instances',
+      {
+        schema: schemaId,
+        data: data.data,
+        name: data.name,
+      },
+    )
+    return response.data
+  } catch (error: any) {
+    if ((error as AxiosError).response?.status === 404) {
+      throw new Error('Schema not found')
+    }
+    handleThrowError(error, 'creating', 'inventory instance')
   }
 }
