@@ -51,7 +51,7 @@ function InventorySchemaList() {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="font-bold da-txt-medium text-da-gray-dark">Schemas</h1>
-        <Link to="/inventory/schemas/new">
+        <Link to="/inventory/schema/new">
           <DaButton size="sm">
             <TbCirclePlus className="mr-1" /> Create New Schema
           </DaButton>
@@ -81,7 +81,7 @@ function InventorySchemaList() {
                 <tr key={schema.id} className="hover:bg-da-gray-light">
                   <td className="px-5 py-2 border-b border-da-gray-light bg-white text-sm">
                     <Link
-                      to={`/inventory/schemas/${schema.id}`}
+                      to={`/inventory/schema/${schema.id}`}
                       className="text-da-primary-500 hover:underline"
                     >
                       {schema.name}
@@ -92,7 +92,7 @@ function InventorySchemaList() {
                   </td>
                   <td className="px-5 py-2 border-b border-da-gray-light bg-white text-sm whitespace-nowrap">
                     <Link
-                      to={`/inventory/schemas/${schema.id}`}
+                      to={`/inventory/schema/${schema.id}`}
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >
@@ -105,7 +105,7 @@ function InventorySchemaList() {
                     {self?.id === schema.created_by?.id && (
                       <>
                         <Link
-                          to={`/inventory/schemas/${schema.id}/edit`}
+                          to={`/inventory/schema/${schema.id}/edit`}
                           className="text-indigo-600 hover:text-indigo-900"
                           title="Edit Schema"
                         >

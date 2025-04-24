@@ -22,7 +22,7 @@ const InventorySchemaCreate: React.FC = () => {
       // The API service handles parsing schema_definition string to JSON
       const newSchema = await createSchemaService(formData)
       toast.success('Schema created successfully!') // Show success message
-      navigate(`/inventory/schemas/${newSchema?.id}`) // Navigate to the new schema's detail page
+      navigate(`/inventory/schema/${newSchema?.id}`) // Navigate to the new schema's detail page
     } catch (err: unknown) {
       setError(
         (err as Error).message ||

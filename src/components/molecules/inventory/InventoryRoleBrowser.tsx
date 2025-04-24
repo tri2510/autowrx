@@ -11,7 +11,7 @@ const InventoryRoleBrowser = () => {
         <DaText variant="title" className="text-da-primary-500">
           Role Browser
         </DaText>
-        <Link to="/inventory/schemas">
+        <Link to="/inventory/schema">
           <DaButton variant="outline-nocolor" size="sm">
             <TbListTree className="mr-1" /> Schemas
           </DaButton>
