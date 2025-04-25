@@ -27,7 +27,11 @@ const InventoryInstanceCreate = () => {
       // The data is already validated by RJSF based on the schema
       const instance = await createInstanceService(schemaId, data)
       toast.success(`Instance created successfully!`)
-      navigate(`/inventory/instance/${instance?.id}`)
+      if (instance && instance.id) {
+        navigate(`/inventory/instance/${instance.id}`)
+      } else {
+        toast.error('Failed to retrieve instance ID. Please try again.')
+      }
     } catch (err: unknown) {
       setError((err as Error).message || 'Failed to create instance.')
       setLoading(false)
