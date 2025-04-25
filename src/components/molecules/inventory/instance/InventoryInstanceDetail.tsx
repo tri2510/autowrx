@@ -58,10 +58,10 @@ const InventoryInstanceDetail = () => {
         setLoading(true)
         await deleteInventoryInstanceService(instanceId)
         await refetch()
-        toast.success('Deleted schema successfully!')
+        toast.success('Deleted instance successfully!')
         navigate('/inventory/instance')
       } catch (err: unknown) {
-        toast.error((err as Error).message || 'Failed to delete schema.')
+        toast.error((err as Error).message || 'Failed to delete instance.')
         setLoading(false)
       }
     }
