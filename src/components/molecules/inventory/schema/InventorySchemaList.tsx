@@ -9,21 +9,21 @@ import { toast } from 'react-toastify'
 import DaPopup from '@/components/atoms/DaPopup'
 import DaText from '@/components/atoms/DaText'
 import DaLoading from '@/components/atoms/DaLoading'
+import { InventorySchema } from '@/types/inventory.type'
 
 function InventorySchemaList() {
   const { data: self } = useSelfProfileQuery()
   const { data, isLoading, error, refetch } = useListInventorySchemas()
   const schemas = data?.results || []
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleDelete = async (schemaId: string) => {
     try {
       setLoading(true)
       await deleteSchemaService(schemaId)
-      toast.success('Deleted schema successfully!')
       await refetch()
+      toast.success('Deleted schema successfully!')
     } catch (err: unknown) {
       toast.error((err as Error).message || 'Failed to delete schema.')
     } finally {
@@ -78,102 +78,122 @@ function InventorySchemaList() {
             </thead>
             <tbody>
               {schemas.map((schema) => (
-                <tr key={schema.id} className="hover:bg-da-gray-light">
-                  <td className="px-5 py-2 border-b border-da-gray-light bg-white text-sm">
-                    <Link
-                      to={`/inventory/schema/${schema.id}`}
-                      className="text-da-primary-500 hover:underline"
-                    >
-                      {schema.name}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-2 border-b border-da-gray-light bg-white text-sm">
-                    {schema.description || '-'}
-                  </td>
-                  <td className="px-5 py-2 border-b border-da-gray-light bg-white text-sm whitespace-nowrap">
-                    <Link
-                      to={`/inventory/schema/${schema.id}`}
-                      className="text-gray-600 hover:text-gray-900"
-                      title="View Details"
-                    >
-                      <DaButton size="sm" variant="plain">
-                        <TbEye className="mr-1" size={16} />
-                        View
-                      </DaButton>
-                    </Link>
-
-                    {self?.id === schema.created_by?.id && (
-                      <>
-                        <Link
-                          to={`/inventory/schema/${schema.id}/edit`}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Edit Schema"
-                        >
-                          <DaButton size="sm" variant="plain">
-                            <TbEdit className="mr-1" size={16} />
-                            Edit
-                          </DaButton>
-                        </Link>
-
-                        <DaPopup
-                          state={[showDeleteConfirm, setShowDeleteConfirm]}
-                          trigger={
-                            <DaButton
-                              size="sm"
-                              className="!text-da-destructive"
-                              variant="destructive"
-                            >
-                              <TbTrash size={18} className="mr-1" /> Delete
-                            </DaButton>
-                          }
-                        >
-                          <div className="w-[500px] flex flex-col gap-2 max-w-[90vw]">
-                            <DaText
-                              variant="sub-title"
-                              className="text-da-primary-500"
-                            >
-                              Delete Schema "{schema.name}"
-                            </DaText>
-
-                            <DaText>
-                              This action cannot be undone and will delete
-                              schema "{schema.name}" with all associated data,
-                              including: instances, relations and instance
-                              relations. Please proceed with caution.
-                            </DaText>
-
-                            <div className="mt-2 flex justify-end items-center gap-2">
-                              <DaButton
-                                onClick={() => setShowDeleteConfirm(false)}
-                                size="sm"
-                                variant="outline-nocolor"
-                                disabled={loading}
-                              >
-                                Cancel
-                              </DaButton>
-                              <DaButton
-                                disabled={loading}
-                                onClick={() => handleDelete(schema.id)}
-                                size="sm"
-                              >
-                                {loading && (
-                                  <TbLoader className="mr-1 animate-spin" />
-                                )}
-                                Delete
-                              </DaButton>
-                            </div>
-                          </div>
-                        </DaPopup>
-                      </>
-                    )}
-                  </td>
-                </tr>
+                <SchemaItem
+                  currentUserId={self?.id}
+                  schema={schema}
+                  key={schema.id}
+                  onDelete={handleDelete}
+                  loading={loading}
+                />
               ))}
             </tbody>
           </table>
         </div>
       )}
     </div>
+  )
+}
+
+type SchemaItemProps = {
+  schema: InventorySchema
+  currentUserId?: string
+  onDelete: (schemaId: string) => void
+  loading: boolean
+}
+
+function SchemaItem({
+  schema,
+  currentUserId,
+  onDelete,
+  loading,
+}: SchemaItemProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  return (
+    <tr key={schema.id} className="hover:bg-da-gray-light">
+      <td className="px-5 py-2 border-b border-da-gray-light bg-white text-sm">
+        <Link
+          to={`/inventory/schema/${schema.id}`}
+          className="text-da-primary-500 hover:underline"
+        >
+          {schema.name}
+        </Link>
+      </td>
+      <td className="px-5 py-2 border-b border-da-gray-light bg-white text-sm">
+        {schema.description || '-'}
+      </td>
+      <td className="px-5 py-2 border-b border-da-gray-light bg-white text-sm whitespace-nowrap">
+        <Link
+          to={`/inventory/schema/${schema.id}`}
+          className="text-gray-600 hover:text-gray-900"
+          title="View Details"
+        >
+          <DaButton size="sm" variant="plain">
+            <TbEye className="mr-1" size={16} />
+            View
+          </DaButton>
+        </Link>
+
+        {currentUserId === schema.created_by?.id && (
+          <>
+            <Link
+              to={`/inventory/schema/${schema.id}/edit`}
+              className="text-indigo-600 hover:text-indigo-900"
+              title="Edit Schema"
+            >
+              <DaButton size="sm" variant="plain">
+                <TbEdit className="mr-1" size={16} />
+                Edit
+              </DaButton>
+            </Link>
+
+            <DaPopup
+              state={[showDeleteConfirm, setShowDeleteConfirm]}
+              trigger={
+                <DaButton
+                  size="sm"
+                  className="!text-da-destructive"
+                  variant="destructive"
+                >
+                  <TbTrash size={18} className="mr-1" /> Delete
+                </DaButton>
+              }
+            >
+              <div className="w-[500px] flex flex-col gap-2 max-w-[90vw]">
+                <DaText variant="sub-title" className="text-da-primary-500">
+                  Delete Schema "{schema.name}"
+                </DaText>
+
+                <DaText variant="small">
+                  This action cannot be undone and will delete schema "
+                  {schema.name}" with all associated data, including: instances,
+                  relations and instance relations. Please proceed with caution.
+                </DaText>
+
+                <div className="mt-2 flex justify-end items-center gap-2">
+                  <DaButton
+                    onClick={() => setShowDeleteConfirm(false)}
+                    size="sm"
+                    variant="outline-nocolor"
+                    disabled={loading}
+                  >
+                    Cancel
+                  </DaButton>
+                  <DaButton
+                    disabled={loading}
+                    onClick={() => onDelete(schema.id)}
+                    size="sm"
+                  >
+                    {loading && <TbLoader className="mr-1 animate-spin" />}
+                    Delete
+                  </DaButton>
+                </div>
+              </div>
+            </DaPopup>
+          </>
+        )}
+      </td>
+    </tr>
   )
 }
 
