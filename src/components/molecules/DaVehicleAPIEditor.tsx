@@ -344,7 +344,7 @@ const DaVehicleAPIEditor = ({
 
       <div className="flex flex-col gap-2 mt-2">
         <DaText variant="small-bold" className="text-da-gray-dark">
-          Additional Properties
+          Custom Properties
         </DaText>
         <div className="flex flex-col space-y-2 max-h-[40vh] overflow-auto">
           {Object.values(customProperties).length > 0 ? (
