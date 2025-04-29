@@ -8,18 +8,20 @@ import { DaTextarea } from '../atoms/DaTextarea'
 import DaCheckbox from '../atoms/DaCheckbox'
 import { DaButton } from '../atoms/DaButton'
 import _ from 'lodash'
-import { TbLoader } from 'react-icons/tb'
+import { TbLoader, TbPlus } from 'react-icons/tb'
 import { isAxiosError } from 'axios'
 import { updateExtendedApi } from '@/services/extendedApis.service'
 import { ExtendedApi } from '@/types/api.type'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import { updateModelService } from '@/services/model.service'
+import DaCustomPropertyItem from './vehicle_properties/DaCustomPropertyItem'
+import { CustomPropertyType } from '@/types/property.type'
 
 type DaVehicleAPIEditorProps = {
   className?: string
   apiDetails?: Partial<ExtendedApi & VehicleApi>
   onCancel?: () => void
-  onUpdate?: (data: Partial<ExtendedApi>) => void
+  onUpdate?: (data: Partial<ExtendedApi>) => void | Promise<void>
 }
 
 const typeOptions = [
@@ -76,11 +78,16 @@ const DaVehicleAPIEditor = ({
   onCancel,
   onUpdate,
 }: DaVehicleAPIEditorProps) => {
-  const [data, setData] = useState<Partial<ExtendedApi>>(defaultData)
+  const [data, setData] =
+    useState<Partial<Omit<ExtendedApi, 'custom_properties'>>>(defaultData)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const { data: model, refetch } = useCurrentModel()
+  const [customProperties, setCustomProperties] = useState<
+    CustomPropertyType[]
+  >([])
+
+  const { data: model } = useCurrentModel()
 
   useEffect(() => {
     if (apiDetails) {
@@ -88,6 +95,7 @@ const DaVehicleAPIEditor = ({
         ...apiDetails,
         apiName: apiDetails?.name,
       })
+      setCustomProperties(Object.values(apiDetails?.custom_properties || {}))
     } else {
       setData(defaultData)
     }
@@ -97,26 +105,94 @@ const DaVehicleAPIEditor = ({
     if (data.type !== 'branch' && !data.datatype) {
       return 'Data Type is required'
     }
+
+    // Validate custom properties
+    const propertyNames = new Set<string>()
+
+    for (const prop of customProperties) {
+      if (!prop.name.trim()) {
+        return 'Property name is required'
+      }
+
+      if (propertyNames.has(prop.name.trim())) {
+        return 'Duplicate property name found'
+      } else {
+        propertyNames.add(prop.name.trim())
+      }
+
+      switch (prop.type) {
+        case 'string':
+          if (typeof prop.value !== 'string')
+            return `Value for property ${prop.name} must be a string`
+          break
+        case 'number':
+          if (isNaN(Number(prop.value)))
+            return `Value for property ${prop.name} must be a number`
+          break
+        case 'boolean':
+          if (typeof prop.value !== 'boolean')
+            return `Value for property ${prop.name} must be a boolean`
+          break
+        case 'null':
+          return `Value for property ${prop.name} must be null`
+      }
+    }
+  }
+
+  const handleAddProperty = () => {
+    setCustomProperties((prev) => [
+      ...prev,
+      {
+        name: '',
+        value: '',
+        type: 'string',
+      },
+    ])
+  }
+
+  const handleUpdateProperty = (
+    index: number,
+    updatedProperty: CustomPropertyType,
+  ) => {
+    setCustomProperties((prev) => {
+      const updatedProperties = [...prev]
+      updatedProperties[index] = updatedProperty
+      return updatedProperties
+    })
+  }
+
+  const handleDeleteProperty = (index: number) => {
+    const updatedProperties = [...customProperties]
+    updatedProperties.splice(index, 1)
+    setCustomProperties(updatedProperties)
   }
 
   const handleUpdate = async () => {
     try {
-      const error = validateData(data)
-      if (error) {
-        setError(error)
-        return
-      }
-      setError(null)
-      onUpdate?.(data)
-      setLoading(true)
-
       const updateData = {
         type: data.type,
         datatype: data.datatype || null,
         description: data.description || '',
         isWishlist: !!data.isWishlist,
         unit: data.unit || null,
+        custom_properties: customProperties.reduce<
+          ExtendedApi['custom_properties']
+        >(
+          (prev, curr) => ({
+            ...prev,
+            [curr.name]: curr,
+          }),
+          {},
+        ),
       }
+
+      const error = validateData(data)
+      if (error) {
+        setError(error)
+        return
+      }
+      setError(null)
+      setLoading(true)
 
       if (apiDetails?.id) {
         await updateExtendedApi(updateData, apiDetails.id)
@@ -133,11 +209,12 @@ const DaVehicleAPIEditor = ({
           custom_apis,
         })
       }
+      await onUpdate?.(updateData)
     } catch (error) {
       if (isAxiosError(error)) {
         setError(error.response?.data?.message || 'Something went wrong')
       } else {
-        setError('Something went wrong')
+        setError((error as Error).message || 'Something went wrong')
       }
     } finally {
       setLoading(false)
@@ -262,6 +339,40 @@ const DaVehicleAPIEditor = ({
         />
       </div>
 
+      <div className="flex flex-col gap-2 mt-2">
+        <DaText variant="small-bold" className="text-da-gray-dark">
+          Additional Properties
+        </DaText>
+        <div className="flex flex-col space-y-2 max-h-[40vh] overflow-auto">
+          {Object.values(customProperties).length > 0 ? (
+            Object.values(customProperties).map((property, index) => (
+              <DaCustomPropertyItem
+                key={index}
+                property={property}
+                onUpdate={(updatedProperty) =>
+                  handleUpdateProperty(index, updatedProperty)
+                }
+                onDelete={() => handleDeleteProperty(index)}
+              />
+            ))
+          ) : (
+            <div className="flex h-10 w-full mt-1 px-4 py-2 items-center bg-white border rounded-md">
+              There's no custom properties yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <DaButton
+        variant="dash"
+        onClick={handleAddProperty}
+        className="w-full mt-2 mb-2"
+        size="sm"
+      >
+        <TbPlus className="size-4 mr-1" />
+        Add Property
+      </DaButton>
+
       {error && (
         <DaText variant="small" className="text-red-500 block mt-2">
           {error}
@@ -279,7 +390,14 @@ const DaVehicleAPIEditor = ({
           Cancel
         </DaButton>
         <DaButton
-          disabled={loading || _.isEqual(data, apiDetails)}
+          disabled={
+            loading ||
+            (_.isEqual(data, apiDetails) &&
+              _.isEqual(
+                customProperties,
+                Object.values(apiDetails?.custom_properties || {}),
+              ))
+          }
           onClick={handleUpdate}
           size="sm"
           className="min-w-16"

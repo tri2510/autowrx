@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { DaTableProperty } from '../molecules/DaTableProperty'
 import { DaText } from '../atoms/DaText'
 import { DaCopy } from '../atoms/DaCopy'
@@ -32,6 +32,7 @@ import { deleteExtendedApi } from '@/services/extendedApis.service'
 import useModelStore from '@/stores/modelStore'
 import { customAPIs } from '@/data/customAPI'
 import DaVehicleAPIEditor from '../molecules/DaVehicleAPIEditor'
+import { CustomPropertyType } from '@/types/property.type'
 
 interface ApiDetailProps {
   apiDetails: any
@@ -191,6 +192,15 @@ const ApiDetail = ({
       }
     : null
 
+  const customProperties: CustomPropertyType[] = useMemo(() => {
+    if (
+      !apiDetails.custom_properties ||
+      typeof apiDetails.custom_properties !== 'object'
+    )
+      return []
+    return Object.values(apiDetails.custom_properties)
+  }, [apiDetails.custom_properties])
+
   const [confirmPopupOpen, setConfirmPopupOpen] = useState(false)
 
   return (
@@ -344,7 +354,7 @@ const ApiDetail = ({
         ) : (
           <DaTableProperty
             diffDetail={translatedDiffDetail}
-            properties={vssSpecificationProperties}
+            properties={[...vssSpecificationProperties, ...customProperties]}
             syncHeight={syncHeight}
           />
         )}
