@@ -134,7 +134,10 @@ const DaVehicleAPIEditor = ({
             return `Value for property ${prop.name} must be a boolean`
           break
         case 'null':
-          return `Value for property ${prop.name} must be null`
+          if (prop.value !== null) {
+            return `Value for property ${prop.name} must be null`
+          }
+          break
       }
     }
   }
