@@ -194,12 +194,12 @@ const ApiDetail = ({
 
   const customProperties: CustomPropertyType[] = useMemo(() => {
     if (
-      !apiDetails.custom_properties ||
+      !apiDetails?.custom_properties ||
       typeof apiDetails.custom_properties !== 'object'
     )
       return []
     return Object.values(apiDetails.custom_properties)
-  }, [apiDetails.custom_properties])
+  }, [apiDetails?.custom_properties])
 
   const [confirmPopupOpen, setConfirmPopupOpen] = useState(false)
 
