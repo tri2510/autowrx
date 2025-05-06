@@ -1,4 +1,5 @@
 import { Tag } from './model.type'
+import { CustomPropertyType, PropertyType } from './property.type'
 
 export type VSSRelease = {
   name: string
@@ -99,6 +100,7 @@ export type ExtendedApi = {
   unit?: string | null
   created_at?: string
   isWishlist?: boolean
+  custom_properties?: Record<string, CustomPropertyType>
 }
 
 export type ExtendedApiRet = Omit<ExtendedApi, 'type' | 'description'> & {
@@ -107,7 +109,7 @@ export type ExtendedApiRet = Omit<ExtendedApi, 'type' | 'description'> & {
   description: string
 }
 
-export type ExtendedApiCreate = Omit<ExtendedApi, 'id'>
+export type ExtendedApiCreate = Omit<ExtendedApi, 'id' | 'created_at'>
 
 export type SkeletonNode = {
   id: number
