@@ -33,7 +33,7 @@ const handleChange = (
     }
     // Update the property with the new type and reset value
     onUpdate({ ...property, type: value as PropertyType, value: updatedValue })
-  } else {
+  } else if (name === 'value') {
     // Handle other changes like name or value based on the current type
     if (property.type === 'boolean') {
       updatedValue = value === 'true'
@@ -42,7 +42,9 @@ const handleChange = (
     } else if (property.type === 'null') {
       updatedValue = null
     }
-    onUpdate({ ...property, [name]: updatedValue })
+    onUpdate({ ...property, value: updatedValue })
+  } else {
+    onUpdate({ ...property, [name]: value })
   }
 }
 

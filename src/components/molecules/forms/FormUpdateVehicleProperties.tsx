@@ -135,7 +135,7 @@ const FormUpdateVehicleProperties = ({
             />
           ))
         ) : (
-          <div className="flex h-10 w-full mt-1 px-4 py-2 items-center bg-white border rounded-md">
+          <div className="flex text-sm h-10 w-full mt-1 px-4 py-2 items-center bg-white border rounded-md">
             There's no custom properties yet.
           </div>
         )}
