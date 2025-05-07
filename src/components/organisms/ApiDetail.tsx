@@ -237,9 +237,7 @@ const ApiDetail = ({
               <DaMenu
                 trigger={
                   <DaButton variant="solid" size="sm">
-                    <div className="da-label-small-bold">
-                      Wishlist Signal Action
-                    </div>
+                    <div className="da-label-small-bold">Signal Action</div>
                     <TbChevronDown className="ml-1 h-4 w-4" />
                   </DaButton>
                 }
