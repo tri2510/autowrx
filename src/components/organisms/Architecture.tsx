@@ -455,6 +455,7 @@ const Architecture = ({ displayMode }: ArchitectureProps) => {
                     setIsEditMode(true)
                     setTmpNodeName(activeNode.name)
                   }}
+                  disabled={!isAuthorized}
                 >
                   <TbEdit className="size-4 mr-1" />
                   Edit
