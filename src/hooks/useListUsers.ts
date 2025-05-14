@@ -5,6 +5,10 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
+type Options = {
+  disableAutoSearchRefetch?: boolean
+}
+
 export const useListUsers = (
   params?: Partial<
     Record<
@@ -12,14 +16,21 @@ export const useListUsers = (
       unknown
     >
   >,
+  options?: Options,
 ) => {
-  const [searchParams] = useSearchParams()
-  const search = searchParams.get('search') || ''
+  const { disableAutoSearchRefetch = false } = options || {}
 
-  if (search) {
-    params = {
-      search,
-      ...params,
+  const [searchParams] = useSearchParams()
+
+  // If disableAutoSearchRefetch = false, automatically attach the search to the params options. This params is used as key for the query.
+  if (!disableAutoSearchRefetch) {
+    const search = searchParams.get('search') || ''
+
+    if (search) {
+      params = {
+        search,
+        ...params,
+      }
     }
   }
 
