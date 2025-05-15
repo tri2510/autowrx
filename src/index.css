@@ -403,3 +403,35 @@ select[aria-hidden='true'][tabindex='-1'] {
   background-color: #76c7c0;
   transition: width 0.3s ease-in-out;
 }
+
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0); /* Or translateY(0) for vertical */
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%); /* Or translateY(-100%) for vertical, or any value */
+    opacity: 0;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%); /* Or translateY(-100%) for vertical */
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+
+.learning-appear {
+  animation: slideIn 0.5s ease-out forwards; /* Adjust duration and easing as needed */
+}
+
+.learning-disappear {
+  animation: slideOut 0.5s ease-out forwards; /* Adjust duration and easing as needed */
+}

@@ -51,6 +51,9 @@ const config: any = {
   },
   strictAuth: false,
   enableSupport: true,
+  learning: {
+    url: 'http://localhost:3000'
+  }
 }
 
 export default config

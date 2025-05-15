@@ -14,11 +14,16 @@ import useCurrentModel from '@/hooks/useCurrentModel'
 import { IoIosHelpBuoy } from 'react-icons/io'
 import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
+import Switch from "react-switch";
+import { useState, useRef } from "react"
 
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.MANAGE_USERS])
+  const [learningMode, setIsLearningMode]= useState(true)
+
+  const frameLearning = useRef<HTMLIFrameElement>(null)
 
   return (
     <header className="da-nav-bar">
@@ -41,6 +46,18 @@ const NavigationBar = ({}) => {
 
       <div className="grow"></div>
 
+      {config && config.learning && config.learning.url && (
+        <div className='mr-6 cursor-pointer flex items-center'>
+          <span className='mr-1 da-txt-regular font-normal'>Learning</span>
+          <Switch onChange={(v) => {
+            setIsLearningMode(v)
+          }} checked={learningMode}
+          width={40}
+          borderRadius={30}
+          height={20}/>
+        </div>
+      )}
+
       {config && config.enableSupport && (
         <Link to="https://forms.office.com/e/P5gv3U3dzA">
           <div className="h-full flex text-orange-600 font-semibold da-txt-medium items-center text-skye-600 mr-4 hover:underline">
@@ -55,7 +72,7 @@ const NavigationBar = ({}) => {
           <DaGlobalSearch>
             <DaButton
               variant="outline-nocolor"
-              className="w-[250px] flex items-center !justify-start !border-gray-300 shadow-lg"
+              className="w-[140px] flex items-center !justify-start !border-gray-300 shadow-lg"
             >
               <TbZoom className="size-5 mr-2" />
               Search
@@ -115,6 +132,21 @@ const NavigationBar = ({}) => {
           )} */}
         </>
       )}
+
+      {
+        learningMode && <div 
+          style={{zIndex: 999}}
+          className='fixed top-14 left-0 bottom-0 
+            w-[60%] min-w-[1060px] bg-white learning-appear inset-0 shadow-[4px_4px_6px_rgba(0,0,0,0.3)]'>
+            <iframe
+              ref={frameLearning}
+              src={config?.learning?.url}
+              className="m-0 h-full w-full"
+              allow="camera;microphone"
+              onLoad={() => {}}
+            ></iframe>
+        </div>
+      }
       <DaNavUser />
     </header>
   )
