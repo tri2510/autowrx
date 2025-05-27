@@ -14,11 +14,16 @@ import useCurrentModel from '@/hooks/useCurrentModel'
 import { IoIosHelpBuoy } from 'react-icons/io'
 import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
+import ChatBox from '../molecules/ChatBox'
+
+
 
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.MANAGE_USERS])
+
+  
 
   return (
     <header className="da-nav-bar">
@@ -52,6 +57,9 @@ const NavigationBar = ({}) => {
 
       {user && (
         <>
+
+          <ChatBox/>
+
           <DaGlobalSearch>
             <DaButton
               variant="outline-nocolor"
