@@ -283,6 +283,7 @@ const DaRuntimeConnector = forwardRef<any, KitConnectProps>(
 
     useEffect(() => {
       if (!kitServerUrl) return
+      // console.log("kitServerUrl", kitServerUrl)
       setSocketIo(io(kitServerUrl))
     }, [kitServerUrl])
 
@@ -290,6 +291,7 @@ const DaRuntimeConnector = forwardRef<any, KitConnectProps>(
       if (!socketio) return
 
       if (!socketio.connected) {
+        // console.log(`[${isDeployMode?'staging':'terminal'}] request io connect`)
         socketio.connect()
       } else {
         registerClient()
@@ -318,7 +320,7 @@ const DaRuntimeConnector = forwardRef<any, KitConnectProps>(
         unregisterClient()
         socketio.disconnect()
       }
-    }, [socketio, socketio?.connected])
+    }, [socketio])    // socketio?.connected
 
     useEffect(() => {
       // console.log(`activeRtId`, activeRtId)
@@ -328,6 +330,8 @@ const DaRuntimeConnector = forwardRef<any, KitConnectProps>(
     }, [activeRtId])
 
     const onConnected = () => {
+      // console.log(`[${isDeployMode?'staging':'terminal'}] onConnected`)
+      // console.log(socketio.id)
       registerClient()
       setTimeout(() => {
         if (activeRtId) {
@@ -342,6 +346,7 @@ const DaRuntimeConnector = forwardRef<any, KitConnectProps>(
     }
 
     const registerClient = () => {
+      // console.log(`[${isDeployMode?'staging':'terminal'}] registerClient`)
       socketio.emit('register_client', {
         username: 'test',
         user_id: 'test',
@@ -356,6 +361,7 @@ const DaRuntimeConnector = forwardRef<any, KitConnectProps>(
     const onDisconnect = () => {}
 
     const onGetAllKitData = (data: any) => {
+      // console.log(`[${isDeployMode?'staging':'terminal'}] onGetAllKitData`)
       // Helper function to extract the part after the last hyphen
       const getLastPart = (kit_id: string) => {
         const parts = kit_id.split('-')
@@ -533,15 +539,16 @@ const DaRuntimeConnector = forwardRef<any, KitConnectProps>(
     useEffect(() => {
       if (isDeployMode) {
         // console.log("assets", assets)
+        // console.log('allRuntimes', allRuntimes)
         if (Array.isArray(assets)) {
           const userKitsAsset = assets.filter(
-            (asset) => asset.type === 'HARDWARE_KIT',
+            (asset) => ['HARDWARE_KIT', 'CLOUD_RUNTIME'].includes(asset.type),
           )
           // console.log(`userKitsAsset`, userKitsAsset)
           if (userKitsAsset) {
-            const kitIds = userKitsAsset.map((kit: any) => `${kit.name}`)
+            const kitIds = userKitsAsset.map((kit: any) => kit.name.toLowerCase())
             const filteredRuntimes = allRuntimes.filter((rt: Runtime) =>
-              kitIds.includes(rt.kit_id),
+              kitIds.includes(rt.kit_id.toLowerCase()),
             )
             // console.log("filteredRuntimes", filteredRuntimes)
             setRenderRuntimes(filteredRuntimes)
@@ -602,6 +609,7 @@ const DaRuntimeConnector = forwardRef<any, KitConnectProps>(
 
     return (
       <div>
+        {/* <div>Prefix: {targetPrefix}</div> */}
         <div className="flex items-center">
           {!hideLabel && (
             <label className="w-[122px] text-da-gray-dark font-medium ">
