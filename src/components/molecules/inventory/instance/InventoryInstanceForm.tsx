@@ -4,11 +4,10 @@ import { RJSFSchema } from '@rjsf/utils'
 import { DaButton } from '@/components/atoms/DaButton'
 import { TbLoader } from 'react-icons/tb'
 import { DaInput } from '@/components/atoms/DaInput'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { IChangeEvent } from '@rjsf/core'
 import { InventoryInstanceFormData } from '@/types/inventory.type'
 import { DaSelect, DaSelectItem } from '@/components/atoms/DaSelect'
-import useGetInventorySchema from '@/hooks/useGetInventorySchema'
 import DaLoading from '@/components/atoms/DaLoading'
 import useListInventorySchemas from '@/hooks/useListInventorySchemas'
 import DaTooltip from '@/components/atoms/DaTooltip'
@@ -42,7 +41,7 @@ const InventoryInstanceForm = ({
   const [triedSubmitting, setTriedSubmitting] = useState(false)
 
   const [schemaId, setSchemaId] = useState(initialSchemaId || '')
-  const { data: schemaList } = useListInventorySchemas()
+  const { data: schemaList, isLoading } = useListInventorySchemas()
   const schema = schemaList?.results.find((s) => s.id === schemaId)
 
   const formRef = useRef<any>(null)
@@ -130,6 +129,10 @@ const InventoryInstanceForm = ({
     },
     [isUpdating],
   )
+
+  if (isLoading) {
+    return <DaLoading className="h-[calc(100vh-320px)]" />
+  }
 
   return (
     <div className="flex flex-col xl:flex-row gap-8">
