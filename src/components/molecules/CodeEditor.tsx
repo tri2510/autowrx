@@ -12,6 +12,7 @@ export interface CodeEditorProps {
   language: string
   // onFocus: () => void,
   onBlur: () => void
+  fontSize?: number
 }
 
 const CodeEditor = ({
@@ -20,6 +21,7 @@ const CodeEditor = ({
   editable = false,
   language,
   onBlur,
+  fontSize,
 }: CodeEditorProps) => {
   const monaco = useMonaco()
   const [show, setShow] = useState(false)
@@ -74,6 +76,7 @@ const CodeEditor = ({
             minimap: { enabled: false },
             wordWrap: 'on',
             'semanticHighlighting.enabled': true,
+            fontSize,
             // lineNumbers: (num) => (num + 5).toString(),
           }}
           loading={

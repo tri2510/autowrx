@@ -72,8 +72,8 @@ const InventoryInstanceUpdate = () => {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="rounded-lg shadow-small px-6 py-4 bg-white max-w-2xl mx-auto">
+    <div className="max-w-[1600px] mx-auto p-12">
+      <div className="rounded-lg shadow-small px-6 py-4 bg-white mx-auto">
         <div className="w-full flex justify-center">
           <DaText
             variant="title"
