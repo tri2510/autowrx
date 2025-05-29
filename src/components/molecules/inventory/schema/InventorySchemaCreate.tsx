@@ -34,8 +34,8 @@ const InventorySchemaCreate: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="max-w-2xl mx-auto bg-white shadow-small rounded-lg px-6 py-4">
+    <div className="max-w-[1600px] mx-auto p-12">
+      <div className="mx-auto bg-white shadow-small rounded-lg px-6 py-4">
         <div className="w-full flex justify-center">
           <DaText
             variant="title"
