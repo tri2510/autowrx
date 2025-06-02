@@ -21,7 +21,7 @@ import useAuthStore from '@/stores/authStore'
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
-  const [isAuthorized, allowLearningAccess] = usePermissionHook([PERMISSIONS.MANAGE_USERS, PERMISSIONS.LEARNING_MODE])
+  const [isAuthorized, allowLearningAccess] = usePermissionHook([PERMISSIONS.MANAGE_USERS], [PERMISSIONS.LEARNING_MODE])
   const [learningMode, setIsLearningMode]= useState(false)
   const { access } = useAuthStore()
 
@@ -58,10 +58,10 @@ const NavigationBar = ({}) => {
                 return
               }
 
-              // if(!allowLearningAccess) {
-              //   alert('You are not authorized to use learning mode, please contact your administrator to join this feature')
-              //   return
-              // }
+              if(!allowLearningAccess) {
+                alert('You are not authorized to use learning mode, please contact your administrator to join this feature')
+                return
+              }
             }
             setIsLearningMode(v)
 
