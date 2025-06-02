@@ -50,13 +50,18 @@ const NavigationBar = ({}) => {
 
       {config && config.learning && config.learning.url && (
         <div className='mr-6 cursor-pointer flex items-center'>
-          <span className='mr-1 da-txt-regular font-normal'>Learning</span>
+          <span className='mr-1 da-txt-regular font-normal'>Learning</span> <span className='mr-2 text-[10px] text-gray-800'>beta</span>
           <Switch onChange={(v) => {
             if(v) {
               if(!user) {
                 alert('Please Sign in to use learning mode')
                 return
               }
+
+              // if(!allowLearningAccess) {
+              //   alert('You are not authorized to use learning mode, please contact your administrator to join this feature')
+              //   return
+              // }
             }
             setIsLearningMode(v)
 
