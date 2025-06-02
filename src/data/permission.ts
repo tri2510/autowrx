@@ -3,7 +3,7 @@ export const PERMISSIONS = {
   UNLIMITED_MODEL: 'unlimitedModel',
   MANAGE_USERS: 'manageUsers',
   USE_GEN_AI: 'generativeAI',
-
+  LEARNING_MODE: 'learningMode',
   // model_id
   READ_MODEL: 'readModel',
   WRITE_MODEL: 'writeModel',

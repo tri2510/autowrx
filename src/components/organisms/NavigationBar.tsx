@@ -19,13 +19,22 @@ import useCurrentModel from '@/hooks/useCurrentModel'
 import { IoIosHelpBuoy } from 'react-icons/io'
 import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
+
+import Switch from "react-switch";
+import { useState, useEffect, useRef } from "react"
+import useAuthStore from '@/stores/authStore'
 import useLastAccessedModel from '@/hooks/useLastAccessedModel'
 import { FaCar } from 'react-icons/fa'
+
 
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
-  const [isAuthorized] = usePermissionHook([PERMISSIONS.MANAGE_USERS])
+  const [isAuthorized, allowLearningAccess] = usePermissionHook([PERMISSIONS.MANAGE_USERS], [PERMISSIONS.LEARNING_MODE])
+  const [learningMode, setIsLearningMode]= useState(false)
+  const { access } = useAuthStore()
+
+  const frameLearning = useRef<HTMLIFrameElement>(null)
 
   const { lastAccessedModel } = useLastAccessedModel()
   const isAtInventoryPage = useMatch('/inventory')
@@ -51,6 +60,30 @@ const NavigationBar = ({}) => {
 
       <div className="grow"></div>
 
+      {config && config.learning && config.learning.url && (
+        <div className='mr-6 cursor-pointer flex items-center'>
+          <span className='mr-1 da-txt-regular font-normal'>Learning</span> <span className='mr-2 text-[10px] text-gray-800'>beta</span>
+          <Switch onChange={(v) => {
+            if(v) {
+              if(!user) {
+                alert('Please Sign in to use learning mode')
+                return
+              }
+
+              if(!allowLearningAccess) {
+                alert('You are not authorized to use learning mode, please contact your administrator to join this feature')
+                return
+              }
+            }
+            setIsLearningMode(v)
+
+          }} checked={learningMode}
+          width={40}
+          borderRadius={30}
+          height={20}/>
+        </div>
+      )}
+
       {config && config.enableSupport && (
         <Link to="https://forms.office.com/e/P5gv3U3dzA">
           <div className="h-full flex text-orange-600 font-semibold da-txt-medium items-center text-skye-600 mr-4 hover:underline">
@@ -65,7 +98,7 @@ const NavigationBar = ({}) => {
           <DaGlobalSearch>
             <DaButton
               variant="outline-nocolor"
-              className="w-[250px] flex items-center !justify-start !border-gray-300 shadow-lg"
+              className="w-[140px] flex items-center !justify-start !border-gray-300 shadow-lg"
             >
               <TbZoom className="size-5 mr-2" />
               Search
@@ -132,6 +165,21 @@ const NavigationBar = ({}) => {
           )} */}
         </>
       )}
+
+      {
+        learningMode && <div 
+          style={{zIndex: 999}}
+          className='fixed top-14 left-0 bottom-0 
+            w-[60%] min-w-[1060px] bg-white learning-appear inset-0 shadow-[4px_4px_6px_rgba(0,0,0,0.3)]'>
+            <iframe
+              ref={frameLearning}
+              src={`${config?.learning?.url}?user_id=${encodeURIComponent(user?.id || '')}&token=${encodeURIComponent(access?.token || '')}`}
+              className="m-0 h-full w-full"
+              allow="camera;microphone"
+              onLoad={() => {}}
+            ></iframe>
+        </div>
+      }
       <DaNavUser />
     </header>
   )
