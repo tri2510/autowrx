@@ -1,24 +1,34 @@
-import { Link } from 'react-router-dom'
+import { Link, useMatch } from 'react-router-dom'
 import { DaImage } from '../atoms/DaImage'
 import { DaButton } from '../atoms/DaButton'
 import DaMenu from '../atoms/DaMenu'
 import DaNavUser from '../molecules/DaNavUser'
 import { HiMenu } from 'react-icons/hi'
-import { TbUsers, TbZoom, TbStack2, TbBuildingWarehouse } from 'react-icons/tb'
+import {
+  TbUsers,
+  TbZoom,
+  TbStack2,
+  TbBuildingWarehouse,
+  TbCar,
+} from 'react-icons/tb'
 import usePermissionHook from '@/hooks/usePermissionHook'
 import { PERMISSIONS } from '@/data/permission'
 import DaGlobalSearch from '../molecules/DaGlobalSearch'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
-import { FaCar } from 'react-icons/fa'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import { IoIosHelpBuoy } from 'react-icons/io'
 import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
+import useLastAccessedModel from '@/hooks/useLastAccessedModel'
+import { FaCar } from 'react-icons/fa'
 
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.MANAGE_USERS])
+
+  const { lastAccessedModel } = useLastAccessedModel()
+  const isAtInventoryPage = useMatch('/inventory')
 
   return (
     <header className="da-nav-bar">
@@ -61,6 +71,13 @@ const NavigationBar = ({}) => {
               Search
             </DaButton>
           </DaGlobalSearch>{' '}
+          {isAtInventoryPage && lastAccessedModel && (
+            <Link to={`/model/${lastAccessedModel.id}`} className="ml-4">
+              <DaButton variant="outline-nocolor">
+                <FaCar size={20} className="mr-2" /> {lastAccessedModel.name}
+              </DaButton>
+            </Link>
+          )}
           <DaTooltip content="Inventory">
             <Link
               to="/inventory"
