@@ -7,18 +7,27 @@ import { DaSkeleton } from '@/components/atoms/DaSkeleton'
 import DaLoading from '@/components/atoms/DaLoading'
 import useListModelPrototypes from '@/hooks/useListModelPrototypes'
 import { shallow } from 'zustand/shallow'
+import useLastAccessedModel from '@/hooks/useLastAccessedModel'
 
 const ModelDetailLayout = () => {
   const [model] = useModelStore((state) => [state.model as Model])
   const location = useLocation()
   const [isLoading, setIsLoading] = useState(true)
-  const { data: fetchedPrototypes, refetch } = useListModelPrototypes(
+  const { data: fetchedPrototypes } = useListModelPrototypes(
     model ? model.id : '',
   )
   const [activeModelApis] = useModelStore(
     (state) => [state.activeModelApis],
     shallow,
   )
+
+  const { setLastAccessedModel } = useLastAccessedModel()
+
+  useEffect(() => {
+    if (model) {
+      setLastAccessedModel(model.id)
+    }
+  }, [model])
 
   useEffect(() => {
     // Simulate loading state for demonstration

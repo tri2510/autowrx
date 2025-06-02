@@ -47,7 +47,7 @@ const config: any = {
   },
   disableEmailLogin: false,
   runtime: {
-    url: 'https://kit.digitalauto.tech',
+    url: import.meta.env.VITE_KIT_SERVER_URL || 'https://kit.digitalauto.tech',
   },
   strictAuth: false,
   enableSupport: true,
