@@ -15,13 +15,15 @@ import { IoIosHelpBuoy } from 'react-icons/io'
 import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
 import Switch from "react-switch";
-import { useState, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
+import useAuthStore from '@/stores/authStore'
 
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
-  const [isAuthorized] = usePermissionHook([PERMISSIONS.MANAGE_USERS])
-  const [learningMode, setIsLearningMode]= useState(true)
+  const [isAuthorized, allowLearningAccess] = usePermissionHook([PERMISSIONS.MANAGE_USERS, PERMISSIONS.LEARNING_MODE])
+  const [learningMode, setIsLearningMode]= useState(false)
+  const { access } = useAuthStore()
 
   const frameLearning = useRef<HTMLIFrameElement>(null)
 
@@ -50,7 +52,14 @@ const NavigationBar = ({}) => {
         <div className='mr-6 cursor-pointer flex items-center'>
           <span className='mr-1 da-txt-regular font-normal'>Learning</span>
           <Switch onChange={(v) => {
+            if(v) {
+              if(!user) {
+                alert('Please Sign in to use learning mode')
+                return
+              }
+            }
             setIsLearningMode(v)
+
           }} checked={learningMode}
           width={40}
           borderRadius={30}
@@ -140,7 +149,7 @@ const NavigationBar = ({}) => {
             w-[60%] min-w-[1060px] bg-white learning-appear inset-0 shadow-[4px_4px_6px_rgba(0,0,0,0.3)]'>
             <iframe
               ref={frameLearning}
-              src={config?.learning?.url}
+              src={`${config?.learning?.url}?user_id=${encodeURIComponent(user?.id || '')}&token=${encodeURIComponent(access?.token || '')}`}
               className="m-0 h-full w-full"
               allow="camera;microphone"
               onLoad={() => {}}
