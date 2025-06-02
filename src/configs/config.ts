@@ -52,7 +52,7 @@ const config: any = {
   strictAuth: false,
   enableSupport: true,
   learning: {
-    url: 'http://localhost:3000'
+    url: 'https://learning.digitalauto.tech'
   }
 }
 
