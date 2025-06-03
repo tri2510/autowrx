@@ -22,6 +22,7 @@ import {
   TbLoader,
 } from 'react-icons/tb'
 import { retry } from '@/lib/retry.ts'
+import { useAssets } from '@/hooks/useAssets'
 
 const DaSpeechToText = lazy(() => retry(() => import('./DaSpeechToText')))
 
@@ -81,6 +82,53 @@ const DaGenAI_Base = ({
     })
   }, [addOnsArray, marketplaceAddOns, prompt])
 
+  const [userAIAddons, setUserAIAddOns] = useState<AddOn[]>([])
+  const { useFetchAssets } = useAssets()
+  const { data: assets } = useFetchAssets()
+
+  useEffect(() => {
+    if (!assets) {
+      setUserAIAddOns([])
+      return
+    }
+    if (type == 'GenAI_Python') {
+      let pythonGenAIs = assets.filter((asset: any) => asset.type == 'GENAI-PYTHON')
+      console.log(pythonGenAIs)
+      let pythonAIAddons = pythonGenAIs.map((asset: any) => {
+        let url = ''
+        let accessToken = ''
+        let method = 'POST'
+        let requestField = ''
+        let responseField = ''
+        try {
+          let data = JSON.parse(asset.data)
+          url = data.url || ''
+          accessToken = data.accessToken || ''
+          method = data.method,
+            requestField = data.requestField
+          responseField = data.responseField
+        } catch (err) { console.log(err) }
+        return {
+          id: asset.name + '-' + Math.random().toString(36).substring(2, 8),
+          type: 'GenAI_Python' as const,
+          name: asset.name || 'My python genAI',
+          description: '',
+          apiKey: accessToken,
+          endpointUrl: url,
+          method: method,
+          requestField: requestField,
+          responseField: responseField,
+          customPayload: (prompt: string) => ({ prompt }),
+        }
+      })
+      console.log(pythonAIAddons)
+      setUserAIAddOns(pythonAIAddons)
+      return
+    }
+
+
+  }, [assets])
+
   useEffect(() => {
     if (marketplaceAddOns) {
       setAddonsLoaded(true)
@@ -120,23 +168,75 @@ const DaGenAI_Base = ({
         return
       }
 
-      // Use the new endpoint and payload format
-      const response = await axios.post(
-        'https://digitalauto-ai.com/chat',
-        {
-          systemMessage: selectedAddOn.samples || '',
-          message: prompt,
-        },
-        {
-          headers: {
-            // Authorization: `Bearer ${access?.token}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      )
+      if (selectedAddOn.endpointUrl) {
 
-      // Parse the generated content from the new response structure
-      onCodeGenerated(response.data.content)
+        switch (selectedAddOn.method?.toLowerCase().trim()) {
+          case 'get':
+            try {
+              const response = await axios.get(
+                selectedAddOn.endpointUrl + `?${selectedAddOn.requestField || 'prompt'}=${encodeURIComponent(prompt)}`,
+                {
+                  headers: {
+                    Authorization: `${selectedAddOn.apiKey}`,
+                    'Content-Type': 'application/json',
+                  },
+                },
+              )
+              if (response.data && response.data[selectedAddOn.responseField || 'data']) {
+                onCodeGenerated(response.data[selectedAddOn.responseField || 'data'])
+              } else {
+                onCodeGenerated(`Error: Receive incorrect format data\r\n${JSON.stringify(response.data, null, 4)}`)
+              }
+            } catch (err) { console.log(err) }
+            break
+          case 'post':
+            try {
+              let payload = { systemMessage: selectedAddOn.samples || '' } as any
+              payload[selectedAddOn.requestField || 'prompt'] = prompt
+
+              const response = await axios.post(
+                selectedAddOn.endpointUrl,
+                payload,
+                {
+                  headers: {
+                    Authorization: `${selectedAddOn.apiKey}`,
+                    'Content-Type': 'application/json',
+                  },
+                },
+              )
+              if (response.data && response.data[selectedAddOn.responseField || 'data']) {
+                onCodeGenerated(response.data[selectedAddOn.responseField || 'data'])
+              } else {
+                onCodeGenerated(`Error: Receive incorrect format data\r\n${JSON.stringify(response.data, null, 4)}`)
+              }
+            } catch (err) { console.log(err) }
+            break
+          default:
+            break;
+        }
+        return
+      }
+
+      // Use the new endpoint and payload format
+      try {
+        const response = await axios.post(
+          'https://digitalauto-ai.com/chat',
+          {
+            systemMessage: selectedAddOn.samples || '',
+            message: prompt,
+          },
+          {
+            headers: {
+              // Authorization: `Bearer ${access?.token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+
+        // Parse the generated content from the new response structure
+        onCodeGenerated(response.data.content)
+      } catch (err) { console.log(err) }
+
     } catch (error) {
       timeouts.current.forEach((timeout) => clearTimeout(timeout))
       timeouts.current = []
@@ -205,6 +305,7 @@ const DaGenAI_Base = ({
                     : []
                   : []
               }
+              userAIAddons={userAIAddons}
               onSelectedGeneratorChange={(addOn: AddOn) => {
                 setSelectedAddOn(addOn)
                 localStorage.setItem(

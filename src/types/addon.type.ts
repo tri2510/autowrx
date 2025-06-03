@@ -16,6 +16,9 @@ export interface AddOn {
   samples?: string
   team?: any
   isMock?: boolean
+  method?: string,
+  requestField?: string,
+  responseField?: string
 }
 
 export interface Config {
