@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
-import { TbMinus, TbUserPlus } from 'react-icons/tb'
+import { TbUserPlus } from 'react-icons/tb'
 import { DaButton } from '../atoms/DaButton'
 import { cn } from '@/lib/utils'
-import DaSelectUserPopup from './DaSelectUserPopup'
 import { InvitedUser, User } from '@/types/user.type'
 import {
   updateModelPermissionService,
@@ -20,8 +19,6 @@ interface ContributorListProps {
   className?: string
 }
 
-
-
 const accessLevels = [
   {
     value: 'model_contributor',
@@ -35,40 +32,16 @@ const accessLevels = [
   },
 ]
 
-
-
 const DaContributorList = ({ className }: ContributorListProps) => {
   const { data: model, refetch } = useCurrentModel()
   const [activeTab, setActiveTab] = useState('contributors')
   const { data: currentUser } = useSelfProfileQuery()
   const [open, setOpen] = useState(false)
 
-  if (!model) {
-    return (
-      <DaLoading
-        text="Loading model..."
-        timeout={10}
-        timeoutText="Model not found"
-      />
-    )
-  }
-
-  const onRemoveUser = async (userId: string) => {
-    const role =
-      activeTab === 'contributors' ? 'model_contributor' : 'model_member'
-    await deleteModelPermissionService(model.id, role, userId)
-    await refetch()
-    addLog({
-      name: `User ${currentUser?.email} delete user permission from ${model.name}`,
-      description: `User ${currentUser?.email} delete user permission from ${model.name}: Delete user ${userId} from role ${role}`,
-      type: 'delete-permission',
-      create_by: currentUser?.id!,
-      ref_id: model.id,
-      ref_type: 'model',
-    })
-  }
-
+  // All hooks must be called before any conditional returns
   const invitedUsers: InvitedUser[] = useMemo(() => {
+    if (!model) return []
+
     const modelContributors = (model.contributors || [])
       .filter((c): c is User => !!c)
       .map((c) => ({
@@ -108,7 +81,27 @@ const DaContributorList = ({ className }: ContributorListProps) => {
     return results
   }, [model])
 
+  // Define all handler functions with proper null checks
+  const onRemoveUser = async (userId: string) => {
+    if (!model || !currentUser) return
+
+    const role =
+      activeTab === 'contributors' ? 'model_contributor' : 'model_member'
+    await deleteModelPermissionService(model.id, role, userId)
+    await refetch()
+    addLog({
+      name: `User ${currentUser.email} delete user permission from ${model.name}`,
+      description: `User ${currentUser.email} delete user permission from ${model.name}: Delete user ${userId} from role ${role}`,
+      type: 'delete-permission',
+      create_by: currentUser.id!,
+      ref_id: model.id,
+      ref_type: 'model',
+    })
+  }
+
   const handleInviteUsers = async (users: InvitedUser[], role: string) => {
+    if (!model || !currentUser) return
+
     await updateModelPermissionService(
       model.id,
       role,
@@ -116,22 +109,35 @@ const DaContributorList = ({ className }: ContributorListProps) => {
     )
     await refetch()
     addLog({
-      name: `User ${currentUser?.email} update permission of model ${model.name}`,
-      description: `User ${currentUser?.email} update permission of model ${model.name}: Add users ${users.map((u) => u.id).join(',')} as ${role}`,
+      name: `User ${currentUser.email} update permission of model ${model.name}`,
+      description: `User ${currentUser.email} update permission of model ${model.name}: Add users ${users.map((u) => u.id).join(',')} as ${role}`,
       type: 'add-permission',
-      create_by: currentUser?.id!,
+      create_by: currentUser.id!,
       ref_id: model.id,
       ref_type: 'model',
     })
   }
 
   const handleRemoveUserAccess = async (user: InvitedUser) => {
+    if (!model) return
+
     await deleteModelPermissionService(
       model.id,
       user.access_level_id || '',
       user.id,
     )
     await refetch()
+  }
+
+  // After all hooks are called, we can have the conditional return
+  if (!model) {
+    return (
+      <DaLoading
+        text="Loading model..."
+        timeout={10}
+        timeoutText="Model not found"
+      />
+    )
   }
 
   return (
@@ -170,16 +176,19 @@ const DaContributorList = ({ className }: ContributorListProps) => {
         {activeTab === 'contributors' ? (
           <>
             {' '}
-            {model &&
-              model.contributors && <UserList users={model.contributors} onRemoveUser={onRemoveUser}/>
-            }
+            {model.contributors && (
+              <UserList
+                users={model.contributors}
+                onRemoveUser={onRemoveUser}
+              />
+            )}
           </>
         ) : (
           <>
             {' '}
-            { model &&
-              model.members && <UserList users={model.members} onRemoveUser={onRemoveUser}/>
-            }
+            {model.members && (
+              <UserList users={model.members} onRemoveUser={onRemoveUser} />
+            )}
           </>
         )}
       </div>
