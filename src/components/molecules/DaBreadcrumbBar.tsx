@@ -149,12 +149,66 @@ const DaBreadcrumbBar = () => {
         key: 'inventory',
       })
 
-      if (pathnames.includes('new')) {
+      if (pathnames.includes('schema')) {
         paths.push({
-          path: `/inventory/new`,
-          name: 'New Inventory Item',
-          key: 'new',
+          path: `/inventory/schema`,
+          name: 'Schemas',
+          key: 'schema',
         })
+
+        const slug = pathnames[pathnames.indexOf('schema') + 1]
+        if (slug === 'new') {
+          paths.push({
+            path: `/inventory/schema/new`,
+            key: 'new-schema',
+            name: 'New',
+          })
+        } else if (slug) {
+          paths.push({
+            path: `/inventory/schema/${slug}`,
+            name: slug,
+            key: slug,
+          })
+
+          if (pathnames.includes('edit')) {
+            paths.push({
+              path: `/inventory/schema/${slug}/edit`,
+              name: 'Edit Schema',
+              key: `${slug}-edit`,
+            })
+          }
+        }
+      }
+
+      if (pathnames.includes('instance')) {
+        paths.push({
+          path: `/inventory/instance`,
+          name: 'Instances',
+          key: 'instance',
+        })
+
+        const slug = pathnames[pathnames.indexOf('instance') + 1]
+        if (slug === 'new') {
+          paths.push({
+            path: `/inventory/instance/new`,
+            key: 'new-instance',
+            name: 'New',
+          })
+        } else if (slug) {
+          paths.push({
+            path: `/inventory/instance/${slug}`,
+            name: slug,
+            key: slug,
+          })
+
+          if (pathnames.includes('edit')) {
+            paths.push({
+              path: `/inventory/instance/${slug}/edit`,
+              name: 'Edit Instance',
+              key: `${slug}-edit`,
+            })
+          }
+        }
       }
 
       if (inventoryData.roleData) {
