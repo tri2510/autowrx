@@ -20,8 +20,6 @@ interface ContributorListProps {
   className?: string
 }
 
-
-
 const accessLevels = [
   {
     value: 'model_contributor',
@@ -34,8 +32,6 @@ const accessLevels = [
     helperText: 'Can view, create prototype and update model',
   },
 ]
-
-
 
 const DaContributorList = ({ className }: ContributorListProps) => {
   const { data: model, refetch } = useCurrentModel()
@@ -69,6 +65,8 @@ const DaContributorList = ({ className }: ContributorListProps) => {
   }
 
   const invitedUsers: InvitedUser[] = useMemo(() => {
+    if (!model) return []
+
     const modelContributors = (model.contributors || [])
       .filter((c): c is User => !!c)
       .map((c) => ({
@@ -170,16 +168,19 @@ const DaContributorList = ({ className }: ContributorListProps) => {
         {activeTab === 'contributors' ? (
           <>
             {' '}
-            {model &&
-              model.contributors && <UserList users={model.contributors} onRemoveUser={onRemoveUser}/>
-            }
+            {model && model.contributors && (
+              <UserList
+                users={model.contributors}
+                onRemoveUser={onRemoveUser}
+              />
+            )}
           </>
         ) : (
           <>
             {' '}
-            { model &&
-              model.members && <UserList users={model.members} onRemoveUser={onRemoveUser}/>
-            }
+            {model && model.members && (
+              <UserList users={model.members} onRemoveUser={onRemoveUser} />
+            )}
           </>
         )}
       </div>
