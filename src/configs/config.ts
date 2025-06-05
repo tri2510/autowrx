@@ -42,6 +42,13 @@ const config: any = {
     dashboard: [],
     widget: [],
   },
+  inventory: {
+    frontend: {
+      url:
+        import.meta.env.VITE_INVENTORY_FRONTEND_URL ||
+        'http://fe.inventory.digital.auto',
+    },
+  },
   github: {
     clientId: import.meta.env.VITE_GITHUB_CLIENT_ID,
   },

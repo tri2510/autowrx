@@ -1,3 +1,4 @@
+import config from '@/configs/config'
 import useAuthStore from '@/stores/authStore'
 import { forwardRef, memo, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
@@ -75,7 +76,7 @@ const IframeInventory = memo(
     return (
       <iframe
         ref={ref}
-        src={`http://localhost:3000${window.location.pathname.replace('/inventory', '')}${window.location.search}`}
+        src={`${config.inventory.frontend.url}/${window.location.pathname.replace('/inventory', '')}${window.location.search}`}
         className="h-full overflow-hidden w-full"
       />
     )
