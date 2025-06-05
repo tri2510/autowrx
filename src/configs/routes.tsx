@@ -71,59 +71,6 @@ const PageInventoryItemDetail = lazy(() =>
 const PageInventoryItemList = lazy(() =>
   retry(() => import('@/pages/PageInventoryItemList')),
 )
-const InventorySchemaList = lazy(() =>
-  retry(
-    () => import('@/components/molecules/inventory/schema/InventorySchemaList'),
-  ),
-)
-const InventorySchemaCreate = lazy(() =>
-  retry(
-    () =>
-      import('@/components/molecules/inventory/schema/InventorySchemaCreate'),
-  ),
-)
-const InventorySchemaDetail = lazy(() =>
-  retry(
-    () =>
-      import('@/components/molecules/inventory/schema/InventorySchemaDetail'),
-  ),
-)
-const InventorySchemaUpdate = lazy(() =>
-  retry(
-    () =>
-      import('@/components/molecules/inventory/schema/InventorySchemaUpdate'),
-  ),
-)
-const InventoryInstanceCreate = lazy(() =>
-  retry(
-    () =>
-      import(
-        '@/components/molecules/inventory/instance/InventoryInstanceCreate'
-      ),
-  ),
-)
-const InventoryInstanceList = lazy(() =>
-  retry(
-    () =>
-      import('@/components/molecules/inventory/instance/InventoryInstanceList'),
-  ),
-)
-const InventoryInstanceDetail = lazy(() =>
-  retry(
-    () =>
-      import(
-        '@/components/molecules/inventory/instance/InventoryInstanceDetail'
-      ),
-  ),
-)
-const InventoryInstanceUpdate = lazy(() =>
-  retry(
-    () =>
-      import(
-        '@/components/molecules/inventory/instance/InventoryInstanceUpdate'
-      ),
-  ),
-)
 
 const routesConfig: RouteConfig[] = [
   {
@@ -360,66 +307,18 @@ const routesConfig: RouteConfig[] = [
             ],
           },
           {
-            path: 'schema',
+            path: 'schema/*',
             element: (
               <SuspenseProvider>
-                <InventorySchemaList />
+                <PageInventory />
               </SuspenseProvider>
             ),
           },
           {
-            path: 'schema/new',
+            path: 'instance/*',
             element: (
               <SuspenseProvider>
-                <InventorySchemaCreate />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'schema/:schemaId',
-            element: (
-              <SuspenseProvider>
-                <InventorySchemaDetail />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'schema/:schemaId/edit',
-            element: (
-              <SuspenseProvider>
-                <InventorySchemaUpdate />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'instance',
-            element: (
-              <SuspenseProvider>
-                <InventoryInstanceList />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'instance/new',
-            element: (
-              <SuspenseProvider>
-                <InventoryInstanceCreate />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'instance/:instanceId',
-            element: (
-              <SuspenseProvider>
-                <InventoryInstanceDetail />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'instance/:instanceId/edit',
-            element: (
-              <SuspenseProvider>
-                <InventoryInstanceUpdate />
+                <PageInventory />
               </SuspenseProvider>
             ),
           },
