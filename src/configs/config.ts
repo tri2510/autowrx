@@ -46,7 +46,7 @@ const config: any = {
     frontend: {
       url:
         import.meta.env.VITE_INVENTORY_FRONTEND_URL ||
-        'http://fe.inventory.digital.auto',
+        'https://fe.inventory.digital.auto',
     },
   },
   github: {
@@ -59,8 +59,8 @@ const config: any = {
   strictAuth: false,
   enableSupport: true,
   learning: {
-    url: 'https://learning.digitalauto.tech'
-  }
+    url: 'https://learning.digitalauto.tech',
+  },
 }
 
 export default config
