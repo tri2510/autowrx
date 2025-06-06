@@ -259,70 +259,12 @@ const routesConfig: RouteConfig[] = [
         ],
       },
       {
-        path: '/inventory',
-        children: [
-          {
-            index: true,
-            element: (
-              <SuspenseProvider>
-                <PageInventory />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'new',
-            element: (
-              <SuspenseProvider>
-                <PageNewInventoryItem />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'role/:inventory_role',
-            children: [
-              {
-                index: true,
-                element: (
-                  <SuspenseProvider>
-                    <PageInventoryItemList />
-                  </SuspenseProvider>
-                ),
-              },
-              {
-                path: 'item/:inventory_id',
-                element: (
-                  <SuspenseProvider>
-                    <PageInventoryItemDetail />
-                  </SuspenseProvider>
-                ),
-              },
-              {
-                path: 'item/:inventory_id/:tab',
-                element: (
-                  <SuspenseProvider>
-                    <PageInventoryItemDetail />
-                  </SuspenseProvider>
-                ),
-              },
-            ],
-          },
-          {
-            path: 'schema/*',
-            element: (
-              <SuspenseProvider>
-                <PageInventory />
-              </SuspenseProvider>
-            ),
-          },
-          {
-            path: 'instance/*',
-            element: (
-              <SuspenseProvider>
-                <PageInventory />
-              </SuspenseProvider>
-            ),
-          },
-        ],
+        path: '/inventory/*',
+        element: (
+          <SuspenseProvider>
+            <PageInventory />
+          </SuspenseProvider>
+        ),
       },
       {
         path: '/genai-wizard',
