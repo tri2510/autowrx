@@ -58,7 +58,7 @@ const NavigationBar = ({}) => {
       {user && (
         <>
 
-          <ChatBox/>
+          
 
           <DaGlobalSearch>
             <DaButton
@@ -77,7 +77,11 @@ const NavigationBar = ({}) => {
               <TbBuildingWarehouse size={22} />
             </Link>
           </DaTooltip>
+
+          <ChatBox/> 
+          {/* {isAuthorized && <ChatBox/> } */}
           {isAuthorized && (
+            
             <DaMenu
               trigger={
                 <div className="cursor-pointer flex !h-10 items-center da-btn-sm text-da-gray-medium da-btn-plain ml-2">
