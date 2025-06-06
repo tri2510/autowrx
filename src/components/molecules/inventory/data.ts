@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { InventoryItem } from '@/types/inventory.type'
 import { User } from '@/types/user.type'
 
@@ -1469,12 +1470,9 @@ export const instances: InventoryItem[] = [
     id: 'inst_requirement_1_1',
     type: 'requirement',
     data: {
-      name: 'Emergency Door Lock',
-      description:
-        'Doors must automatically lock when safety sensors detect a hazard.',
-      priority: 'critical',
-      status: 'approved',
-      verification_method: 'test',
+      name: 'Functional Safety Compliance',
+      text: 'The system must adhere to functional safety guidelines, such as ISO 26262, for critical control systems to ensure safe operation.',
+      url: '',
       createdAt: '2025-03-11T11:12:00Z',
       updatedAt: '2025-03-11T13:12:00Z',
     },
@@ -1483,12 +1481,9 @@ export const instances: InventoryItem[] = [
     id: 'inst_requirement_1_2',
     type: 'requirement',
     data: {
-      name: 'Door Open Safety Check',
-      description:
-        'Ensure no obstacles exist before initiating door open sequence.',
-      priority: 'high',
-      status: 'approved',
-      verification_method: 'review',
+      name: 'Manual Wiper Control Override',
+      text: 'The system must allow the driver to manually override automatic wiper control to adjust settings based on preference.',
+      url: '',
       createdAt: '2025-03-11T11:14:00Z',
       updatedAt: '2025-03-11T13:14:00Z',
     },
@@ -1497,12 +1492,9 @@ export const instances: InventoryItem[] = [
     id: 'inst_requirement_1_3',
     type: 'requirement',
     data: {
-      name: 'Sensor Data Fusion',
-      description:
-        'All sensor inputs must be fused for an accurate safety check.',
-      priority: 'medium',
-      status: 'approved',
-      verification_method: 'analysis',
+      name: 'Wiper Speed Change Feedback',
+      text: 'The prototype software must generate a feedback signal or log entry whenever the wiper speed changes to enable validation of the system.',
+      url: '',
       createdAt: '2025-03-11T11:16:00Z',
       updatedAt: '2025-03-11T13:16:00Z',
     },
@@ -1511,11 +1503,31 @@ export const instances: InventoryItem[] = [
     id: 'inst_requirement_1_4',
     type: 'requirement',
     data: {
-      name: 'Automatic Brake Override',
-      description: 'Brake override must engage if a door is obstructed.',
-      priority: 'critical',
-      status: 'approved',
-      verification_method: 'demonstration',
+      name: 'Real-Time Wiper Speed Adjustment',
+      text: 'The wiper controller must dynamically adjust wiper speed in real time based on changes in detected rain intensity.',
+      url: '',
+      createdAt: '2025-03-11T11:18:00Z',
+      updatedAt: '2025-03-11T13:18:00Z',
+    },
+  },
+  {
+    id: 'inst_requirement_1_5',
+    type: 'requirement',
+    data: {
+      name: 'Wiper Speed Mode Support',
+      text: 'The system must support at least three wiper speed levels (low, medium, high) and an OFF mode to accommodate varying rain conditions.',
+      url: '',
+      createdAt: '2025-03-11T11:18:00Z',
+      updatedAt: '2025-03-11T13:18:00Z',
+    },
+  },
+  {
+    id: 'inst_requirement_1_6',
+    type: 'requirement',
+    data: {
+      name: 'Rain Sensor Data Integration',
+      text: 'The system must read rain intensity data from vehicle sensors.',
+      url: '',
       createdAt: '2025-03-11T11:18:00Z',
       updatedAt: '2025-03-11T13:18:00Z',
     },
@@ -1531,60 +1543,60 @@ export const instances: InventoryItem[] = [
       updatedAt: '2025-03-11T13:20:00Z',
     },
   },
-  {
-    id: 'inst_requirement_2_1',
-    type: 'requirement',
-    data: {
-      name: 'Low Latency Communication',
-      description: 'System response must be under 50ms for door commands.',
-      priority: 'high',
-      status: 'approved',
-      verification_method: 'test',
-      createdAt: '2025-03-11T11:22:00Z',
-      updatedAt: '2025-03-11T13:22:00Z',
-    },
-  },
-  {
-    id: 'inst_requirement_2_2',
-    type: 'requirement',
-    data: {
-      name: 'High Throughput Data Sync',
-      description:
-        'Data exchange with the cloud should support high volume under peak loads.',
-      priority: 'medium',
-      status: 'approved',
-      verification_method: 'analysis',
-      createdAt: '2025-03-11T11:24:00Z',
-      updatedAt: '2025-03-11T13:24:00Z',
-    },
-  },
-  {
-    id: 'inst_requirement_2_3',
-    type: 'requirement',
-    data: {
-      name: 'Efficient Resource Usage',
-      description:
-        'Ensure CPU and memory use are within acceptable limits under load.',
-      priority: 'medium',
-      status: 'approved',
-      verification_method: 'review',
-      createdAt: '2025-03-11T11:26:00Z',
-      updatedAt: '2025-03-11T13:26:00Z',
-    },
-  },
-  {
-    id: 'inst_requirement_2_4',
-    type: 'requirement',
-    data: {
-      name: 'Rapid Cloud Response',
-      description: 'Cloud services must respond within defined SLA limits.',
-      priority: 'high',
-      status: 'approved',
-      verification_method: 'test',
-      createdAt: '2025-03-11T11:28:00Z',
-      updatedAt: '2025-03-11T13:28:00Z',
-    },
-  },
+  // {
+  //   id: 'inst_requirement_2_1',
+  //   type: 'requirement',
+  //   data: {
+  //     name: 'Low Latency Communication',
+  //     description: 'System response must be under 50ms for door commands.',
+  //     priority: 'high',
+  //     status: 'approved',
+  //     verification_method: 'test',
+  //     createdAt: '2025-03-11T11:22:00Z',
+  //     updatedAt: '2025-03-11T13:22:00Z',
+  //   },
+  // },
+  // {
+  //   id: 'inst_requirement_2_2',
+  //   type: 'requirement',
+  //   data: {
+  //     name: 'High Throughput Data Sync',
+  //     description:
+  //       'Data exchange with the cloud should support high volume under peak loads.',
+  //     priority: 'medium',
+  //     status: 'approved',
+  //     verification_method: 'analysis',
+  //     createdAt: '2025-03-11T11:24:00Z',
+  //     updatedAt: '2025-03-11T13:24:00Z',
+  //   },
+  // },
+  // {
+  //   id: 'inst_requirement_2_3',
+  //   type: 'requirement',
+  //   data: {
+  //     name: 'Efficient Resource Usage',
+  //     description:
+  //       'Ensure CPU and memory use are within acceptable limits under load.',
+  //     priority: 'medium',
+  //     status: 'approved',
+  //     verification_method: 'review',
+  //     createdAt: '2025-03-11T11:26:00Z',
+  //     updatedAt: '2025-03-11T13:26:00Z',
+  //   },
+  // },
+  // {
+  //   id: 'inst_requirement_2_4',
+  //   type: 'requirement',
+  //   data: {
+  //     name: 'Rapid Cloud Response',
+  //     description: 'Cloud services must respond within defined SLA limits.',
+  //     priority: 'high',
+  //     status: 'approved',
+  //     verification_method: 'test',
+  //     createdAt: '2025-03-11T11:28:00Z',
+  //     updatedAt: '2025-03-11T13:28:00Z',
+  //   },
+  // },
   {
     id: 'inst_req_group_3',
     type: 'requirements_group',
@@ -1596,61 +1608,61 @@ export const instances: InventoryItem[] = [
       updatedAt: '2025-03-11T13:30:00Z',
     },
   },
-  {
-    id: 'inst_requirement_3_1',
-    type: 'requirement',
-    data: {
-      name: 'Customizable Dashboard Layout',
-      description: 'Allow the driver to choose dashboard widget layouts.',
-      priority: 'low',
-      status: 'approved',
-      verification_method: 'demonstration',
-      createdAt: '2025-03-11T11:32:00Z',
-      updatedAt: '2025-03-11T13:32:00Z',
-    },
-  },
-  {
-    id: 'inst_requirement_3_2',
-    type: 'requirement',
-    data: {
-      name: 'Personalized Seat Memory',
-      description:
-        'Seats must recall and adjust to individual driver profiles.',
-      priority: 'medium',
-      status: 'approved',
-      verification_method: 'test',
-      createdAt: '2025-03-11T11:34:00Z',
-      updatedAt: '2025-03-11T13:34:00Z',
-    },
-  },
-  {
-    id: 'inst_requirement_3_3',
-    type: 'requirement',
-    data: {
-      name: 'Adaptive Ambient Lighting',
-      description:
-        'Lighting adjusts based on external conditions and driver preferences.',
-      priority: 'medium',
-      status: 'approved',
-      verification_method: 'review',
-      createdAt: '2025-03-11T11:36:00Z',
-      updatedAt: '2025-03-11T13:36:00Z',
-    },
-  },
-  {
-    id: 'inst_requirement_3_4',
-    type: 'requirement',
-    data: {
-      name: 'Intuitive UI Feedback',
-      description:
-        'Provide visual and haptic feedback for all touch interactions.',
-      priority: 'low',
-      status: 'approved',
-      verification_method: 'demonstration',
-      createdAt: '2025-03-11T11:38:00Z',
-      updatedAt: '2025-03-11T13:38:00Z',
-    },
-  },
+  // {
+  //   id: 'inst_requirement_3_1',
+  //   type: 'requirement',
+  //   data: {
+  //     name: 'Customizable Dashboard Layout',
+  //     description: 'Allow the driver to choose dashboard widget layouts.',
+  //     priority: 'low',
+  //     status: 'approved',
+  //     verification_method: 'demonstration',
+  //     createdAt: '2025-03-11T11:32:00Z',
+  //     updatedAt: '2025-03-11T13:32:00Z',
+  //   },
+  // },
+  // {
+  //   id: 'inst_requirement_3_2',
+  //   type: 'requirement',
+  //   data: {
+  //     name: 'Personalized Seat Memory',
+  //     description:
+  //       'Seats must recall and adjust to individual driver profiles.',
+  //     priority: 'medium',
+  //     status: 'approved',
+  //     verification_method: 'test',
+  //     createdAt: '2025-03-11T11:34:00Z',
+  //     updatedAt: '2025-03-11T13:34:00Z',
+  //   },
+  // },
+  // {
+  //   id: 'inst_requirement_3_3',
+  //   type: 'requirement',
+  //   data: {
+  //     name: 'Adaptive Ambient Lighting',
+  //     description:
+  //       'Lighting adjusts based on external conditions and driver preferences.',
+  //     priority: 'medium',
+  //     status: 'approved',
+  //     verification_method: 'review',
+  //     createdAt: '2025-03-11T11:36:00Z',
+  //     updatedAt: '2025-03-11T13:36:00Z',
+  //   },
+  // },
+  // {
+  //   id: 'inst_requirement_3_4',
+  //   type: 'requirement',
+  //   data: {
+  //     name: 'Intuitive UI Feedback',
+  //     description:
+  //       'Provide visual and haptic feedback for all touch interactions.',
+  //     priority: 'low',
+  //     status: 'approved',
+  //     verification_method: 'demonstration',
+  //     createdAt: '2025-03-11T11:38:00Z',
+  //     updatedAt: '2025-03-11T13:38:00Z',
+  //   },
+  // },
   {
     id: 'inst_regulation_1',
     type: 'regulation',
@@ -3474,8 +3486,8 @@ export const rolesTypeMap: Record<string, string> = {
   'OTA Deployment Manager': 'stage',
 }
 
-export const joinTypeData = (data: any[]) => {
-  const result: InventoryItem[] = data
+export const joinTypeData = (data: unknown[]) => {
+  const result: InventoryItem[] = data as InventoryItem[]
   result.forEach((item) => {
     item.typeData = types.find((type) => type.$id === item.type)
   })
@@ -3495,11 +3507,11 @@ const hashStr = (s: string) => {
   return hash
 }
 
-export const joinCreatedByData = (data: any[], users?: User[]) => {
+export const joinCreatedByData = (data: any[], users?: Partial<User>[]) => {
   if (!users || users.length === 0) {
     return data
   }
-  const result: InventoryItem[] = data
+  const result: InventoryItem[] = data as InventoryItem[]
   result.forEach((item) => {
     if (item.data) {
       item.data.createdBy = users.at(hashStr(item.id) % users.length)

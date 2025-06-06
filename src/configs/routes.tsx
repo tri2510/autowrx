@@ -259,12 +259,64 @@ const routesConfig: RouteConfig[] = [
         ],
       },
       {
-        path: '/inventory/*',
-        element: (
-          <SuspenseProvider>
-            <PageInventory />
-          </SuspenseProvider>
-        ),
+        path: '/inventory',
+        children: [
+          {
+            index: true,
+            element: (
+              <SuspenseProvider>
+                <PageInventory />
+              </SuspenseProvider>
+            ),
+          },
+          // Currently, the repeated routes help the playground.digital.auto manage the Breadcrumbs of Inventory
+          // TODO: Moving the logic of Inventory-related Breadcrumbs logic to Inventory
+          {
+            path: 'role/:inventory_role',
+            children: [
+              {
+                index: true,
+                element: (
+                  <SuspenseProvider>
+                    <PageInventory />
+                  </SuspenseProvider>
+                ),
+              },
+              {
+                path: 'item/:inventory_id',
+                element: (
+                  <SuspenseProvider>
+                    <PageInventory />
+                  </SuspenseProvider>
+                ),
+              },
+              {
+                path: 'item/:inventory_id/:tab',
+                element: (
+                  <SuspenseProvider>
+                    <PageInventory />
+                  </SuspenseProvider>
+                ),
+              },
+            ],
+          },
+          {
+            path: 'schema/*',
+            element: (
+              <SuspenseProvider>
+                <PageInventory />
+              </SuspenseProvider>
+            ),
+          },
+          {
+            path: 'instance/*',
+            element: (
+              <SuspenseProvider>
+                <PageInventory />
+              </SuspenseProvider>
+            ),
+          },
+        ],
       },
       {
         path: '/genai-wizard',
