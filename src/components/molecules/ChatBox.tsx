@@ -1,4 +1,3 @@
-// import { createChat } from '@n8n/chat'
 import { useEffect, useState } from 'react'
 import { IoMdClose } from 'react-icons/io'
 import { DaTextarea } from '../atoms/DaTextarea'
@@ -250,16 +249,6 @@ const N8NChatIntegration = ({}) => {
           placeholder="Type your request..."
           textareaClassName="!text-lg"
         />
-        {/* <input
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter') sendMessage();
-        }}
-        placeholder="Type your message..."
-      /> */}
-        {/* <button onClick={sendMessage}>Send</button> */}
       </div>
     </div>
   )
@@ -268,27 +257,6 @@ const N8NChatIntegration = ({}) => {
 
 const ChatBox = ({}) => {
   const [showAI, setShowAI] = useState(false)
-
-  useEffect(() => {
-    // createChat({
-    //     target: '#chatbox',
-    //     webhookUrl: 'https://digitalautodev.app.n8n.cloud/webhook/1a8ae71f-42d7-4bb0-946d-bdc095ed1a2f/chat',
-    //     // webhookConfig: {
-    //     //     method: 'POST',
-    //     //     headers: {}
-    //     // },
-    //     mode: 'window',
-    //     chatInputKey: 'chatInput',
-    //     chatSessionKey: 'sessionId',
-    //     metadata: {},
-    //     showWelcomeScreen: false,
-    //     defaultLanguage: 'en',
-    //     initialMessages: [
-    //         'Hi there! 👋',
-    //         'My name is Nathan. How can I assist you today?'
-    //     ],
-    // });
-  }, [])
 
   return (
     <>
@@ -317,10 +285,6 @@ const ChatBox = ({}) => {
             />
           </div>
           <N8NChatIntegration />
-          {/* <div id="chatbox" className="chatbox"> */}
-
-          {/* <iframe title="chatbox" src="https://digitalautodev.app.n8n.cloud/webhook/1a8ae71f-42d7-4bb0-946d-bdc095ed1a2f/chat"/> */}
-          {/* </div> */}
         </div>
       )}
     </>
