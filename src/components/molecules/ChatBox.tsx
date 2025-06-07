@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { IoMdClose } from 'react-icons/io'
 import { DaTextarea } from '../atoms/DaTextarea'
 import ReactMarkdown from 'react-markdown'
+import { useNavigate } from 'react-router-dom'
+
 
 interface ReactRenderProps {
   markdownText: string
@@ -14,37 +16,37 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
       components={{
         h1: ({ node, ...props }) => (
           <h1
-            className="text-4xl font-extrabold mt-8 mb-4 text-gray-900 dark:text-gray-100 border-b pb-2 border-gray-200 dark:border-gray-700"
+            className="text-4xl font-extrabold mt-6 my-1 text-gray-900 dark:text-gray-100 border-b pb-2 border-gray-200 dark:border-gray-700"
             {...props}
           />
         ),
         h2: ({ node, ...props }) => (
           <h2
-            className="text-3xl font-bold mt-6 mb-3 text-gray-800 dark:text-gray-200"
+            className="text-3xl font-bold mt-4 mb-3 text-gray-800 dark:text-gray-200"
             {...props}
           />
         ),
         h3: ({ node, ...props }) => (
           <h3
-            className="text-2xl font-semibold mt-5 mb-2 text-gray-700 dark:text-gray-300"
+            className="text-2xl font-semibold mt-3 mb-2 text-gray-700 dark:text-gray-300"
             {...props}
           />
         ),
         h4: ({ node, ...props }) => (
           <h4
-            className="text-xl font-semibold mt-4 mb-1 text-gray-600 dark:text-gray-400"
+            className="text-xl font-semibold mt-2 mb-1 text-gray-600 dark:text-gray-400"
             {...props}
           />
         ),
         h5: ({ node, ...props }) => (
           <h5
-            className="text-lg font-medium mt-3 text-gray-600 dark:text-gray-400"
+            className="text-lg font-medium mt-1 text-gray-600 dark:text-gray-400"
             {...props}
           />
         ),
         h6: ({ node, ...props }) => (
           <h6
-            className="text-base font-medium mt-2 text-gray-500 dark:text-gray-500"
+            className="text-base font-medium mt-1 text-gray-500 dark:text-gray-500"
             {...props}
           />
         ),
@@ -52,7 +54,7 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
         // Paragraph
         p: ({ node, ...props }) => (
           <p
-            className="mb-4 leading-relaxed text-gray-700 dark:text-gray-300"
+            className="my-1 leading-snug text-sm text-gray-700 dark:text-gray-300"
             {...props}
           />
         ),
@@ -70,24 +72,24 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
         // Lists
         ul: ({ node, ...props }) => (
           <ul
-            className="list-disc pl-6 mb-4 text-gray-700 dark:text-gray-300"
+            className="list-disc pl-6 my-1 text-gray-700 dark:text-gray-300"
             {...props}
           />
         ),
         ol: ({ node, ...props }) => (
           <ol
-            className="list-decimal pl-6 mb-4 text-gray-700 dark:text-gray-300"
+            className="list-decimal pl-6 my-1 text-gray-700 dark:text-gray-300"
             {...props}
           />
         ),
         li: ({ node, ...props }) => (
-          <li className="mb-2 leading-relaxed" {...props} />
+          <li className="mb-2 leading-snug" {...props} />
         ),
 
         // Blockquote
         blockquote: ({ node, ...props }) => (
           <blockquote
-            className="border-l-4 border-gray-400 pl-4 py-2 my-4 italic text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded"
+            className="border-l-4 border-gray-400 pl-4 py-2 my-2 italic text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded"
             {...props}
           />
         ),
@@ -95,14 +97,14 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
         // Code
         code: ({ node, ...props }) => (
           <code
-            className={`font-mono text-sm block bg-gray-800 text-gray-200 p-4 rounded-md overflow-x-auto my-4`}
+            className={`font-mono text-sm block bg-gray-800 text-gray-200 p-4 rounded-md overflow-x-auto my-2`}
             {...props}
           />
         ),
         // For preformatted blocks (like code blocks)
         pre: ({ node, ...props }) => (
           <pre
-            className="bg-gray-800 text-gray-200 p-4 rounded-md overflow-x-auto my-4"
+            className="bg-gray-800 text-gray-200 p-4 rounded-md overflow-x-auto my-2"
             {...props}
           />
         ),
@@ -110,7 +112,7 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
         // Tables
         table: ({ node, ...props }) => (
           <table
-            className="w-full border-collapse my-4 text-gray-700 dark:text-gray-300"
+            className="w-full border-collapse my-2 text-gray-700 dark:text-gray-300"
             {...props}
           />
         ),
@@ -143,7 +145,7 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
         // Images
         img: ({ node, ...props }) => (
           <img
-            className="max-w-full h-auto mx-auto my-4 rounded-lg shadow-md"
+            className="max-w-full h-auto mx-auto my-2 rounded-lg shadow-md"
             {...props}
           />
         ),
@@ -186,17 +188,22 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
   )
 }
 
-const genAIURL = process.env.N8N_AGENT || ''
+const genAIURL = import.meta.env.VITE_N8N_AGENT || ''
 
 const N8NChatIntegration = ({}) => {
+  const navigate = useNavigate()
   const [messages, setMessages] = useState<any[]>([])
   const [inputValue, setInputValue] = useState('')
+
+  const chatBoxRef = useRef<any>()
 
   const sendMessage = async () => {
     if (!inputValue.trim()) return
 
     const newMessage = { sender: 'user', text: inputValue }
     setMessages((prevMessages) => [...prevMessages, newMessage])
+
+    setInputValue('')
 
     try {
       const response = await fetch(
@@ -215,44 +222,75 @@ const N8NChatIntegration = ({}) => {
       )
 
       const data = await response.json()
-      const botMessage = { sender: 'bot', text: data.output }
+      let responseData = data.output
+      const botMessage = { sender: 'bot', text: responseData }
       setMessages((prevMessages) => [...prevMessages, botMessage])
+
+      /*
+        {host}/model/{model_id}
+        {host}/model/{model_id}/library/prototype/{prototype_id}/view
+        {host}/model/{model_id}/library/prototype/{prototype_id}/code
+        {host}/model/{model_id}/library/prototype/{prototype_id}/dashboard
+      */
+      setTimeout(() => {
+        // check that if responseData context link the same with this host, if so, pick the first link and launch it
+        const host = window.location.origin;
+        const regex = new RegExp(`${host}/model/\\w+(/library/prototype/\\w+/(view|code|dashboard))?`, 'g');
+        const links = responseData.match(regex);
+
+        if (links && links.length > 0) {
+          navigate(links[0]);
+        }
+      }, 500)
+    
     } catch (error) {
       console.error('Error sending message:', error)
     }
-
-    setInputValue('')
+    
   }
 
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight
+    }
+  }, [messages])
+
   return (
-    <div className="grow flex flex-col">
-      <div className="grow">
+    <div className="grow relative">
+      <div
+        ref={chatBoxRef}
+        className="absolute top-0 bottom-[80px] text-sm left-0 w-full overflow-auto "
+      >
         {messages.map((msg, index) => (
-          <div
+          <div 
             key={index}
-            className={`mt-2 text-gray-700 rounded px-2 py-2 
-            ${msg.sender == 'user' && 'ml-8 text-white bg-da-primary-500'} ${msg.sender == 'bot' && 'mr-8 bg-slate-200'}`}
+            className={`mt-2 text-gray-700 rounded-md px-2 py-2 
+            ${msg.sender == 'user' && 'ml-8 text-white bg-da-primary-500'} 
+            ${msg.sender == 'bot' && 'mr-8 bg-white'}`}
           >
             {msg.sender == 'user' && <>{msg.text}</> }
             {msg.sender == 'bot' && <MarkdownRender markdownText={msg.text} /> }
           </div>
         ))}
       </div>
-      <div className="border-t border-gray-300 pt-2">
+      <div className="absolute bottom-0 left-0 w-full h-[84px] border-t border-gray-300 pt-1">
         <DaTextarea
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          className="flex w-full "
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') sendMessage()
+          className="flex w-full h-[80px] "
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') 
+              { 
+                e.preventDefault();
+                sendMessage()
+              }
           }}
           placeholder="Type your request..."
-          textareaClassName="!text-lg"
+          textareaClassName="!text-base !px-2 !py-1 !leading-tight !bg-white"
         />
       </div>
     </div>
   )
-  return <div></div>
 }
 
 const ChatBox = ({}) => {
@@ -271,13 +309,14 @@ const ChatBox = ({}) => {
         />}
       </div>
       {showAI && (
-        <div className="fixed p-2 left-1 top-[60px] h-[90vh] w-[360px] bg-white rounded-lg shadow-xl flex flex-col"
+        <div className="fixed px-2 py-1 left-2 top-[60px] h-[calc(100vh-70px)] w-[360px] rounded-lg shadow-xl 
+          flex flex-col bg-teal-50"
           style={{zIndex: 99}}>
-          <div className="flex text-xl pb-1 pl-2 font-semibold text-slate-700 border-b border-slate-300">
+          <div className="flex text-lg pb-1 pl-2 font-semibold text-slate-800 border-b border-slate-300">
             digital.auto AI agent
             <div className="grow"></div>
             <IoMdClose
-              className="text-black hover:scale-110 cursor-pointer"
+              className="text-slate-700 hover:scale-110 cursor-pointer"
               size={26}
               onClick={() => {
                 setShowAI(false)
