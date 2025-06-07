@@ -187,6 +187,8 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
   )
 }
 
+const genAIURL = process.env.N8N_AGENT || ''
+
 const N8NChatIntegration = ({}) => {
   const [messages, setMessages] = useState<any[]>([])
   const [inputValue, setInputValue] = useState('')
@@ -199,7 +201,7 @@ const N8NChatIntegration = ({}) => {
 
     try {
       const response = await fetch(
-        'https://digitalautodev.app.n8n.cloud/webhook/e9b346c8-68be-4c9d-8453-6c03a0bdca96/chat',
+        genAIURL,
         {
           method: 'POST',
           headers: {
@@ -291,14 +293,14 @@ const ChatBox = ({}) => {
   return (
     <>
       <div className="px-2">
-        <img
+        { genAIURL && <img
           alt="ai agent"
           onClick={() => {
             setShowAI((v) => !v)
           }}
           className="w-6 h-6 hover:scale-125 cursor-pointer"
           src="/imgs/ai.png"
-        />
+        />}
       </div>
       {showAI && (
         <div className="fixed p-2 left-1 top-[60px] h-[90vh] w-[360px] bg-white rounded-lg shadow-xl flex flex-col"
