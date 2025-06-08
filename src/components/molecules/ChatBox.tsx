@@ -3,7 +3,11 @@ import { IoMdClose } from 'react-icons/io'
 import { DaTextarea } from '../atoms/DaTextarea'
 import ReactMarkdown from 'react-markdown'
 import { useNavigate } from 'react-router-dom'
-
+import config from '@/configs/config'
+import useSelfProfileQuery from '@/hooks/useSelfProfile'
+import useAuthStore from '@/stores/authStore'
+import useModelStore from '@/stores/modelStore'
+import { Model, Prototype } from '@/types/model.type'
 
 interface ReactRenderProps {
   markdownText: string
@@ -12,7 +16,7 @@ interface ReactRenderProps {
 const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
   return (
     <ReactMarkdown
-      className="markdown-content text-muted-foreground text-base max-w-none"
+      className="markdown-content text-muted-foreground text-sm max-w-none"
       components={{
         h1: ({ node, ...props }) => (
           <h1
@@ -188,12 +192,20 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
   )
 }
 
-const genAIURL = import.meta.env.VITE_N8N_AGENT || ''
+
+
+const genAIURL = config.genAI?.agent?.url
 
 const N8NChatIntegration = ({}) => {
+  const { data: user } = useSelfProfileQuery()
+  const { access } = useAuthStore()
   const navigate = useNavigate()
   const [messages, setMessages] = useState<any[]>([])
   const [inputValue, setInputValue] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const [model] = useModelStore((state) => [state.model as Model])
+  const [prototype] = useModelStore((state) => [state.prototype as Prototype])
 
   const chatBoxRef = useRef<any>()
 
@@ -206,6 +218,16 @@ const N8NChatIntegration = ({}) => {
     setInputValue('')
 
     try {
+      // sample sessionId: '1818c26f-7842-4901-9f46-615ef1e20724'
+      // try to get sessonId from localStorage, if not found, generate a new one and
+      let sessionId = localStorage.getItem('n8nChatSessionId')
+      if (!sessionId) {
+        sessionId = crypto.randomUUID()
+        localStorage.setItem('n8nChatSessionId', sessionId)
+      }
+
+      setLoading(true)
+
       const response = await fetch(
         genAIURL,
         {
@@ -216,7 +238,14 @@ const N8NChatIntegration = ({}) => {
           body: JSON.stringify({
             action: 'sendMessage',
             chatInput: inputValue,
-            sessionId: '1818c26f-7842-4901-9f46-615ef1e20724',
+            sessionId: sessionId,
+            user_name: user?.name || '',
+            user_id:user?.id || '',
+            token: access?.token || '',
+            model_id: model?.id || '',
+            prototype_id: prototype?.id || '',
+            model_name: model?.name || '',
+            prototype_name: prototype?.name || ''
           }),
         },
       )
@@ -234,17 +263,27 @@ const N8NChatIntegration = ({}) => {
       */
       setTimeout(() => {
         // check that if responseData context link the same with this host, if so, pick the first link and launch it
-        const host = window.location.origin;
+        let host = window.location.origin;
+        // serve for development environment
+        if(host == 'http://localhost:3000') {
+          host = 'https://playground.digital.auto'
+        }
         const regex = new RegExp(`${host}/model/\\w+(/library/prototype/\\w+/(view|code|dashboard))?`, 'g');
         const links = responseData.match(regex);
 
         if (links && links.length > 0) {
+          if(window.location.origin == 'http://localhost:3000') {
+            navigate(links[0].replace('https://playground.digital.auto', ''));
+            return 
+          }
           navigate(links[0]);
         }
       }, 500)
     
     } catch (error) {
       console.error('Error sending message:', error)
+    } finally {
+      setLoading(false)
     }
     
   }
@@ -272,6 +311,33 @@ const N8NChatIntegration = ({}) => {
             {msg.sender == 'bot' && <MarkdownRender markdownText={msg.text} /> }
           </div>
         ))}
+        {loading && (
+          <div className="mt-2 text-gray-700 rounded-md px-2 py-2 bg-white">
+            <div className="flex items-center">
+              <svg
+                className="animate-spin h-5 w-5 mr-3 text-da-primary-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2.93 6.93A8 8 0 0112 20v4c-6.627 0-12-5.373-12-12h4a8 8 0 006.93 6.93zM20 12a8 8 0 01-8 8v4c6.627 0 12-5.373 12-12h-4zm1.07-6.93A8 8 0 0112 4V0c6.627 0 12 5.373 12 12h-4z"
+                ></path>
+              </svg>
+              Processing...
+            </div>
+          </div>
+        )}
       </div>
       <div className="absolute bottom-0 left-0 w-full h-[84px] border-t border-gray-300 pt-1">
         <DaTextarea

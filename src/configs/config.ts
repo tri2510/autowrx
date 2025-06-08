@@ -28,6 +28,9 @@ const config: any = {
     hideMarketplace: false,
     defaultEndpointUrl: 'https://backend-core-dev.digital.auto/v2/genai',
     marketplaceUrl: 'https://store-be.digitalauto.tech/marketplace/genai',
+    agent: {
+      url: 'https://digitalautodev.app.n8n.cloud/webhook/e9b346c8-68be-4c9d-8453-6c03a0bdca96/chat',
+    },
     sdvApp: [
       {
         id: '674fed13c2a9e9b37198ff2a',
