@@ -8,6 +8,7 @@ import useSelfProfileQuery from '@/hooks/useSelfProfile'
 import useAuthStore from '@/stores/authStore'
 import useModelStore from '@/stores/modelStore'
 import { Model, Prototype } from '@/types/model.type'
+import useGlobalStore from '@/stores/globalStore'
 
 interface ReactRenderProps {
   markdownText: string
@@ -192,8 +193,6 @@ const MarkdownRender = ({ markdownText }: ReactRenderProps) => {
   )
 }
 
-
-
 const genAIURL = config.genAI?.agent?.url
 
 const N8NChatIntegration = ({}) => {
@@ -359,8 +358,13 @@ const N8NChatIntegration = ({}) => {
   )
 }
 
-const ChatBox = ({}) => {
+const ChatBox = () => {
   const [showAI, setShowAI] = useState(false)
+  const [setIsChatShowed] = useGlobalStore((state) => [state.setIsChatShowed])
+
+  useEffect(() => {
+    setIsChatShowed(showAI)
+  }, [showAI])
 
   return (
     <>
@@ -375,10 +379,10 @@ const ChatBox = ({}) => {
         />}
       </div>
       {showAI && (
-        <div className="fixed px-2 py-1 left-2 top-[60px] h-[calc(100vh-70px)] w-[360px] rounded-lg shadow-xl 
-          flex flex-col bg-teal-50"
+        <div className="fixed px-2 py-1 left-2 top-[60px] h-[calc(100vh-68px)] w-[300px] rounded-md shadow-xl 
+          flex flex-col bg-slate-200"
           style={{zIndex: 99}}>
-          <div className="flex text-lg pb-1 pl-2 font-semibold text-slate-800 border-b border-slate-300">
+          <div className="flex text-base pb-1 pl-2 font-semibold text-slate-800 border-b border-slate-300">
             digital.auto AI agent
             <div className="grow"></div>
             <IoMdClose

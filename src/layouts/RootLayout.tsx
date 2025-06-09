@@ -8,6 +8,7 @@ import config from '@/configs/config'
 import routesConfig from '@/configs/routes'
 import { RouteConfig } from '@/types/common.type'
 import { retry } from '@/lib/retry'
+import useGlobalStore from '@/stores/globalStore'
 
 const ActiveObjectManagement = lazy(() =>
   retry(() => import('@/components/organisms/ActiveObjectManagement')),
@@ -41,7 +42,12 @@ const getPathsWithoutBreadcrumb = (routes: RouteConfig[]) => {
 }
 
 const RootLayout = () => {
+  const [isChatShowed] = useGlobalStore((state) => [state.isChatShowed])
   const location = useLocation()
+
+  // useEffect(() => {
+  //   console.log(`isChatShowed`, isChatShowed)
+  // }, [isChatShowed])
 
   const { data: currentUser } = useSelfProfileQuery()
 
@@ -64,9 +70,18 @@ const RootLayout = () => {
         )}
       </Suspense>
 
-      <div className="h-full overflow-y-auto">
-        <Outlet />
-      </div>
+      { isChatShowed?<>
+        <div className="pl-[320px] overflow-y-auto">
+          <Outlet />
+        </div>
+      </>:<>
+        <div className="h-full overflow-y-auto">
+          <Outlet />
+        </div>
+      </> 
+
+      }
+      
 
       {config && config.instance !== 'digitalauto' && (
         <div className="flex w-full sticky bottom-0 right-0 z-10 bg-da-gray-darkest px-4 py-0.5 text-end text-xs text-da-white da-footer-bar">

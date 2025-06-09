@@ -23,8 +23,6 @@ const NavigationBar = ({}) => {
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.MANAGE_USERS])
 
-  
-
   return (
     <header className="da-nav-bar">
       <Link to="/">
@@ -57,9 +55,6 @@ const NavigationBar = ({}) => {
 
       {user && (
         <>
-
-          
-
           <DaGlobalSearch>
             <DaButton
               variant="outline-nocolor"
@@ -79,7 +74,7 @@ const NavigationBar = ({}) => {
           </DaTooltip>
 
           <ChatBox/> 
-          {/* {isAuthorized && <ChatBox/> } */}
+
           {isAuthorized && (
             
             <DaMenu
