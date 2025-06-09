@@ -203,7 +203,7 @@ const N8NChatIntegration = ({}) => {
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const [model] = useModelStore((state) => [state.model as Model])
+  const [model, refreshModel] = useModelStore((state) => [state.model as Model, state.refreshModel])
   const [prototype] = useModelStore((state) => [state.prototype as Prototype])
 
   const chatBoxRef = useRef<any>()
@@ -267,7 +267,8 @@ const N8NChatIntegration = ({}) => {
         if(host == 'http://localhost:3000') {
           host = 'https://playground.digital.auto'
         }
-        const regex = new RegExp(`${host}/model/\\w+(/library/prototype/\\w+/(view|code|dashboard))?`, 'g');
+        // const regex = new RegExp(`${host}/model/\\w+(/library/prototype/\\w+/(view|code|dashboard))?`, 'g');
+        const regex = new RegExp(`${host}/model/\\w+(/library/prototype/\\w+(/(view|code|dashboard))?)?`, 'g');
         const links = responseData.match(regex);
 
         if (links && links.length > 0) {
@@ -297,12 +298,12 @@ const N8NChatIntegration = ({}) => {
     <div className="grow relative">
       <div
         ref={chatBoxRef}
-        className="absolute top-0 bottom-[80px] text-sm left-0 w-full overflow-auto "
+        className="absolute top-0 bottom-[80px] px-2 pt-0 pb-2 text-sm left-0 w-full overflow-auto "
       >
         {messages.map((msg, index) => (
           <div 
             key={index}
-            className={`mt-2 text-gray-700 rounded-md px-2 py-2 
+            className={`mt-2 text-gray-700 rounded-md px-2 py-0.5 
             ${msg.sender == 'user' && 'ml-8 text-white bg-da-primary-500'} 
             ${msg.sender == 'bot' && 'mr-8 bg-white'}`}
           >
@@ -338,7 +339,7 @@ const N8NChatIntegration = ({}) => {
           </div>
         )}
       </div>
-      <div className="absolute bottom-0 left-0 w-full h-[84px] border-t border-gray-300 pt-1">
+      <div className="absolute px-1 py-1 bottom-0 left-0 w-full h-[88px] border-t border-gray-300 pt-1">
         <DaTextarea
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
@@ -379,14 +380,14 @@ const ChatBox = () => {
         />}
       </div>
       {showAI && (
-        <div className="fixed px-2 py-1 left-2 top-[60px] h-[calc(100vh-68px)] w-[300px] rounded-md shadow-xl 
-          flex flex-col bg-slate-200"
+        <div className="fixed p-0 right-1 top-[4px] h-[calc(100vh-8px)] w-[310px] rounded-md shadow-xl
+          flex flex-col bg-slate-300"
           style={{zIndex: 99}}>
-          <div className="flex text-base pb-1 pl-2 font-semibold text-slate-800 border-b border-slate-300">
+          <div className="flex text-base py-1 pl-4 pr-2 font-semibold text-white border-b border-slate-400 bg-gradient-to-r from-da-gradient-from to-da-gradient-to rounded-t">
             digital.auto AI agent
             <div className="grow"></div>
             <IoMdClose
-              className="text-slate-700 hover:scale-110 cursor-pointer"
+              className="hover:scale-110 cursor-pointer text-white"
               size={26}
               onClick={() => {
                 setShowAI(false)

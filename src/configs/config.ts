@@ -32,7 +32,7 @@ const config: any = {
     marketplaceUrl: 'https://store-be.digitalauto.tech/marketplace/genai',
     agent: {
       // url: 'https://digitalautodev.app.n8n.cloud/webhook/e9b346c8-68be-4c9d-8453-6c03a0bdca96/chat',
-      url: 'https://n8n.always-simple.com/webhook/e9b346c8-68be-4c9d-8453-6c03a0bdca96/chat'
+      url: 'https://mekong89.app.n8n.cloud/webhook/e9b346c8-68be-4c9d-8453-6c03a0bdca96/chat'
     },
     sdvApp: [
       {

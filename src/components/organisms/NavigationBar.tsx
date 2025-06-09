@@ -21,7 +21,7 @@ import ChatBox from '../molecules/ChatBox'
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
-  const [isAuthorized] = usePermissionHook([PERMISSIONS.MANAGE_USERS])
+  const [isAuthorized, allowUseAgent] = usePermissionHook([PERMISSIONS.MANAGE_USERS], ['aiAgent'])
 
   return (
     <header className="da-nav-bar">
@@ -73,7 +73,7 @@ const NavigationBar = ({}) => {
             </Link>
           </DaTooltip>
 
-          <ChatBox/> 
+          { allowUseAgent && <ChatBox/> }
 
           {isAuthorized && (
             

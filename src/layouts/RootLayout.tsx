@@ -56,8 +56,9 @@ const RootLayout = () => {
     [],
   )
 
-  return (
-    <div className="flex h-screen flex-col">
+  return <>
+
+    <div className={`flex h-screen flex-col ${isChatShowed && 'pr-[320px]'}`}>
       <Suspense>
         <ActiveObjectManagement />
       </Suspense>
@@ -70,8 +71,8 @@ const RootLayout = () => {
         )}
       </Suspense>
 
-      { isChatShowed?<>
-        <div className="pl-[320px] overflow-y-auto">
+      {/* { isChatShowed?<>
+        <div className="pl-[320px] min-h-[90vh] overflow-y-auto">
           <Outlet />
         </div>
       </>:<>
@@ -80,7 +81,11 @@ const RootLayout = () => {
         </div>
       </> 
 
-      }
+      } */}
+
+      <div className="h-full overflow-y-auto">
+        <Outlet />
+      </div>
       
 
       {config && config.instance !== 'digitalauto' && (
@@ -109,7 +114,7 @@ const RootLayout = () => {
 
       <Toaster />
     </div>
-  )
+  </>
 }
 
 export default RootLayout
