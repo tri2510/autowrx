@@ -404,7 +404,6 @@ select[aria-hidden='true'][tabindex='-1'] {
   transition: width 0.3s ease-in-out;
 }
 
-
 @keyframes slideOut {
   from {
     transform: translateX(0); /* Or translateY(0) for vertical */

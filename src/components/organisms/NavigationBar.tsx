@@ -19,6 +19,9 @@ import useCurrentModel from '@/hooks/useCurrentModel'
 import { IoIosHelpBuoy } from 'react-icons/io'
 import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
+import ChatBox from '../molecules/ChatBox'
+
+
 
 import Switch from "react-switch";
 import { useState, useEffect, useRef } from "react"
@@ -30,7 +33,7 @@ import { FaCar } from 'react-icons/fa'
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
-  const [isAuthorized, allowLearningAccess] = usePermissionHook([PERMISSIONS.MANAGE_USERS], [PERMISSIONS.LEARNING_MODE])
+  const [isAuthorized, allowUseAgent, allowLearningAccess] = usePermissionHook([PERMISSIONS.MANAGE_USERS], ['aiAgent'], [PERMISSIONS.LEARNING_MODE])
   const [learningMode, setIsLearningMode]= useState(false)
   const { access } = useAuthStore()
 
@@ -119,7 +122,11 @@ const NavigationBar = ({}) => {
               <TbBuildingWarehouse size={22} />
             </Link>
           </DaTooltip>
+
+          { allowUseAgent && <ChatBox/> }
+
           {isAuthorized && (
+            
             <DaMenu
               trigger={
                 <div className="cursor-pointer flex !h-10 items-center da-btn-sm text-da-gray-medium da-btn-plain ml-2">

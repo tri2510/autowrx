@@ -8,6 +8,7 @@ import config from '@/configs/config'
 import routesConfig from '@/configs/routes'
 import { RouteConfig } from '@/types/common.type'
 import { retry } from '@/lib/retry'
+import useGlobalStore from '@/stores/globalStore'
 
 const ActiveObjectManagement = lazy(() =>
   retry(() => import('@/components/organisms/ActiveObjectManagement')),
@@ -41,7 +42,12 @@ const getPathsWithoutBreadcrumb = (routes: RouteConfig[]) => {
 }
 
 const RootLayout = () => {
+  const [isChatShowed] = useGlobalStore((state) => [state.isChatShowed])
   const location = useLocation()
+
+  // useEffect(() => {
+  //   console.log(`isChatShowed`, isChatShowed)
+  // }, [isChatShowed])
 
   const { data: currentUser } = useSelfProfileQuery()
 
@@ -50,8 +56,9 @@ const RootLayout = () => {
     [],
   )
 
-  return (
-    <div className="flex h-screen flex-col">
+  return <>
+
+    <div className={`flex h-screen flex-col ${isChatShowed && 'pr-[320px]'}`}>
       <Suspense>
         <ActiveObjectManagement />
       </Suspense>
@@ -67,6 +74,7 @@ const RootLayout = () => {
       <div className="h-full overflow-y-auto">
         <Outlet />
       </div>
+      
 
       {config && config.instance !== 'digitalauto' && (
         <div className="flex w-full sticky bottom-0 right-0 z-10 bg-da-gray-darkest px-4 py-0.5 text-end text-xs text-da-white da-footer-bar">
@@ -94,7 +102,7 @@ const RootLayout = () => {
 
       <Toaster />
     </div>
-  )
+  </>
 }
 
 export default RootLayout
