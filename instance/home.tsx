@@ -90,14 +90,16 @@ const home = [
         redirectURL: 'https://youtu.be/K3pindMCq1c',
       },
       {
-        title: 'SDV101 Coursera Course',
-        type: 'Event',
-        date: '2 June 2025',
+        title:
+          'Explore the SDV Guide - Your Complete Software-Defined Vehicle Resource',
+        type: 'Guide',
+        date: '10 June 2025',
         description:
-          'SDV101 hits 1,001+ enrollments! Join our growing community exploring software-defined vehicles. Click to enroll and shape the future of automotive technology.',
+          'Comprehensive SDV Guide covering Software-Defined Vehicle fundamentals through advanced topics. ',
+
         imageURL:
-          'https://bewebstudio.digitalauto.tech/data/projects/7SBfnpMKkQzS/coursera.png',
-        redirectURL: 'https://www.coursera.org/learn/sdv101#testimonials',
+          'https://bewebstudio.digitalauto.tech/data/projects/nTcRsgxcDWgr/image.avif',
+        redirectURL: 'https://sdv.guide/',
       },
       {
         title: 'Version v2.0 release',
