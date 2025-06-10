@@ -96,7 +96,7 @@ const DaGenAI_Base = ({
       let pythonGenAIs = assets.filter(
         (asset: any) => asset.type == 'GENAI-PYTHON',
       )
-      console.log(pythonGenAIs)
+      // console.log(pythonGenAIs)
       setHasGenAIAssets(pythonGenAIs.length > 0)
       let pythonAIAddons = pythonGenAIs.map((asset: any) => {
         let url = ''
@@ -126,7 +126,7 @@ const DaGenAI_Base = ({
           customPayload: (prompt: string) => ({ prompt }),
         }
       })
-      console.log(pythonAIAddons)
+      // console.log(pythonAIAddons)
       setUserAIAddOns(pythonAIAddons)
       return
     }
