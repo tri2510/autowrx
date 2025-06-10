@@ -21,7 +21,8 @@ import {
 type DaSpeechToTextProps = {
   onRecognize: (text: string) => void
   prompt?: string
-  iconClassName?: string
+  iconClassName?: string,
+  hideLabel?: boolean
 }
 
 const BouncingDotsLoader = () => {
@@ -57,6 +58,7 @@ const DaSpeechToText: React.FC<DaSpeechToTextProps> = ({
   onRecognize,
   prompt,
   iconClassName,
+  hideLabel
 }) => {
   const [isListening, setIsListening] = useState(false)
   const [isMicActive, setIsMicActive] = useState(false)
@@ -196,7 +198,6 @@ const DaSpeechToText: React.FC<DaSpeechToTextProps> = ({
   const resetInactivityTimeout = () => {
     clearInactivityTimeout()
     inactivityTimeout.current = setTimeout(() => {
-      console.debug('Inactivity timeout reached, stopping recognition...')
       handleStop()
     }, INACTIVITY_DURATION)
   }
@@ -219,7 +220,6 @@ const DaSpeechToText: React.FC<DaSpeechToTextProps> = ({
   // Clear accumulated text when prompt is set to an empty string
   useEffect(() => {
     if (prompt === '') {
-      console.debug('Clearing accumulated text')
       accumulatedTextRef.current = ''
     }
   }, [prompt])
@@ -250,12 +250,12 @@ const DaSpeechToText: React.FC<DaSpeechToTextProps> = ({
         <>
           <TbMicrophone
             className={cn(
-              'mr-1 size-5 text-da-primary-500',
+              'size-5 text-da-primary-500',
               iconClassName,
               'group-hover:text-da-primary-500',
             )}
           />
-          <p className="font-medium">Voice input</p>
+          { !hideLabel && <p className="ml-1 font-medium">Voice input</p>}
         </>
       )}
     </button>

@@ -9,6 +9,7 @@ import useAuthStore from '@/stores/authStore'
 import useModelStore from '@/stores/modelStore'
 import { Model, Prototype } from '@/types/model.type'
 import useGlobalStore from '@/stores/globalStore'
+import DaSpeechToText from './genAI/DaSpeechToText'
 
 interface ReactRenderProps {
   markdownText: string
@@ -239,12 +240,13 @@ const N8NChatIntegration = ({}) => {
             chatInput: inputValue,
             sessionId: sessionId,
             user_name: user?.name || '',
-            user_id:user?.id || '',
+            user_id: user?.id || '',
             token: access?.token || '',
             model_id: model?.id || '',
             prototype_id: prototype?.id || '',
             model_name: model?.name || '',
-            prototype_name: prototype?.name || ''
+            prototype_name: prototype?.name || '',
+            current_url: window.location.href
           }),
         },
       )
@@ -298,12 +300,12 @@ const N8NChatIntegration = ({}) => {
     <div className="grow relative">
       <div
         ref={chatBoxRef}
-        className="absolute top-0 bottom-[80px] px-2 pt-0 pb-2 text-sm left-0 w-full overflow-auto "
+        className="absolute top-0 bottom-[110px] px-2 pt-0 pb-2 text-sm left-0 w-full overflow-auto "
       >
         {messages.map((msg, index) => (
           <div 
             key={index}
-            className={`mt-2 text-gray-700 rounded-md px-2 py-0.5 
+            className={`mt-2 text-gray-700 rounded-md px-2 py-0.5 overflow-x-auto
             ${msg.sender == 'user' && 'ml-8 text-white bg-da-primary-500'} 
             ${msg.sender == 'bot' && 'mr-8 bg-white'}`}
           >
@@ -339,21 +341,26 @@ const N8NChatIntegration = ({}) => {
           </div>
         )}
       </div>
-      <div className="absolute px-1 py-1 bottom-0 left-0 w-full h-[88px] border-t border-gray-300 pt-1">
-        <DaTextarea
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          className="flex w-full h-[80px] "
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') 
-              { 
-                e.preventDefault();
-                sendMessage()
-              }
-          }}
-          placeholder="Type your request..."
-          textareaClassName="!text-base !px-2 !py-1 !leading-tight !bg-white"
-        />
+      <div className="absolute px-1 py-1 bottom-0 left-0 w-full h-[86px] border-t border-gray-300 bg-slate-300">
+        <div className='w-full h-full relative'>
+          <div className='inline absolute top-0 right-0 z-20'>
+            <DaSpeechToText onRecognize={setInputValue} prompt={inputValue} hideLabel={true}/>
+          </div>
+          <DaTextarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="flex w-full h-[80px] absolute top-0 left-0 z-10"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') 
+                { 
+                  e.preventDefault();
+                  sendMessage()
+                }
+            }}
+            placeholder="Type your request..."
+            textareaClassName="!text-base !px-2 !py-1 !leading-tight !bg-white"
+          />
+        </div>
       </div>
     </div>
   )
