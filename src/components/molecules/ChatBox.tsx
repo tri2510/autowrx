@@ -278,7 +278,7 @@ const N8NChatIntegration = ({}) => {
             navigate(links[0].replace('https://playground.digital.auto', ''));
             return 
           }
-          navigate(links[0]);
+          navigate(links[0].replace('https://playground.digital.auto', ''));
         }
       }, 500)
     
