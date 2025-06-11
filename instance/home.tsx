@@ -75,36 +75,6 @@ const home = [
       },
     ],
   },
-  // {
-  //   type: 'button-list',
-  //   requiredLogin: true,
-  //   items: [
-  //     {
-  //       type: 'new-model',
-  //       title: 'New model',
-  //       description: 'Create a vehicle model',
-  //       icon: <FaCar className="h-7 w-7 text-da-primary-500" />,
-  //     },
-  //     {
-  //       type: 'new-prototype',
-  //       title: 'New prototype',
-  //       description: 'Develop vehicle app',
-  //       icon: <TbCode className="h-7 w-7 text-da-primary-500" />,
-  //     },
-  //     {
-  //       type: 'import-prototype',
-  //       title: 'Import prototype',
-  //       description: 'Import existing prototype',
-  //       icon: <TbPackageImport className="h-7 w-7 text-da-primary-500" />,
-  //     },
-  //     {
-  //       title: 'My models',
-  //       description: 'Go to my models',
-  //       url: '/model',
-  //       icon: <TbArrowRight className="h-7 w-7 text-da-primary-500" />,
-  //     },
-  //   ],
-  // },
   {
     type: 'news',
     title: 'Top News',
@@ -118,6 +88,18 @@ const home = [
         imageURL:
           'https://bewebstudio.digitalauto.tech/data/projects/scqSwlCPJDj9/playground-introduction.png',
         redirectURL: 'https://youtu.be/K3pindMCq1c',
+      },
+      {
+        title:
+          'Explore the SDV Guide - Your Complete Software-Defined Vehicle Resource',
+        type: 'Guide',
+        date: '10 June 2025',
+        description:
+          'Comprehensive SDV Guide covering Software-Defined Vehicle fundamentals through advanced topics. ',
+
+        imageURL:
+          'https://bewebstudio.digitalauto.tech/data/projects/nTcRsgxcDWgr/image.avif',
+        redirectURL: 'https://sdv.guide/',
       },
       {
         title: 'Version v2.0 release',
@@ -138,16 +120,6 @@ const home = [
         imageURL:
           'https://bewebstudio.digitalauto.tech/data/projects/xT9wA8QU7xEN/new_images/autowrx.jpg',
         redirectURL: 'https://gitlab.eclipse.org/eclipse/autowrx/autowrx',
-      },
-      {
-        title: 'GenAI Awards',
-        type: 'Event',
-        date: '1 January 2025',
-        description:
-          'Join us to harness the power of GenAI for the software-defined vehicle (SDV). Win the digital.auto GenAI award by participating in our quarterly competitions. We are looking for novel ways to apply multimodel GenAI to create visually rich',
-        imageURL:
-          'https://bewebstudio.digitalauto.tech/data/projects/8go3BVLvQX3B/GenAI_Cover.png',
-        redirectURL: 'https://www.digital.auto/genai-award',
       },
     ],
   },
