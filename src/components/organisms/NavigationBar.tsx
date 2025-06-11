@@ -21,26 +21,27 @@ import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
 import ChatBox from '../molecules/ChatBox'
 
-
-
-import Switch from "react-switch";
-import { useState, useEffect, useRef } from "react"
+import Switch from 'react-switch'
+import { useState, useEffect, useRef } from 'react'
 import useAuthStore from '@/stores/authStore'
 import useLastAccessedModel from '@/hooks/useLastAccessedModel'
 import { FaCar } from 'react-icons/fa'
 
-
 const NavigationBar = ({}) => {
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
-  const [isAuthorized, allowUseAgent, allowLearningAccess] = usePermissionHook([PERMISSIONS.MANAGE_USERS], ['aiAgent'], [PERMISSIONS.LEARNING_MODE])
-  const [learningMode, setIsLearningMode]= useState(false)
+  const [isAuthorized, allowUseAgent, allowLearningAccess] = usePermissionHook(
+    [PERMISSIONS.MANAGE_USERS],
+    ['aiAgent'],
+    [PERMISSIONS.LEARNING_MODE],
+  )
+  const [learningMode, setIsLearningMode] = useState(false)
   const { access } = useAuthStore()
 
   const frameLearning = useRef<HTMLIFrameElement>(null)
 
   const { lastAccessedModel } = useLastAccessedModel()
-  const isAtInventoryPage = useMatch('/inventory')
+  const isAtInventoryPage = useMatch('/inventory/*')
 
   return (
     <header className="da-nav-bar">
@@ -64,26 +65,31 @@ const NavigationBar = ({}) => {
       <div className="grow"></div>
 
       {config && config.learning && config.learning.url && (
-        <div className='mr-6 cursor-pointer flex items-center'>
-          <span className='mr-1 da-txt-regular font-normal'>Learning</span> <span className='mr-2 text-[10px] text-gray-800'>beta</span>
-          <Switch onChange={(v) => {
-            if(v) {
-              if(!user) {
-                alert('Please Sign in to use learning mode')
-                return
-              }
+        <div className="mr-6 cursor-pointer flex items-center">
+          <span className="mr-1 da-txt-regular font-normal">Learning</span>{' '}
+          <span className="mr-2 text-[10px] text-gray-800">beta</span>
+          <Switch
+            onChange={(v) => {
+              if (v) {
+                if (!user) {
+                  alert('Please Sign in to use learning mode')
+                  return
+                }
 
-              if(!allowLearningAccess) {
-                alert('You are not authorized to use learning mode, please contact your administrator to join this feature')
-                return
+                if (!allowLearningAccess) {
+                  alert(
+                    'You are not authorized to use learning mode, please contact your administrator to join this feature',
+                  )
+                  return
+                }
               }
-            }
-            setIsLearningMode(v)
-
-          }} checked={learningMode}
-          width={40}
-          borderRadius={30}
-          height={20}/>
+              setIsLearningMode(v)
+            }}
+            checked={learningMode}
+            width={40}
+            borderRadius={30}
+            height={20}
+          />
         </div>
       )}
 
@@ -122,11 +128,8 @@ const NavigationBar = ({}) => {
               <TbBuildingWarehouse size={22} />
             </Link>
           </DaTooltip>
-
-          { allowUseAgent && <ChatBox/> }
-
+          {allowUseAgent && <ChatBox />}
           {isAuthorized && (
-            
             <DaMenu
               trigger={
                 <div className="cursor-pointer flex !h-10 items-center da-btn-sm text-da-gray-medium da-btn-plain ml-2">
@@ -173,20 +176,21 @@ const NavigationBar = ({}) => {
         </>
       )}
 
-      {
-        learningMode && <div 
-          style={{zIndex: 999}}
-          className='fixed top-14 left-0 bottom-0 
-            w-[60%] min-w-[1060px] bg-white learning-appear inset-0 shadow-[4px_4px_6px_rgba(0,0,0,0.3)]'>
-            <iframe
-              ref={frameLearning}
-              src={`${config?.learning?.url}?user_id=${encodeURIComponent(user?.id || '')}&token=${encodeURIComponent(access?.token || '')}`}
-              className="m-0 h-full w-full"
-              allow="camera;microphone"
-              onLoad={() => {}}
-            ></iframe>
+      {learningMode && (
+        <div
+          style={{ zIndex: 999 }}
+          className="fixed top-14 left-0 bottom-0 
+            w-[60%] min-w-[1060px] bg-white learning-appear inset-0 shadow-[4px_4px_6px_rgba(0,0,0,0.3)]"
+        >
+          <iframe
+            ref={frameLearning}
+            src={`${config?.learning?.url}?user_id=${encodeURIComponent(user?.id || '')}&token=${encodeURIComponent(access?.token || '')}`}
+            className="m-0 h-full w-full"
+            allow="camera;microphone"
+            onLoad={() => {}}
+          ></iframe>
         </div>
-      }
+      )}
       <DaNavUser />
     </header>
   )
