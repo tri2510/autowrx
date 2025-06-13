@@ -94,6 +94,39 @@ export interface CustomRequirement {
   url?: string
 }
 
+export type RequirementType =
+  | 'Functional Requirement'
+  | 'System Integration Requirement'
+  | 'Safety & Security Requirement'
+  | 'User Experience Requirement'
+  | 'Regulatory & Homologation Requirement'
+  | 'Operational Requirement'
+  | 'Deployment & Ecosystem Requirement'
+
+export interface RequirementSource {
+  type: 'external' | 'internal'
+  link: string
+}
+
+export interface RequirementRating {
+  priority: number // Could be 1-5 or another scale
+  relevance: number
+  impact: number
+}
+
+export interface Requirement {
+  id: string
+  title: string
+  description: string
+  type: RequirementType
+  source: RequirementSource
+  rating: RequirementRating
+  creatorUserId: string
+  createdAt?: Date
+  updatedAt?: Date
+  childRequirements?: string[] // Array of IDs for child requirements
+}
+
 export type SearchPrototype = {
   id: string
   name: string

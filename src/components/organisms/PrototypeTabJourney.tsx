@@ -10,8 +10,6 @@ import {
   deletePrototypeService,
 } from '@/services/prototype.service'
 import {
-  TbChevronDown,
-  TbDots,
   TbDotsVertical,
   TbDownload,
   TbEdit,
@@ -42,6 +40,7 @@ import DaCustomRequirements from '../molecules/prototype_requirements/DaCustomRe
 import DaTooltip from '../atoms/DaTooltip'
 import { toast } from 'react-toastify'
 import { isAxiosError } from 'axios'
+import DaRequirementExplorer from '../molecules/prototype_requirements/DaRequirementExplorer'
 
 interface PrototypeTabJourneyProps {
   prototype: Prototype
@@ -496,12 +495,13 @@ const PrototypeTabJourney: React.FC<PrototypeTabJourneyProps> = ({
             <DaText variant="title" className="text-da-primary-500">
               Requirements
             </DaText>
-            <DaCustomRequirements
+            {/* <DaCustomRequirements
               customRequirements={customRequirements}
               setCustomRequirements={setCustomRequirements}
               onSaveRequirements={() => handleSave()}
               isEditing={isEditing}
-            />
+            /> */}
+            <DaRequirementExplorer />
           </div>
         </div>
       </div>
