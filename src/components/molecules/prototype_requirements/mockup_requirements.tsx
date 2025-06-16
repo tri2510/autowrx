@@ -1,192 +1,139 @@
 import { Requirement } from '@/types/model.type'
 
 export const mockRequirements: Requirement[] = [
-  // Functional Requirements
   {
-    id: 'REQ-PROX-001',
-    title: 'Vehicle Proximity Detection System',
+    id: 'REQ-001',
+    title: 'Driver Proximity Detection',
     description:
-      'System must detect authorized users approaching the vehicle within a configurable range of 2-5 meters using key fob signals or mobile device recognition.',
+      "The system shall detect the driver's presence within 1 meter using the key fob or mobile device. Detection must work reliably in various weather conditions and electromagnetic environments with a response time under 500ms. The system shall use low-energy Bluetooth and/or NFC technology to conserve battery life.",
     type: 'Functional Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/proximity-detection-spec',
-    },
-    rating: {
-      priority: 5,
-      relevance: 5,
-      impact: 4,
-    },
-    creatorUserId: 'engineer_schmidt',
-    childRequirements: ['REQ-PROX-001-1'],
-  },
-  {
-    id: 'REQ-PROX-001-1',
-    title: 'Multiple User Recognition',
-    description:
-      'Proximity system must differentiate between multiple authorized users and identify the specific approaching user to enable personalized welcome sequence.',
-    type: 'Functional Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/multi-user-detection',
-    },
-    rating: {
-      priority: 3,
-      relevance: 5,
-      impact: 5,
-    },
-    creatorUserId: 'engineer_johnson',
-  },
-  {
-    id: 'REQ-WELCOME-001',
-    title: 'Welcome Sequence Orchestration',
-    description:
-      'System must coordinate a personalized welcome sequence including exterior lighting, door unlock/open, seat adjustment, and climate control activation based on user profile.',
-    type: 'Functional Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/welcome-sequence',
-    },
-    rating: {
-      priority: 2,
-      relevance: 5,
-      impact: 3,
-    },
-    creatorUserId: 'ux_andersson',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 4, relevance: 4, impact: 3 },
+    creatorUserId: 'John Doe',
     childRequirements: [],
   },
-
   {
-    id: 'REQ-INT-SEAT-001',
-    title: 'Seat Position Control Integration',
+    id: 'REQ-002',
+    title: 'Driver Door Control',
     description:
-      'Seat system must support automated adjustment to user-specific stored positions as part of the welcome sequence using standardized COVESA VSS signals.',
+      "Upon detecting the driver and verifying permissions, the system shall unlock and open the driver's door within 1.5 seconds. The door opening mechanism must include obstacle detection to prevent contact with nearby objects and people. Door opening angle shall be configurable in the user profile.",
+    type: 'Functional Requirement',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 4, relevance: 3, impact: 4 },
+    creatorUserId: 'John Doe',
+    childRequirements: [],
+  },
+  {
+    id: 'REQ-003',
+    title: 'Personalized Ambient Lighting',
+    description:
+      'The system shall play a personalized ambient light sequence when the driver enters the vehicle. The lighting system shall support at least 16 million colors (24-bit RGB) with 256 brightness levels. Users shall be able to create and save up to 5 custom lighting sequences via the companion mobile app, with each sequence lasting between 2-10 seconds.',
+    type: 'Functional Requirement',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 2, relevance: 3, impact: 2 },
+    creatorUserId: 'John Doe',
+    childRequirements: [],
+  },
+  {
+    id: 'REQ-004',
+    title: 'Driver Seat Adjustment',
+    description:
+      "The system shall adjust the driver's seat to the position stored in the cloud-based user profile within 3 seconds of authentication. Adjustments shall include at minimum: height, distance from steering wheel, backrest angle, lumbar support, and headrest position. The system shall support seat position memory for at least 5 different drivers per vehicle.",
+    type: 'Functional Requirement',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 3, relevance: 4, impact: 3 },
+    creatorUserId: 'John Doe',
+    childRequirements: [],
+  },
+  {
+    id: 'REQ-005',
+    title: 'Update Basic Settings',
+    description:
+      'The system shall update HVAC and language settings based on the cloud-based user profile. HVAC adjustments shall include temperature settings (within range 16-30°C), fan speed, air distribution, and recirculation preferences. Language settings shall affect all HMI interfaces including voice control, display texts, and navigation. The system shall support at least 15 languages including English, German, Spanish, French, Chinese, Korean, and Hindi.',
+    type: 'Functional Requirement',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 2, relevance: 4, impact: 2 },
+    creatorUserId: 'John Doe',
+    childRequirements: [],
+  },
+  {
+    id: 'REQ-006',
+    title: 'Cloud Profile Access',
+    description:
+      "The system shall integrate with the cloud service to retrieve the driver's profile for seat and settings adjustments. The cloud service connection shall be established within 1 second of driver authentication using HTTPS with TLS 1.3 or higher. The system shall implement a local cache of profile data to enable core functionality during temporary connectivity issues, with synchronization occurring once connection is reestablished.",
     type: 'System Integration Requirement',
-    source: {
-      type: 'external',
-      link: 'https://covesa.github.io/vehicle_signal_specification/vehicle/seat/',
-    },
-    rating: {
-      priority: 5,
-      relevance: 5,
-      impact: 5,
-    },
-    creatorUserId: 'integration_wong',
-    childRequirements: ['REQ-INT-SEAT-001-1'],
-  },
-  // Safety & Security Requirements
-  {
-    id: 'REQ-SEC-AUTH-001',
-    title: 'User Authentication Security',
-    description:
-      'Welcome system must authenticate user identity using cryptographically secure methods with rolling codes and/or challenge-response mechanisms to prevent replay attacks.',
-    type: 'Safety & Security Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/authentication-security',
-    },
-    rating: {
-      priority: 5,
-      relevance: 5,
-      impact: 5,
-    },
-    creatorUserId: 'security_dubois',
+    source: { type: 'external', link: 'https://cloudserviceapi.com' },
+    rating: { priority: 3, relevance: 4, impact: 3 },
+    creatorUserId: 'John Doe',
     childRequirements: [],
   },
   {
-    id: 'REQ-SEC-DOOR-001',
-    title: 'Automated Door Operation Safety',
+    id: 'REQ-007',
+    title: 'Vehicle Network Integration',
     description:
-      'Automated door opening must include obstacle detection with minimum 15N force sensitivity and immediate stop/reverse function if obstruction is detected.',
-    type: 'Safety & Security Requirement',
-    source: {
-      type: 'external',
-      link: 'https://unece.org/transport/vehicle-regulations-wp29/standards/addenda-1958-agreement-regulations-11-20',
-    },
-    rating: {
-      priority: 5,
-      relevance: 3,
-      impact: 5,
-    },
-    creatorUserId: 'safety_mueller',
+      "The system shall communicate with the vehicle's CAN bus or Ethernet network to control door locks, seats, and HVAC. Message protocols shall comply with AUTOSAR standards. Message transmission latency shall not exceed 100ms for safety-critical operations.",
+    type: 'System Integration Requirement',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 2, relevance: 4, impact: 5 }, // Critical system backbone
+    creatorUserId: 'John Doe',
     childRequirements: [],
   },
-
   {
-    id: 'REQ-UX-001',
-    title: 'Personalized Welcome Experience',
+    id: 'REQ-008',
+    title: 'Driver Authentication',
     description:
-      'System must provide a personalized welcome experience including ambient lighting color schemes, preferred climate settings, and seat position based on stored user profiles.',
+      "The system shall verify the driver's identity and permissions before unlocking and opening the door. Authentication shall use at least two factors from: something the user has (key fob, smartphone), something the user knows (PIN code), or something the user is (biometrics). Authentication failure rate shall be less than 0.1% for authorized users and the false acceptance rate shall be less than 0.01%.",
+    type: 'Safety & Security Requirement',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 5, relevance: 4, impact: 5 }, // Security critical
+    creatorUserId: 'John Doe',
+    childRequirements: [],
+  },
+  {
+    id: 'REQ-009',
+    title: 'Secure Data Transmission',
+    description:
+      'All data transmitted between the vehicle and the cloud shall be encrypted to protect user privacy. The system shall implement AES-256 encryption for data at rest and TLS 1.3 for data in transit. Personal user data shall be anonymized where possible and all data handling shall comply with relevant data protection regulations including GDPR, CCPA, and PIPL.',
+    type: 'Safety & Security Requirement',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 2, relevance: 4, impact: 4 }, // Security critical
+    creatorUserId: 'John Doe',
+    childRequirements: [],
+  },
+  {
+    id: 'REQ-010',
+    title: 'Seamless Welcome Experience',
+    description:
+      'The welcome sequence shall execute smoothly without noticeable delays between steps. The total time from initial driver detection to completion of all welcome sequence steps shall not exceed 7 seconds. The system shall provide progress indicators for steps requiring more than 2 seconds. Transitions between welcome sequence steps shall be visually harmonious with smooth animations where applicable.',
     type: 'User Experience Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/welcome-experience',
-    },
-    rating: {
-      priority: 4,
-      relevance: 3,
-      impact: 5,
-    },
-    creatorUserId: 'ux_andersson',
-    childRequirements: ['REQ-UX-001-1'],
+    source: { type: 'internal', link: '' },
+    rating: { priority: 2, relevance: 2, impact: 2 },
+    creatorUserId: 'John Doe',
+    childRequirements: [],
   },
-  // Regulatory & Homologation Requirements
   {
-    id: 'REQ-REG-001',
-    title: 'Automated Door System Compliance',
+    id: 'REQ-011',
+    title: 'Automotive Standard Compliance',
     description:
-      'Automated door system must comply with UNECE R11 regulations for door latches and retention components, including specific requirements for powered operation.',
+      'The system shall comply with relevant automotive standards such as ISO 26262 for functional safety with ASIL-B rating for door control functions and ASIL-A for comfort functions. The system shall also conform to SAE J3061 for cybersecurity engineering, UN Regulation No. 155 for cybersecurity management systems, and regional type approval requirements including ECE regulations for the European market.',
     type: 'Regulatory & Homologation Requirement',
     source: {
       type: 'external',
-      link: 'https://unece.org/transport/vehicle-regulations-wp29/standards/addenda-1958-agreement-regulations-11-20',
+      link: 'https://www.iso.org/standard/68383.html',
     },
-    rating: {
-      priority: 1,
-      relevance: 1,
-      impact: 5,
-    },
-    creatorUserId: 'homologation_petrov',
+    rating: { priority: 5, relevance: 5, impact: 5 }, // Regulatory compliance - critical
+    creatorUserId: 'John Doe',
     childRequirements: [],
   },
-
-  // Operational Requirements
   {
-    id: 'REQ-OPS-001',
-    title: 'Environmental Operating Conditions',
-    description:
-      'Welcome system including proximity detection must function reliably in temperature range -30°C to +70°C and under all lighting conditions from direct sunlight to complete darkness.',
-    type: 'Operational Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/environmental-specifications',
-    },
-    rating: {
-      priority: 4,
-      relevance: 2,
-      impact: 4,
-    },
-    creatorUserId: 'engineer_schmidt',
-    childRequirements: [],
-  },
-
-  // Deployment & Ecosystem Requirements
-  {
-    id: 'REQ-DEP-001',
+    id: 'REQ-012',
     title: 'OTA Update Capability',
     description:
-      'Welcome system must support secure over-the-air updates for all configurable parameters and software components without requiring dealership visits.',
-    type: 'Deployment & Ecosystem Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/ota-requirements',
-    },
-    rating: {
-      priority: 3,
-      relevance: 2,
-      impact: 4,
-    },
-    creatorUserId: 'security_nguyen',
+      'The system shall support over-the-air (OTA) updates to ensure the software can be updated remotely. Updates shall be delivered securely with cryptographic signature verification. The update process shall be fault-tolerant with automatic rollback capability in case of failures. Updates shall be downloadable in the background and be applicable either immediately or at a user-scheduled time, with appropriate user notifications.',
+    type: 'Operational Requirement',
+    source: { type: 'internal', link: '' },
+    rating: { priority: 3, relevance: 3, impact: 2 },
+    creatorUserId: 'John Doe',
     childRequirements: [],
   },
 ]

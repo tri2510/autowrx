@@ -13,18 +13,16 @@ import RequirementNode from './nodes/RequirementNode'
 import RadarBackgroundNode from './nodes/RadarBackgroundNode'
 import mockRequirements from './mockup_requirements'
 
-// register your custom nodes
 const nodeTypes = {
   radarBackground: RadarBackgroundNode,
   requirementNode: RequirementNode,
 }
 
-// tuning constants
-const MAX_RADIUS = 600 // px when avgScore=0
-const MIN_RADIUS = 50 // px: never inside this
-const MAX_RATING = 5 // your 0 5 scale
-const NODE_SIZE = 50 // px: approx diameter of a node
-const DISTANCE_COEFFICIENT = 2 // >1 pushes nodes outward
+const MAX_RADIUS = 600 // Maximum radius of the radar in px
+const MIN_RADIUS = 50 // Minimum radius of the radar in px
+const MAX_RATING = 5 // Maximum rating value (1-5 scale)
+const NODE_SIZE = 60 // Prevent nodes being too close together
+const DISTANCE_COEFFICIENT = 1.5 // Prevent nodes from overlapping
 
 function getPriorityColor(p: number): string {
   if (p >= 4) return '#ef4444'
@@ -56,6 +54,7 @@ const DaRequirementExplorer: React.FC = () => {
         spokes: 8,
         rings: 5,
       },
+      style: { pointerEvents: 'none' }, // Prevent interaction with background
     }
 
     // 2) Place each requirement on its own ray
@@ -99,11 +98,19 @@ const DaRequirementExplorer: React.FC = () => {
         type: 'requirementNode',
         position: { x, y },
         data: {
+          id: req.id,
           label: req.id,
           title: req.title,
-          ratingAvg: req.rating.impact,
+          description: req.description,
+          type: req.type,
+          ratingAvg: avgScore,
+          rating: req.rating,
+          source: req.source,
+          creatorUserId: req.creatorUserId,
+          childRequirements: req.childRequirements,
           color: getPriorityColor(req.rating.priority),
           showHandles: false,
+          requirement: req,
         },
       }
     })
