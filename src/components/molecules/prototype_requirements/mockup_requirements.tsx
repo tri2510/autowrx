@@ -1,9 +1,5 @@
 import { Requirement } from '@/types/model.type'
 
-/**
- * Focused mock data for automotive welcome system requirements
- * Following European standards and COVESA specifications
- */
 export const mockRequirements: Requirement[] = [
   // Functional Requirements
   {
@@ -36,7 +32,7 @@ export const mockRequirements: Requirement[] = [
     },
     rating: {
       priority: 3,
-      relevance: 4,
+      relevance: 5,
       impact: 5,
     },
     creatorUserId: 'engineer_johnson',
@@ -52,7 +48,7 @@ export const mockRequirements: Requirement[] = [
       link: 'https://company-wiki/welcome-sequence',
     },
     rating: {
-      priority: 4,
+      priority: 2,
       relevance: 5,
       impact: 3,
     },
@@ -60,25 +56,6 @@ export const mockRequirements: Requirement[] = [
     childRequirements: [],
   },
 
-  // System Integration Requirements
-  {
-    id: 'REQ-INT-DOOR-001',
-    title: 'COVESA VSS Door System Integration',
-    description:
-      'Door system must comply with COVESA Vehicle Signal Specification for door operations including unlock and automated opening when welcome sequence is activated.',
-    type: 'System Integration Requirement',
-    source: {
-      type: 'external',
-      link: 'https://covesa.github.io/vehicle_signal_specification/vehicle/door/',
-    },
-    rating: {
-      priority: 5,
-      relevance: 4,
-      impact: 2,
-    },
-    creatorUserId: 'integration_wong',
-    childRequirements: [],
-  },
   {
     id: 'REQ-INT-SEAT-001',
     title: 'Seat Position Control Integration',
@@ -90,31 +67,13 @@ export const mockRequirements: Requirement[] = [
       link: 'https://covesa.github.io/vehicle_signal_specification/vehicle/seat/',
     },
     rating: {
-      priority: 3,
+      priority: 5,
       relevance: 5,
-      impact: 4,
+      impact: 5,
     },
     creatorUserId: 'integration_wong',
     childRequirements: ['REQ-INT-SEAT-001-1'],
   },
-  {
-    id: 'REQ-INT-SEAT-001-1',
-    title: 'Seat Memory System Integration',
-    description:
-      'System must retrieve and apply user-specific seat position settings from persistent storage with positioning accuracy of ±2mm for all adjustable axes.',
-    type: 'System Integration Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/seat-memory-integration',
-    },
-    rating: {
-      priority: 2,
-      relevance: 4,
-      impact: 3,
-    },
-    creatorUserId: 'engineer_johnson',
-  },
-
   // Safety & Security Requirements
   {
     id: 'REQ-SEC-AUTH-001',
@@ -153,7 +112,6 @@ export const mockRequirements: Requirement[] = [
     childRequirements: [],
   },
 
-  // User Experience Requirements
   {
     id: 'REQ-UX-001',
     title: 'Personalized Welcome Experience',
@@ -172,24 +130,6 @@ export const mockRequirements: Requirement[] = [
     creatorUserId: 'ux_andersson',
     childRequirements: ['REQ-UX-001-1'],
   },
-  {
-    id: 'REQ-UX-001-1',
-    title: 'Welcome Sequence Timing',
-    description:
-      'The complete welcome sequence from user detection to completion of seat adjustment must execute within 4 seconds to ensure fluid user experience.',
-    type: 'User Experience Requirement',
-    source: {
-      type: 'internal',
-      link: 'https://company-wiki/ux-timing-guidelines',
-    },
-    rating: {
-      priority: 3,
-      relevance: 4,
-      impact: 5,
-    },
-    creatorUserId: 'ux_andersson',
-  },
-
   // Regulatory & Homologation Requirements
   {
     id: 'REQ-REG-001',
@@ -202,9 +142,9 @@ export const mockRequirements: Requirement[] = [
       link: 'https://unece.org/transport/vehicle-regulations-wp29/standards/addenda-1958-agreement-regulations-11-20',
     },
     rating: {
-      priority: 5,
-      relevance: 5,
-      impact: 2,
+      priority: 1,
+      relevance: 1,
+      impact: 5,
     },
     creatorUserId: 'homologation_petrov',
     childRequirements: [],
