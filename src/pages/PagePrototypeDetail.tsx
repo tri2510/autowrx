@@ -1,26 +1,25 @@
 import { FC, useEffect, useState, lazy, Suspense } from 'react'
 import useModelStore from '@/stores/modelStore'
 import { Prototype } from '@/types/model.type'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import DaLoading from '@/components/atoms/DaLoading'
 import DaTabItem from '@/components/atoms/DaTabItem'
 import {
   TbBinaryTree,
   TbChecklist,
   TbCode,
+  TbDotsVertical,
   TbGauge,
   TbListCheck,
   TbMessagePlus,
   TbRoute,
   TbScale,
+  TbTargetArrow,
 } from 'react-icons/tb'
 import { saveRecentPrototype } from '@/services/prototype.service'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
-import { PERMISSIONS } from '@/data/permission'
-import usePermissionHook from '@/hooks/usePermissionHook'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import DaPopup from '@/components/atoms/DaPopup'
-import { DaButton } from '@/components/atoms/DaButton'
 import { TbMessage } from 'react-icons/tb'
 import DaDiscussions from '@/components/molecules/DaDiscussions'
 import DaStaging from '@/components/molecules/staging/DaStaging'
@@ -33,13 +32,14 @@ import PrototypeTabFeedback from '@/components/organisms/PrototypeTabFeedback'
 import PrototypeTabFlow from '@/components/organisms/PrototypeTabFlow'
 import DaRuntimeControl from '@/components/molecules/dashboard/DaRuntimeControl'
 import PrototypeTabTestDesign from '@/components/organisms/PrototypeTabTestDesign'
-
-// const PrototypeTabFeedback = lazy(
-//   () => import('@/components/organisms/PrototypeTabFeedback'),
-// )
-// const PrototypeTabHomologation = lazy(
-//   () => import('@/components/organisms/PrototypeTabHomologation'),
-// )
+import PrototypeTabRequirement from '@/components/organisms/PrototypeTabRequirement'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/atoms/dropdown-menu'
+import { MdOutlineDoubleArrow } from 'react-icons/md'
 
 interface ViewPrototypeProps {
   display?: 'tree' | 'list'
@@ -81,18 +81,18 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
             Journey
           </DaTabItem>
           <DaTabItem
-            active={tab === 'architecture'}
-            to={`/model/${model_id}/library/prototype/${prototype_id}/architecture`}
-          >
-            <TbBinaryTree className="w-5 h-5 mr-2" />
-            Architecture
-          </DaTabItem>
-          <DaTabItem
             active={tab === 'flow'}
             to={`/model/${model_id}/library/prototype/${prototype_id}/flow`}
           >
-            <TbRoute className="w-5 h-5 mr-2" />
+            <MdOutlineDoubleArrow className="w-5 h-5 mr-2" />
             Flow
+          </DaTabItem>
+          <DaTabItem
+            active={tab === 'requirement'}
+            to={`/model/${model_id}/library/prototype/${prototype_id}/requirement`}
+          >
+            <TbTargetArrow className="w-5 h-5 mr-2" />
+            Requirement
           </DaTabItem>
           <DaTabItem
             active={tab === 'code'}
@@ -115,20 +115,54 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
             <TbScale className="w-5 h-5 mr-2" />
             Homologation
           </DaTabItem>
-          <DaTabItem
-            active={tab === 'test-design'}
-            to={`/model/${model_id}/library/prototype/${prototype_id}/test-design`}
-          >
-            <TbChecklist className="w-5 h-5 mr-2" />
-            Test Design
-          </DaTabItem>
-          <DaTabItem
-            active={tab === 'feedback'}
-            to={`/model/${model_id}/library/prototype/${prototype_id}/feedback`}
-          >
-            <TbMessagePlus className="w-5 h-5 mr-2" />
-            Feedback
-          </DaTabItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div
+                className={`${['architecture', 'test-design', 'feedback'].includes(tab || '') ? 'text-da-primary-500 border-b-2 border-da-primary-500' : ''} flex text-sm font-semibold items-center px-4 h-[52px] hover:opacity-80 cursor-pointer`}
+              >
+                <TbDotsVertical className="w-5 h-5 mr-2" />
+                More
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-white" align="end">
+              <DropdownMenuItem
+                className="hover:bg-da-primary-100 cursor-pointer rounded-md hover:text-da-primary-500 font-medium"
+                asChild
+              >
+                <Link
+                  to={`/model/${model_id}/library/prototype/${prototype_id}/architecture`}
+                  className="flex items-center"
+                >
+                  <TbBinaryTree className="w-5 h-5 mr-2" />
+                  Architecture
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="hover:bg-da-primary-100 cursor-pointer rounded-md hover:text-da-primary-500 font-medium"
+                asChild
+              >
+                <Link
+                  to={`/model/${model_id}/library/prototype/${prototype_id}/test-design`}
+                  className="flex items-center"
+                >
+                  <TbChecklist className="w-5 h-5 mr-2" />
+                  Test Design
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="hover:bg-da-primary-100 cursor-pointer rounded-md hover:text-da-primary-500 font-medium"
+                asChild
+              >
+                <Link
+                  to={`/model/${model_id}/library/prototype/${prototype_id}/feedback`}
+                  className="flex items-center"
+                >
+                  <TbMessagePlus className="w-5 h-5 mr-2" />
+                  Feedback
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <div className="grow"></div>
         {
@@ -179,6 +213,7 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
           {tab == 'homologation' && <PrototypeTabHomologation />}
           {tab == 'test-design' && <PrototypeTabTestDesign />}
           {tab == 'feedback' && <PrototypeTabFeedback />}
+          {tab == 'requirement' && <PrototypeTabRequirement />}
         </div>
         {showRt && <DaRuntimeControl />}
       </div>

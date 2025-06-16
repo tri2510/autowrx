@@ -11,7 +11,6 @@ import usePermissionHook from '@/hooks/usePermissionHook'
 import { PERMISSIONS } from '@/data/permission'
 import useCurrentModel from '@/hooks/useCurrentModel'
 
-// Enhanced data type to include all requirement details
 type RequirementNodeData = {
   id: string
   label: string
@@ -34,14 +33,11 @@ type RequirementNodeData = {
   showHandles?: boolean
   handlePositions?: string[]
   onEdit?: (id: string) => void
-  // Add the original requirement to pass complete data
   requirement?: any
 }
 
-// Define the custom node type
 type RequirementNodeType = Node<RequirementNodeData>
 
-// Define the component with correct props typing
 function RequirementNode({
   data,
   isConnectable,
@@ -51,14 +47,12 @@ function RequirementNode({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
 
-  // Use the requirement data if available, otherwise fall back to the data properties
   const requirement = data.requirement || data
 
   const ratingAvg = data.ratingAvg || 3
   const baseSize = 2
   const size = baseSize + ratingAvg * 6
 
-  // Handle close dropdown
   const handleCloseDropdown = (e: React.MouseEvent) => {
     e.stopPropagation()
     setOpen(false)

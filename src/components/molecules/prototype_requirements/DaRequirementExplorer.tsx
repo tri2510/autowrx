@@ -123,7 +123,7 @@ const DaRequirementExplorer: React.FC = () => {
   }, [initialNodes, setNodes])
 
   return (
-    <div className="w-full h-[600px] rounded-xl overflow-hidden border">
+    <div className="flex w-full h-full max-h-[calc(100%-10px)] rounded-xl overflow-hidden">
       <ReactFlowProvider>
         <ReactFlow
           nodes={nodes}

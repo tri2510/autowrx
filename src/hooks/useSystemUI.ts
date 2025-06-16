@@ -7,6 +7,8 @@ interface SystemUIState {
   setShowPrototypeDashboardFullScreen: (value: boolean) => void
   showPrototypeFlowFullScreen: boolean
   setShowPrototypeFlowFullScreen: (value: boolean) => void
+  showPrototypeRequirementFullScreen: boolean
+  setShowPrototypeRequirementFullScreen: (value: boolean) => void
 }
 
 export const useSystemUI = create<SystemUIState>((set) => ({
@@ -19,4 +21,7 @@ export const useSystemUI = create<SystemUIState>((set) => ({
   showPrototypeFlowFullScreen: false,
   setShowPrototypeFlowFullScreen: (value) =>
     set(() => ({ showPrototypeFlowFullScreen: value })),
+  showPrototypeRequirementFullScreen: false,
+  setShowPrototypeRequirementFullScreen: (value) =>
+    set(() => ({ showPrototypeRequirementFullScreen: value })),
 }))
