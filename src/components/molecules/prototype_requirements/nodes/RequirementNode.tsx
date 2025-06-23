@@ -10,6 +10,8 @@ import { DaButton } from '@/components/atoms/DaButton'
 import usePermissionHook from '@/hooks/usePermissionHook'
 import { PERMISSIONS } from '@/data/permission'
 import useCurrentModel from '@/hooks/useCurrentModel'
+import { cn } from '@/lib/utils'
+import { useRequirementStore } from '../hook/useRequirementStore'
 
 type RequirementNodeData = {
   id: string
@@ -53,6 +55,8 @@ function RequirementNode({
   const baseSize = 2
   const size = baseSize + ratingAvg * 6
 
+  const { isScanning } = useRequirementStore()
+
   const handleCloseDropdown = (e: React.MouseEvent) => {
     e.stopPropagation()
     setOpen(false)
@@ -62,7 +66,12 @@ function RequirementNode({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <div
-          className="relative flex flex-col items-center justify-center w-full h-full cursor-pointer"
+          className={cn(
+            'relative flex flex-col items-center justify-center w-full h-full cursor-pointer',
+            isScanning
+              ? 'animate-pulse cursor-not-allowed pointer-events-none'
+              : '',
+          )}
           onClick={(e) => {
             e.stopPropagation()
             console.log('Node clicked')

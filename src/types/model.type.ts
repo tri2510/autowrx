@@ -124,7 +124,6 @@ export interface Requirement {
   creatorUserId: string
   createdAt?: Date
   updatedAt?: Date
-  childRequirements?: string[] // Array of IDs for child requirements
 }
 
 export type SearchPrototype = {

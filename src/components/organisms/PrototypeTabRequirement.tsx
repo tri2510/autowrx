@@ -2,9 +2,9 @@ import React, { useState } from 'react'
 import {
   TbArrowsMaximize,
   TbArrowsMinimize,
-  TbEdit,
-  TbLoader,
+  TbLoader2,
   TbTable,
+  TbTarget,
   TbTextScan2,
 } from 'react-icons/tb'
 import useCurrentPrototype from '@/hooks/useCurrentPrototype'
@@ -19,6 +19,10 @@ import usePermissionHook from '@/hooks/usePermissionHook'
 import { PERMISSIONS } from '@/data/permission'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import DaRequirementTable from '../molecules/prototype_requirements/DaRequirementTable'
+import { useRequirementStore } from '../molecules/prototype_requirements/hook/useRequirementStore'
+import CustomDialog from '../molecules/flow/CustomDialog'
+import { markdownAIEvaluate } from '../molecules/prototype_requirements/mockup_requirements'
+import AIEvaluationDialog from '../molecules/prototype_requirements/RequirementEvaluationDialog'
 
 const PrototypeTabRequirement = () => {
   const { data: model } = useCurrentModel()
@@ -26,6 +30,8 @@ const PrototypeTabRequirement = () => {
   const { data: prototype } = useCurrentPrototype()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const { isScanning, toggleScanning } = useRequirementStore()
+  const [showEvaluationDialog, setShowEvaluationDialog] = useState(false)
 
   // Use existing system UI state or create a new one for requirements
   const {
@@ -56,6 +62,18 @@ const PrototypeTabRequirement = () => {
     return <div>No prototype available</div>
   }
 
+  const handleEvaluateWithAI = () => {
+    // Don't restart scanning if already in progress
+    if (isScanning) return
+
+    // Start scanning animation
+    toggleScanning()
+
+    // After 5-6 seconds, show the evaluation dialog
+    setTimeout(() => {
+      setShowEvaluationDialog(true)
+    }, 5500)
+  }
   return (
     <div
       className={cn(
@@ -74,22 +92,36 @@ const PrototypeTabRequirement = () => {
           {isAuthorized && (
             <div className="flex items-center space-x-1">
               <DaButton
-                onClick={() => setIsEditing(true)}
-                className="!justify-start"
+                onClick={handleEvaluateWithAI}
+                className={cn(
+                  '!justify-start',
+                  isScanning && 'bg-da-primary-600',
+                )}
                 variant="editor"
                 size="sm"
               >
-                <TbTextScan2 className="w-4 h-4 mr-1" /> Evaluate with AI
+                {isScanning ? (
+                  <TbLoader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <TbTextScan2 className="w-4 h-4 mr-1" />
+                )}
+                {isScanning ? 'Evaluating...' : 'Evaluate with AI'}
               </DaButton>
+
               <DaButton
-                onClick={() => setIsEditing(true)}
+                onClick={() => setIsEditing(!isEditing)}
                 className="!justify-start"
                 variant="editor"
                 size="sm"
               >
-                <TbTable className="w-4 h-4 mr-1" /> Table View
+                {isEditing ? (
+                  <TbTarget className="w-4 h-4 mr-1" />
+                ) : (
+                  <TbTable className="w-4 h-4 mr-1" />
+                )}
+                {isEditing ? 'Explorer View' : 'Table View'}
               </DaButton>
-              {!isEditing ? (
+              {/* {!isEditing ? (
                 <DaButton
                   onClick={() => setIsEditing(true)}
                   className="!justify-start"
@@ -121,7 +153,7 @@ const PrototypeTabRequirement = () => {
                     Save
                   </DaButton>
                 </div>
-              )}
+              )} */}
             </div>
           )}
           <DaButton
@@ -153,6 +185,10 @@ const PrototypeTabRequirement = () => {
           )}
         </div>
       </div>
+      <AIEvaluationDialog
+        open={showEvaluationDialog}
+        onOpenChange={setShowEvaluationDialog}
+      />
     </div>
   )
 }

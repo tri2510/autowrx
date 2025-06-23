@@ -1,48 +1,82 @@
+import { cn } from '@/lib/utils'
 import React from 'react'
+import { useRequirementStore } from '../hook/useRequirementStore'
 
-type Props = {
+type RadarBackgroundNodeProps = {
   data: {
     size: number // radar radius in px
     spokes: number // number of radial lines
-    rings?: number // how many concentric rings (default 5)
+    rings?: number // total number of concentric rings (default 5)
   }
 }
 
-const GRAY = '#f3f4f6' // tailwind “bg-zinc-200”
+const SLATE = '#f3f4f6'
 const WHITE = '#ffffff'
+const SWEEP_COLOR = 'rgba(0, 80, 114, 0.2)'
+// (Tailwind “green-500” at 30% alpha)
 
-const RadarBackgroundNode: React.FC<Props> = ({ data }) => {
-  const { size, spokes, rings = 5 } = data
+const RadarBackgroundNode: React.FC<RadarBackgroundNodeProps> = ({
+  data: { size, spokes, rings = 5 },
+}) => {
+  const { isScanning } = useRequirementStore()
 
-  // helper to decide fill color for ring i (1 = innermost, rings = outermost)
-  const fillColor = (i: number) => (i % 2 === 1 ? GRAY : WHITE)
+  // helper to decide fill colour for ring i (1 = innermost, rings = outermost)
+  const fillColor = (i: number) => (i % 2 === 1 ? SLATE : WHITE)
+
+  // build the sweep-wedge path once
+  const beamAngleDeg = 20 // angular width of the wedge
+  const beamAngleRad = (beamAngleDeg * Math.PI) / 180
+  const r = size
+  // angles centered on 12 o'clock, ± beamAngleRad/2
+  // ‑90° = straight up, so:
+  const startAngle = -Math.PI / 2 - beamAngleRad / 2
+  const endAngle = -Math.PI / 2 + beamAngleRad / 2
+
+  const x1 = size + Math.cos(startAngle) * r
+  const y1 = size + Math.sin(startAngle) * r
+  const x2 = size + Math.cos(endAngle) * r
+  const y2 = size + Math.sin(endAngle) * r
+
+  const sweepPath = `
+    M ${size},${size}
+    L ${x1},${y1}
+    A ${r},${r} 0 0,1 ${x2},${y2}
+    Z
+  `
 
   return (
-    <svg width={size * 2} height={size * 2} style={{ pointerEvents: 'none' }}>
-      {/* 1) draw filled bands from outermost (i=rings) → innermost (i=1) */}
+    <svg
+      width={2 * size}
+      height={2 * size}
+      style={{
+        pointerEvents: 'none',
+      }}
+    >
+      {/* 1) Filled bands (out → in) */}
       {Array.from({ length: rings }).map((_, idx) => {
-        const ringIndex = rings - idx // rings, rings-1, …, 1
-        const r = (ringIndex / rings) * size
+        const ringIndex = rings - idx // e.g. 5,4,3,2,1
+        const radius = (ringIndex / rings) * size
         return (
           <circle
             key={`fill-${ringIndex}`}
             cx={size}
             cy={size}
-            r={r}
+            r={radius}
             fill={fillColor(ringIndex)}
+            className={cn(isScanning && 'animate-pulse')}
           />
         )
       })}
 
-      {/* 2) draw all ring‐outlines on top */}
+      {/* 2) Stroke outlines of each ring */}
       {Array.from({ length: rings }).map((_, idx) => {
-        const r = ((idx + 1) / rings) * size
+        const radius = ((idx + 1) / rings) * size
         return (
           <circle
             key={`ring-${idx}`}
             cx={size}
             cy={size}
-            r={r}
+            r={radius}
             fill="none"
             stroke="rgba(0,0,0,0.1)"
             strokeWidth={1.5}
@@ -50,12 +84,11 @@ const RadarBackgroundNode: React.FC<Props> = ({ data }) => {
         )
       })}
 
-      {/* 3) draw spokes */}
+      {/* 3) Spokes */}
       {Array.from({ length: spokes }).map((_, i) => {
         const angle = (2 * Math.PI * i) / spokes - Math.PI / 2
         const x2 = size + Math.cos(angle) * size
         const y2 = size + Math.sin(angle) * size
-
         return (
           <line
             key={`spoke-${i}`}
@@ -68,6 +101,22 @@ const RadarBackgroundNode: React.FC<Props> = ({ data }) => {
           />
         )
       })}
+
+      {/* 4) Scanning sweep (if enabled) */}
+      {isScanning && (
+        <g transform={`rotate(0 ${size} ${size})`}>
+          {/* animate this <g> from 0° → 360° around the center */}
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from={`0 ${size} ${size}`}
+            to={`360 ${size} ${size}`}
+            dur="3s"
+            repeatCount="indefinite"
+          />
+          <path d={sweepPath} fill={SWEEP_COLOR} />
+        </g>
+      )}
     </svg>
   )
 }

@@ -11,7 +11,7 @@ import '@xyflow/react/dist/style.css'
 
 import RequirementNode from './nodes/RequirementNode'
 import RadarBackgroundNode from './nodes/RadarBackgroundNode'
-import mockRequirements from './mockup_requirements'
+import { useRequirementStore } from './hook/useRequirementStore'
 
 const nodeTypes = {
   radarBackground: RadarBackgroundNode,
@@ -34,9 +34,10 @@ function getPriorityColor(p: number): string {
 
 const DaRequirementExplorer: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const { requirements } = useRequirementStore()
 
   const initialNodes = useMemo(() => {
-    const reqs = mockRequirements
+    const reqs = requirements
     const total = reqs.length
     const angleStep = (2 * Math.PI) / total
 
@@ -115,7 +116,7 @@ const DaRequirementExplorer: React.FC = () => {
     })
 
     return [bgNode, ...reqNodes]
-  }, [])
+  }, [requirements]) // Dependency on requirements from store
 
   useEffect(() => {
     setNodes(initialNodes as any)
