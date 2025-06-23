@@ -107,7 +107,6 @@ const DaRequirementExplorer: React.FC = () => {
           rating: req.rating,
           source: req.source,
           creatorUserId: req.creatorUserId,
-          childRequirements: req.childRequirements,
           color: getPriorityColor(req.rating.priority),
           showHandles: false,
           requirement: req,

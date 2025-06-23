@@ -10,7 +10,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 4, relevance: 4, impact: 3 },
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-002',
@@ -21,7 +20,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 4, relevance: 3, impact: 4 },
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-003',
@@ -32,7 +30,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 2, relevance: 3, impact: 2 },
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-004',
@@ -43,7 +40,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 3, relevance: 4, impact: 3 },
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-005',
@@ -54,7 +50,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 2, relevance: 4, impact: 2 },
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-006',
@@ -65,7 +60,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'external', link: 'https://cloudserviceapi.com' },
     rating: { priority: 3, relevance: 4, impact: 3 },
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-007',
@@ -76,7 +70,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 2, relevance: 4, impact: 5 }, // Critical system backbone
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-008',
@@ -87,7 +80,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 5, relevance: 4, impact: 5 }, // Security critical
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-009',
@@ -98,7 +90,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 2, relevance: 4, impact: 4 }, // Security critical
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-010',
@@ -109,7 +100,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 2, relevance: 2, impact: 2 },
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-011',
@@ -123,7 +113,6 @@ export const mockRequirements: Requirement[] = [
     },
     rating: { priority: 5, relevance: 5, impact: 5 }, // Regulatory compliance - critical
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
   {
     id: 'REQ-012',
@@ -134,7 +123,6 @@ export const mockRequirements: Requirement[] = [
     source: { type: 'internal', link: '' },
     rating: { priority: 3, relevance: 3, impact: 2 },
     creatorUserId: 'John Doe',
-    childRequirements: [],
   },
 ]
 

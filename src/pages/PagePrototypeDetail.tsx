@@ -88,11 +88,11 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
             Flow
           </DaTabItem>
           <DaTabItem
-            active={tab === 'requirement'}
-            to={`/model/${model_id}/library/prototype/${prototype_id}/requirement`}
+            active={tab === 'requirements'}
+            to={`/model/${model_id}/library/prototype/${prototype_id}/requirements`}
           >
             <TbTargetArrow className="w-5 h-5 mr-2" />
-            Requirement
+            Requirements
           </DaTabItem>
           <DaTabItem
             active={tab === 'code'}
@@ -213,7 +213,7 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
           {tab == 'homologation' && <PrototypeTabHomologation />}
           {tab == 'test-design' && <PrototypeTabTestDesign />}
           {tab == 'feedback' && <PrototypeTabFeedback />}
-          {tab == 'requirement' && <PrototypeTabRequirement />}
+          {tab == 'requirements' && <PrototypeTabRequirement />}
         </div>
         {showRt && <DaRuntimeControl />}
       </div>

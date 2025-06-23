@@ -18,6 +18,7 @@ import DaRequirementExplorer from '../molecules/prototype_requirements/DaRequire
 import usePermissionHook from '@/hooks/usePermissionHook'
 import { PERMISSIONS } from '@/data/permission'
 import useCurrentModel from '@/hooks/useCurrentModel'
+import DaRequirementTable from '../molecules/prototype_requirements/DaRequirementTable'
 
 const PrototypeTabRequirement = () => {
   const { data: model } = useCurrentModel()
@@ -142,9 +143,8 @@ const PrototypeTabRequirement = () => {
 
         <div className="flex w-full h-full">
           {isEditing ? (
-            <div className="border p-4 rounded-md">
-              {/* Add your requirements editing UI here */}
-              <p>Requirements editor would go here</p>
+            <div className="flex w-full h-full">
+              <DaRequirementTable />
             </div>
           ) : (
             <ReactFlowProvider>
