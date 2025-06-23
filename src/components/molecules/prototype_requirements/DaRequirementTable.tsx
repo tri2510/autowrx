@@ -22,16 +22,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from '@/components/atoms/dropdown-menu'
-import { TbDots, TbTrash } from 'react-icons/tb'
+import { TbDots, TbEdit, TbTrash } from 'react-icons/tb'
 import DaTooltip from '@/components/atoms/DaTooltip'
 import { Requirement } from '@/types/model.type'
 import { useRequirementStore } from './hook/useRequirementStore'
 
 interface Props {
   onDelete: (id: string) => void
+  onEdit: (id: string) => void
 }
 
-const DaRequirementTable: React.FC<Props> = ({ onDelete }) => {
+const DaRequirementTable: React.FC<Props> = ({ onDelete, onEdit }) => {
   // pull real data from store
   const requirements = useRequirementStore((s) => s.requirements)
 
@@ -130,9 +131,15 @@ const DaRequirementTable: React.FC<Props> = ({ onDelete }) => {
                   <div className="font-medium">Impact:</div> {req.rating.impact}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="font-medium text-red-500">
-                  Danger Zone
+                <DropdownMenuLabel className="font-medium text-da-primary-500">
+                  Settings
                 </DropdownMenuLabel>
+                <DropdownMenuItem
+                  className="flex items-center text-da-gray-medium hover:text-da-primary-500 hover:bg-da-primary-100 cursor-pointer"
+                  onClick={() => onEdit(req.id)}
+                >
+                  <TbEdit className="flex mb-0.5" /> Edit Requirement
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="flex items-center text-da-gray-medium hover:text-red-500 hover:bg-red-100 cursor-pointer"
                   onClick={() => onDelete(req.id)}

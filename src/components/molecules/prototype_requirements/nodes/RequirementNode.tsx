@@ -69,6 +69,14 @@ function RequirementNode({
     setOpen(false)
   }
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (data.onEdit) {
+      data.onEdit(data.id)
+    }
+    setOpen(false)
+  }
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
@@ -117,17 +125,14 @@ function RequirementNode({
           <div className="flex items-center space-x-1">
             {isAuthorized && (
               <>
-                {/* <DaButton
+                <DaButton
                   size="sm"
-                  variant="plain"
-                  className="flex ml-1 !h-6 !p-2 !text-xs !text-da-primary-500"
-                  onClick={(e) => {
-                    handleCloseDropdown(e)
-                    data.onEdit && data.onEdit(data.id)
-                  }}
+                  variant="editor"
+                  className="flex ml-1 !h-6 !p-2 !text-xs"
+                  onClick={handleEdit}
                 >
                   <TbEdit className="size-3.5 mr-1" /> Edit
-                </DaButton> */}
+                </DaButton>
                 <DaButton
                   size="sm"
                   variant="destructive"

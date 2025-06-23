@@ -12,7 +12,7 @@ interface RequirementState {
   setRequirements: (reqs: Requirement[]) => void
   addRequirement: (r: Requirement) => void
   removeRequirement: (id: string) => void
-
+  updateRequirement: (r: Requirement) => void
   // optionally used to drop in some AI‐mocked set
   applyAISuggestions: () => void
 }
@@ -32,6 +32,12 @@ export const useRequirementStore = create<RequirementState>((set) => ({
   removeRequirement: (id) =>
     set((s) => ({
       requirements: s.requirements.filter((r) => r.id !== id),
+    })),
+  updateRequirement: (updated) =>
+    set((s) => ({
+      requirements: s.requirements.map((r) =>
+        r.id === updated.id ? updated : r,
+      ),
     })),
   applyAISuggestions: () =>
     set({

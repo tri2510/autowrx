@@ -24,6 +24,7 @@ import { useRequirementStore } from '../molecules/prototype_requirements/hook/us
 import RequirementEvaluationDialog from '../molecules/prototype_requirements/RequirementEvaluationDialog'
 import { Requirement } from '@/types/model.type'
 import RequirementCreateDialog from '../molecules/prototype_requirements/RequirementCreateDialog'
+import RequirementUpdateDialog from '../molecules/prototype_requirements/RequirementUpdateDialog'
 
 const PrototypeTabRequirement = () => {
   const { data: model } = useCurrentModel()
@@ -38,10 +39,13 @@ const PrototypeTabRequirement = () => {
     toggleScanning,
     addRequirement,
     removeRequirement,
+    updateRequirement,
   } = useRequirementStore()
   const [showEvaluationDialog, setShowEvaluationDialog] = useState(false)
   const [showCreateRequirementDialog, setShowCreateRequirementDialog] =
     useState(false)
+  const [editingReq, setEditingReq] = useState<Requirement | null>(null)
+  const [showUpdate, setShowUpdate] = useState(false)
 
   // Use existing system UI state or create a new one for requirements
   const {
@@ -92,6 +96,30 @@ const PrototypeTabRequirement = () => {
       })
     } catch (err) {
       console.error('Failed to delete requirement', err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // EDIT
+  const handleEdit = (id: string) => {
+    const req = requirements.find((r) => r.id === id)
+    if (!req) return
+    setEditingReq(req)
+    setShowUpdate(true)
+  }
+
+  const handleUpdateAndSave = async (updatedReq: Requirement) => {
+    updateRequirement(updatedReq)
+    if (!prototype) return
+    setIsSaving(true)
+    try {
+      const allReqs = useRequirementStore.getState().requirements
+      await updatePrototypeService(prototype.id, {
+        extend: { requirements: allReqs },
+      })
+    } catch (e) {
+      console.error(e)
     } finally {
       setIsSaving(false)
     }
@@ -189,11 +217,14 @@ const PrototypeTabRequirement = () => {
         <div className="flex w-full h-full">
           {isEditing ? (
             <div className="flex w-full h-full">
-              <DaRequirementTable onDelete={handleDelete} />
+              <DaRequirementTable onDelete={handleDelete} onEdit={handleEdit} />
             </div>
           ) : (
             <ReactFlowProvider>
-              <DaRequirementExplorer onDelete={handleDelete} />
+              <DaRequirementExplorer
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+              />
             </ReactFlowProvider>
           )}
         </div>
@@ -206,6 +237,12 @@ const PrototypeTabRequirement = () => {
         open={showCreateRequirementDialog}
         onOpenChange={setShowCreateRequirementDialog}
         onCreate={handleCreateAndSave}
+      />
+      <RequirementUpdateDialog
+        open={showUpdate}
+        onOpenChange={setShowUpdate}
+        requirement={editingReq}
+        onUpdate={handleUpdateAndSave}
       />
     </div>
   )

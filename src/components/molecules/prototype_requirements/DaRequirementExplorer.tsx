@@ -26,9 +26,10 @@ const DIST_COEFF = 1.5 // spread factor
 
 interface Props {
   onDelete: (id: string) => void
+  onEdit?: (id: string) => void
 }
 
-const DaRequirementExplorer: React.FC<Props> = ({ onDelete }) => {
+const DaRequirementExplorer: React.FC<Props> = ({ onDelete, onEdit }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const { requirements } = useRequirementStore()
 
@@ -115,6 +116,7 @@ const DaRequirementExplorer: React.FC<Props> = ({ onDelete }) => {
           showHandles: false,
           requirement: req,
           onDelete,
+          onEdit,
         },
       }
     })
