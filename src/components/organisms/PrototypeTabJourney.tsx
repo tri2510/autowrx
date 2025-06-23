@@ -10,8 +10,6 @@ import {
   deletePrototypeService,
 } from '@/services/prototype.service'
 import {
-  TbChevronDown,
-  TbDots,
   TbDotsVertical,
   TbDownload,
   TbEdit,
@@ -42,6 +40,8 @@ import DaCustomRequirements from '../molecules/prototype_requirements/DaCustomRe
 import DaTooltip from '../atoms/DaTooltip'
 import { toast } from 'react-toastify'
 import { isAxiosError } from 'axios'
+import DaRequirementExplorer from '../molecules/prototype_requirements/DaRequirementExplorer'
+import { ReactFlowProvider } from '@xyflow/react'
 
 interface PrototypeTabJourneyProps {
   prototype: Prototype
@@ -487,22 +487,18 @@ const PrototypeTabJourney: React.FC<PrototypeTabJourneyProps> = ({
               isEditing={isEditing}
             />
           </div>
-          <div
+          {/* <div
             className={cn(
               'flex flex-col w-full items-center justify-center py-8 space-y-8',
-              !isEditing && 'pointer-events-none',
             )}
           >
             <DaText variant="title" className="text-da-primary-500">
               Requirements
             </DaText>
-            <DaCustomRequirements
-              customRequirements={customRequirements}
-              setCustomRequirements={setCustomRequirements}
-              onSaveRequirements={() => handleSave()}
-              isEditing={isEditing}
-            />
-          </div>
+            <ReactFlowProvider>
+              <DaRequirementExplorer />
+            </ReactFlowProvider>
+          </div> */}
         </div>
       </div>
     </div>
