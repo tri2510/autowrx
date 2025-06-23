@@ -14,21 +14,35 @@ type ModelState = {
   // access?: Token | null
   model?: Model | null
   activeModelApis?: any[]
+  activeModelUspSevices?: any[]
   prototype?: Prototype | null
+  supportApis: any[]
+  prototypeHasUnsavedChanges: boolean
 }
 
 type Actions = {
   setActiveModel: (_: Model) => Promise<void>
   setActivePrototype: (_: Prototype) => void
   refreshModel: () => Promise<void>
+  setPrototypeHasUnsavedChanges: (hasChanges: boolean) => void
 }
 
 const useModelStore = create<ModelState & Actions>()((set, get) => ({
   model: undefined,
   activeModelApis: [],
+  activeModelUspSevices: [],
+  supportApis: [],
   prototype: undefined,
+  prototypeHasUnsavedChanges: false,
   setActiveModel: async (model) => {
     let ret: any
+    let supportApis = [
+      {
+        label: 'COVESA',
+        code: 'COVESA',
+      },
+    ]
+    let activeModelUspSevices = []
     if (model) {
       // New way
       // console.log("model", model)
@@ -86,12 +100,18 @@ const useModelStore = create<ModelState & Actions>()((set, get) => ({
 
         return 0
       })
+      if (Array.isArray(model?.extend?.vehicle_api?.supports)) {
+        supportApis = model?.extend?.vehicle_api?.supports
+        activeModelUspSevices = model?.extend?.vehicle_api?.USP || []
+      }
     } else {
       ret = []
     }
 
     set((state) => ({
       ...state,
+      supportApis,
+      activeModelUspSevices,
       model,
       activeModelApis: ret,
     }))
@@ -110,6 +130,11 @@ const useModelStore = create<ModelState & Actions>()((set, get) => ({
       await get().setActiveModel(currentModel)
     }
   },
+  setPrototypeHasUnsavedChanges: (hasChanges) =>
+    set((state) => ({
+      ...state,
+      prototypeHasUnsavedChanges: hasChanges,
+    })),
 }))
 
 if (process.env.NODE_ENV === 'development') {

@@ -59,6 +59,7 @@ export type Model = {
   contributors?: User[]
   members?: User[]
   state?: 'draft' | 'released' | 'blocked'
+  extend?: any
 }
 
 export type Prototype = {
