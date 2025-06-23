@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react'
 import CustomDialog from '../flow/CustomDialog'
 import { useRequirementStore } from './hook/useRequirementStore'
 import { DaButton } from '@/components/atoms/DaButton'
+import { DaInput } from '@/components/atoms/DaInput'
 import { Requirement } from '@/types/model.type'
 import useAuthStore from '@/stores/authStore'
+import { DaTextarea } from '@/components/atoms/DaTextarea'
 
 interface Props {
   open: boolean
@@ -78,24 +80,26 @@ const RequirementCreateDialog: React.FC<Props> = ({
     >
       <div className="flex flex-col h-full space-y-4">
         {/* Title */}
-        <div>
-          <label className="block text-sm font-medium">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 block w-full border rounded p-2"
-          />
-        </div>
+        <DaInput
+          label="Title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          labelClassName="!text-sm font-medium"
+          inputClassName="!text-sm"
+        />
+
         {/* Description */}
         <div>
           <label className="block text-sm font-medium">Description</label>
-          <textarea
+          <DaTextarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mt-1 block w-full border rounded p-2"
+            className="p-0.5 mt-1"
+            textareaClassName="!text-sm"
           />
         </div>
+
         {/* Type & Creator */}
         <div className="grid grid-cols-1 gap-4">
           <div>
@@ -103,7 +107,7 @@ const RequirementCreateDialog: React.FC<Props> = ({
             <select
               value={type}
               onChange={(e) => setType(e.target.value as Requirement['type'])}
-              className="mt-1 block w-full border rounded p-2"
+              className="mt-1 block w-full border p-2 rounded-md focus:outline-none text-sm"
             >
               <option>Functional Requirement</option>
               <option>System Integration Requirement</option>
@@ -115,6 +119,7 @@ const RequirementCreateDialog: React.FC<Props> = ({
             </select>
           </div>
         </div>
+
         {/* Source */}
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -124,22 +129,22 @@ const RequirementCreateDialog: React.FC<Props> = ({
               onChange={(e) =>
                 setSourceType(e.target.value as Requirement['source']['type'])
               }
-              className="mt-1 block w-full border rounded p-2"
+              className="mt-1 block w-full border p-2 rounded-md focus:outline-none text-sm"
             >
               <option value="external">External</option>
               <option value="internal">Internal</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium">Source Link</label>
-            <input
-              type="text"
-              value={sourceLink}
-              onChange={(e) => setSourceLink(e.target.value)}
-              className="mt-1 block w-full border rounded p-2"
-            />
-          </div>
+          <DaInput
+            label="Source Link"
+            type="text"
+            value={sourceLink}
+            onChange={(e) => setSourceLink(e.target.value)}
+            labelClassName="!text-sm font-medium"
+            inputClassName="!text-sm"
+          />
         </div>
+
         {/* Ratings */}
         <div className="grid grid-cols-3 gap-4">
           {[
@@ -152,19 +157,20 @@ const RequirementCreateDialog: React.FC<Props> = ({
             { label: 'Impact', value: impact, setter: setLimitedImpact },
           ].map(({ label, value, setter }) => (
             <div key={label}>
-              <label className="block text-sm font-medium">{label}</label>
-              <input
+              <DaInput
+                label={label}
                 type="number"
                 min={1}
                 max={5}
                 value={value}
                 onChange={(e) => setter(Number(e.target.value))}
-                className="mt-1 block w-full border rounded p-2"
+                labelClassName="!text-sm font-medium"
               />
               <span className="text-xs text-gray-500">Range: 1-5</span>
             </div>
           ))}
         </div>
+
         {/* Buttons */}
         <div className="flex h-full items-end justify-end space-x-2 ">
           <DaButton

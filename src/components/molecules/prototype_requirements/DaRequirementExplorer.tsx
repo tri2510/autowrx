@@ -4,8 +4,8 @@ import {
   ReactFlow,
   ReactFlowProvider,
   Background,
-  Controls,
   useNodesState,
+  Panel,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -18,37 +18,55 @@ const nodeTypes = {
   requirementNode: RequirementNode,
 }
 
-const MAX_RADIUS = 600 // maximum radar radius
+const MAX_RADIUS = 600 // maximum radar radius in px
 const MIN_RADIUS = 50 // never go inside this ring
-const MAX_RATING = 5 // 1…5 scale
+const MAX_RATING = 5 // rating scale 1…5
 const NODE_SIZE = 60 // diameter in px
 const DIST_COEFF = 1.5 // spread factor
 
-interface Props {
+interface DaRequirementExplorerProps {
   onDelete: (id: string) => void
   onEdit?: (id: string) => void
 }
 
-const DaRequirementExplorer: React.FC<Props> = ({ onDelete, onEdit }) => {
+const Legend: React.FC = () => (
+  <div className="border border-gray-200 bg-white p-3 text-da-gray-dark rounded-md shadow-md text-xs">
+    <h4 className="font-semibold mb-2">Legend</h4>
+    <div className="mb-3  ">
+      <div className="flex items-center mb-2">
+        <div
+          className="w-4 h-4 rounded-full mr-2"
+          style={{ backgroundColor: '#005072' }}
+        />
+        <span>Internal Requirements</span>
+      </div>
+      <div className="flex items-center">
+        <div
+          className="w-4 h-4 rounded-full mr-2"
+          style={{ backgroundColor: '#aebd38' }}
+        />
+        <span>External Requirements</span>
+      </div>
+    </div>
+    <div className="space-y-1  ">
+      <div>Larger circles = Higher impact/effort</div>
+      <div>Closer to center = More relevant</div>
+    </div>
+  </div>
+)
+
+const DaRequirementExplorer: React.FC<DaRequirementExplorerProps> = ({
+  onDelete,
+  onEdit,
+}) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const { requirements } = useRequirementStore()
 
   const initialNodes = useMemo(() => {
     const reqs = requirements
     const total = reqs.length
-    const isSingle = total === 1
 
-    // angle between spokes
-    const angleStep = isSingle ? 0 : (2 * Math.PI) / total
-
-    // ensure spokes never overlap
-    const safeMinByAngle =
-      total > 1 ? NODE_SIZE / (2 * Math.sin(angleStep / 2)) : 0
-    const effectiveMinRadius = isSingle
-      ? MIN_RADIUS
-      : Math.max(MIN_RADIUS, safeMinByAngle)
-
-    // 1) Background node
+    // 1) ALWAYS build the radar‐background node
     const bgNode = {
       id: 'radar-bg',
       type: 'radarBackground',
@@ -57,44 +75,37 @@ const DaRequirementExplorer: React.FC<Props> = ({ onDelete, onEdit }) => {
       style: { pointerEvents: 'none' },
     }
 
-    // 2) Map each requirement to a node
+    // 2) if no requirements, return just the background
+    if (total === 0) {
+      return [bgNode]
+    }
+
+    // 3) compute spacing & minimum radius so nodes don't overlap
+    const angleStep = (2 * Math.PI) / total
+    const safeMinByAngle =
+      total > 1 ? NODE_SIZE / (2 * Math.sin(angleStep / 2)) : 0
+    const effectiveMinRadius = Math.max(MIN_RADIUS, safeMinByAngle)
+
+    // 4) map each requirement → a positioned node
     const reqNodes = reqs.map((req, i) => {
-      let x = 0
-      let y = 0
+      // polar angle (start at 12 o'clock)
+      const angle = i * angleStep - Math.PI / 2
 
-      if (!isSingle) {
-        // angle offset so first sits at “12 o’clock”
-        const angle = i * angleStep - Math.PI / 2
+      // average & normalize your 1 5 score → 0…1
+      const avgScore =
+        (req.rating.priority + req.rating.relevance + req.rating.impact) / 3
+      const norm = avgScore / MAX_RATING
 
-        // compute normalized relevance score
-        const avgScore =
-          (req.rating.priority + req.rating.relevance + req.rating.impact) / 3
-        const norm = avgScore / MAX_RATING // 0…1
+      // invert: high score = small r, low score = big r
+      const baseR = (1 - norm) * MAX_RADIUS
+      const scaledR = baseR * DIST_COEFF
+      const radius = Math.max(effectiveMinRadius, Math.min(scaledR, MAX_RADIUS))
 
-        // convert to radius
-        const baseR = (1 - norm) * MAX_RADIUS
-        const scaledR = baseR * DIST_COEFF
-        const radius = Math.max(
-          effectiveMinRadius,
-          Math.min(scaledR, MAX_RADIUS),
-        )
+      // polar → cartesian
+      const x = radius * Math.cos(angle)
+      const y = radius * Math.sin(angle)
 
-        x = radius * Math.cos(angle)
-        y = radius * Math.sin(angle)
-
-        // final clamp so we never drift outside/inside
-        const finalR = Math.hypot(x, y)
-        if (finalR > MAX_RADIUS) {
-          const f = MAX_RADIUS / finalR
-          x *= f
-          y *= f
-        } else if (finalR < effectiveMinRadius) {
-          const f = effectiveMinRadius / finalR
-          x *= f
-          y *= f
-        }
-      }
-
+      // color by source
       const color = req.source.type === 'internal' ? '#005072' : '#aebd38'
 
       return {
@@ -106,9 +117,7 @@ const DaRequirementExplorer: React.FC<Props> = ({ onDelete, onEdit }) => {
           title: req.title,
           description: req.description,
           type: req.type,
-          ratingAvg:
-            (req.rating.priority + req.rating.relevance + req.rating.impact) /
-            3,
+          ratingAvg: avgScore,
           rating: req.rating,
           source: req.source,
           creatorUserId: req.creatorUserId,
@@ -122,9 +131,9 @@ const DaRequirementExplorer: React.FC<Props> = ({ onDelete, onEdit }) => {
     })
 
     return [bgNode, ...reqNodes]
-  }, [requirements, onDelete])
+  }, [requirements, onDelete, onEdit])
 
-  // push into ReactFlow
+  // push into ReactFlow state
   useEffect(() => {
     setNodes(initialNodes as any)
   }, [initialNodes, setNodes])
@@ -141,7 +150,12 @@ const DaRequirementExplorer: React.FC<Props> = ({ onDelete, onEdit }) => {
           nodesConnectable={false}
         >
           <Background gap={16} color="#f8f8f8" />
-          <Controls />
+          {/* Optional controls */}
+          {/* <Controls /> */}
+          {/* Always show legend in bottom-left */}
+          <Panel position="bottom-left">
+            <Legend />
+          </Panel>
         </ReactFlow>
       </ReactFlowProvider>
     </div>

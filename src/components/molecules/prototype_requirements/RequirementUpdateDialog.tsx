@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react'
 import CustomDialog from '../flow/CustomDialog'
 import { DaButton } from '@/components/atoms/DaButton'
+import { DaInput } from '@/components/atoms/DaInput'
+import { DaTextarea } from '@/components/atoms/DaTextarea'
 import { Requirement } from '@/types/model.type'
 import useAuthStore from '@/stores/authStore'
 
@@ -35,6 +37,9 @@ const RequirementUpdateDialog: React.FC<Props> = ({
 
   // clamp helpers
   const clamp = (v: number) => Math.min(5, Math.max(1, v))
+  const setLimitedPriority = (value: number) => setPriority(clamp(value))
+  const setLimitedRelevance = (value: number) => setRelevance(clamp(value))
+  const setLimitedImpact = (value: number) => setImpact(clamp(value))
 
   // when dialog opens, seed the form from `requirement`
   useEffect(() => {
@@ -82,23 +87,23 @@ const RequirementUpdateDialog: React.FC<Props> = ({
     >
       <div className="flex flex-col h-full space-y-4">
         {/* Title */}
-        <div>
-          <label className="block text-sm font-medium">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 block w-full border rounded p-2"
-          />
-        </div>
+        <DaInput
+          label="Title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          labelClassName="!text-sm font-medium"
+          inputClassName="!text-sm"
+        />
 
         {/* Description */}
         <div>
           <label className="block text-sm font-medium">Description</label>
-          <textarea
+          <DaTextarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mt-1 block w-full border rounded p-2"
+            className="p-0.5 mt-1"
+            textareaClassName="!text-sm"
           />
         </div>
 
@@ -108,7 +113,7 @@ const RequirementUpdateDialog: React.FC<Props> = ({
           <select
             value={type}
             onChange={(e) => setType(e.target.value as Requirement['type'])}
-            className="mt-1 block w-full border rounded p-2"
+            className="mt-1 block w-full border p-2 rounded-md focus:outline-none text-sm"
           >
             <option>Functional Requirement</option>
             <option>System Integration Requirement</option>
@@ -129,51 +134,42 @@ const RequirementUpdateDialog: React.FC<Props> = ({
               onChange={(e) =>
                 setSourceType(e.target.value as Requirement['source']['type'])
               }
-              className="mt-1 block w-full border rounded p-2"
+              className="mt-1 block w-full border p-2 rounded-md focus:outline-none text-sm"
             >
               <option value="external">External</option>
               <option value="internal">Internal</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium">Source Link</label>
-            <input
-              type="text"
-              value={sourceLink}
-              onChange={(e) => setSourceLink(e.target.value)}
-              className="mt-1 block w-full border rounded p-2"
-            />
-          </div>
+          <DaInput
+            label="Source Link"
+            type="text"
+            value={sourceLink}
+            onChange={(e) => setSourceLink(e.target.value)}
+            labelClassName="!text-sm font-medium"
+            inputClassName="!text-sm"
+          />
         </div>
 
         {/* Ratings */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            {
-              label: 'Priority',
-              val: priority,
-              set: (v: number) => setPriority(clamp(v)),
-            },
+            { label: 'Priority', value: priority, setter: setLimitedPriority },
             {
               label: 'Relevance',
-              val: relevance,
-              set: (v: number) => setRelevance(clamp(v)),
+              value: relevance,
+              setter: setLimitedRelevance,
             },
-            {
-              label: 'Impact',
-              val: impact,
-              set: (v: number) => setImpact(clamp(v)),
-            },
-          ].map(({ label, val, set }) => (
+            { label: 'Impact', value: impact, setter: setLimitedImpact },
+          ].map(({ label, value, setter }) => (
             <div key={label}>
-              <label className="block text-sm font-medium">{label}</label>
-              <input
+              <DaInput
+                label={label}
                 type="number"
                 min={1}
                 max={5}
-                value={val}
-                onChange={(e) => set(Number(e.target.value))}
-                className="mt-1 block w-full border rounded p-2"
+                value={value}
+                onChange={(e) => setter(Number(e.target.value))}
+                labelClassName="!text-sm font-medium"
               />
               <span className="text-xs text-gray-500">Range: 1-5</span>
             </div>
