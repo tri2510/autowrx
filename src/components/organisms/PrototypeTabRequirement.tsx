@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   TbArrowsMaximize,
   TbArrowsMinimize,
   TbLoader2,
+  TbPlus,
   TbTable,
   TbTarget,
   TbTextScan2,
@@ -20,9 +21,9 @@ import { PERMISSIONS } from '@/data/permission'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import DaRequirementTable from '../molecules/prototype_requirements/DaRequirementTable'
 import { useRequirementStore } from '../molecules/prototype_requirements/hook/useRequirementStore'
-import CustomDialog from '../molecules/flow/CustomDialog'
-import { markdownAIEvaluate } from '../molecules/prototype_requirements/mockup_requirements'
-import AIEvaluationDialog from '../molecules/prototype_requirements/RequirementEvaluationDialog'
+import RequirementEvaluationDialog from '../molecules/prototype_requirements/RequirementEvaluationDialog'
+import { Requirement } from '@/types/model.type'
+import RequirementCreateDialog from '../molecules/prototype_requirements/RequirementCreateDialog'
 
 const PrototypeTabRequirement = () => {
   const { data: model } = useCurrentModel()
@@ -30,8 +31,17 @@ const PrototypeTabRequirement = () => {
   const { data: prototype } = useCurrentPrototype()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const { isScanning, toggleScanning } = useRequirementStore()
+  const {
+    requirements,
+    setRequirements,
+    isScanning,
+    toggleScanning,
+    addRequirement,
+    removeRequirement,
+  } = useRequirementStore()
   const [showEvaluationDialog, setShowEvaluationDialog] = useState(false)
+  const [showCreateRequirementDialog, setShowCreateRequirementDialog] =
+    useState(false)
 
   // Use existing system UI state or create a new one for requirements
   const {
@@ -42,19 +52,48 @@ const PrototypeTabRequirement = () => {
     setShowPrototypeRequirementFullScreen: (val: boolean) => {},
   }
 
-  const handleSave = async () => {
+  useEffect(() => {
+    if (prototype?.extend && Array.isArray(prototype.extend.requirements)) {
+      setRequirements(prototype.extend.requirements as Requirement[])
+    }
+  }, [prototype, setRequirements])
+
+  const handleCreateAndSave = async (newReq: Requirement) => {
+    // 1) add locally
+    addRequirement(newReq)
+
+    // 2) persist immediately
     if (!prototype) return
+    setIsSaving(true)
     try {
-      setIsSaving(true)
-      // Add your save logic here for requirements
+      // grab the updated array
+      const allReqs = useRequirementStore.getState().requirements
       await updatePrototypeService(prototype.id, {
-        // Update requirements data here
+        extend: { requirements: allReqs },
       })
     } catch (error) {
-      console.error('Error saving requirement data:', error)
+      console.error('Failed to save after create:', error)
     } finally {
       setIsSaving(false)
-      setIsEditing(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    // 1) remove local copy
+    removeRequirement(id)
+
+    // 2) persist updated array
+    if (!prototype) return
+    setIsSaving(true)
+    try {
+      const allReqs = useRequirementStore.getState().requirements
+      await updatePrototypeService(prototype.id, {
+        extend: { requirements: allReqs },
+      })
+    } catch (err) {
+      console.error('Failed to delete requirement', err)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -92,6 +131,13 @@ const PrototypeTabRequirement = () => {
           {isAuthorized && (
             <div className="flex items-center space-x-1">
               <DaButton
+                size="sm"
+                variant="editor"
+                onClick={() => setShowCreateRequirementDialog(true)}
+              >
+                <TbPlus className="size-4 mr-1" /> New Requirement
+              </DaButton>
+              <DaButton
                 onClick={handleEvaluateWithAI}
                 className={cn(
                   '!justify-start',
@@ -121,39 +167,6 @@ const PrototypeTabRequirement = () => {
                 )}
                 {isEditing ? 'Explorer View' : 'Table View'}
               </DaButton>
-              {/* {!isEditing ? (
-                <DaButton
-                  onClick={() => setIsEditing(true)}
-                  className="!justify-start"
-                  variant="editor"
-                  size="sm"
-                >
-                  <TbEdit className="w-4 h-4 mr-1" /> Edit
-                </DaButton>
-              ) : isSaving ? (
-                <div className="flex items-center text-da-primary-500">
-                  <TbLoader className="w-4 h-4 mr-1 animate-spin" />
-                  Saving
-                </div>
-              ) : (
-                <div className="flex space-x-2 mr-2">
-                  <DaButton
-                    variant="outline-nocolor"
-                    onClick={() => setIsEditing(false)}
-                    className="w-16 text-da-white px-4 py-2 rounded"
-                    size="sm"
-                  >
-                    Cancel
-                  </DaButton>
-                  <DaButton
-                    onClick={handleSave}
-                    className="w-16 text-white px-4 py-2 rounded"
-                    size="sm"
-                  >
-                    Save
-                  </DaButton>
-                </div>
-              )} */}
             </div>
           )}
           <DaButton
@@ -176,18 +189,23 @@ const PrototypeTabRequirement = () => {
         <div className="flex w-full h-full">
           {isEditing ? (
             <div className="flex w-full h-full">
-              <DaRequirementTable />
+              <DaRequirementTable onDelete={handleDelete} />
             </div>
           ) : (
             <ReactFlowProvider>
-              <DaRequirementExplorer />
+              <DaRequirementExplorer onDelete={handleDelete} />
             </ReactFlowProvider>
           )}
         </div>
       </div>
-      <AIEvaluationDialog
+      <RequirementEvaluationDialog
         open={showEvaluationDialog}
         onOpenChange={setShowEvaluationDialog}
+      />
+      <RequirementCreateDialog
+        open={showCreateRequirementDialog}
+        onOpenChange={setShowCreateRequirementDialog}
+        onCreate={handleCreateAndSave}
       />
     </div>
   )

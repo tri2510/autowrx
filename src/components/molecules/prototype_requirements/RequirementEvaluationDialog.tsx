@@ -5,15 +5,14 @@ import { markdownAIEvaluate } from './mockup_requirements'
 import { DaButton } from '@/components/atoms/DaButton'
 import RiskAssessmentMarkdown from '../flow/RiskAssessmentMarkdown'
 
-interface AIEvaluationDialogProps {
+interface RequirementEvaluationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const AIEvaluationDialog: React.FC<AIEvaluationDialogProps> = ({
-  open,
-  onOpenChange,
-}) => {
+const RequirementEvaluationDialog: React.FC<
+  RequirementEvaluationDialogProps
+> = ({ open, onOpenChange }) => {
   const { toggleScanning, applyAISuggestions } = useRequirementStore()
   const [applied, setApplied] = useState(false)
 
@@ -71,4 +70,4 @@ const AIEvaluationDialog: React.FC<AIEvaluationDialogProps> = ({
   )
 }
 
-export default AIEvaluationDialog
+export default RequirementEvaluationDialog

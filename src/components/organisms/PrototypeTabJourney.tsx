@@ -487,7 +487,7 @@ const PrototypeTabJourney: React.FC<PrototypeTabJourneyProps> = ({
               isEditing={isEditing}
             />
           </div>
-          <div
+          {/* <div
             className={cn(
               'flex flex-col w-full items-center justify-center py-8 space-y-8',
             )}
@@ -498,7 +498,7 @@ const PrototypeTabJourney: React.FC<PrototypeTabJourneyProps> = ({
             <ReactFlowProvider>
               <DaRequirementExplorer />
             </ReactFlowProvider>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

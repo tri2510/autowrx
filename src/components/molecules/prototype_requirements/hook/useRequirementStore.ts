@@ -1,28 +1,40 @@
 import { create } from 'zustand'
-import mockRequirements, { mockAIRequirements } from '../mockup_requirements'
-
+import { Requirement } from '@/types/model.type'
 interface RequirementState {
-  // Scanning state
+  // scanning state
   isScanning: boolean
   startScanning: () => void
   stopScanning: () => void
   toggleScanning: () => void
 
-  // Requirements data
-  requirements: typeof mockRequirements
-  setRequirements: (requirements: typeof mockRequirements) => void
+  // requirements data
+  requirements: Requirement[]
+  setRequirements: (reqs: Requirement[]) => void
+  addRequirement: (r: Requirement) => void
+  removeRequirement: (id: string) => void
+
+  // optionally used to drop in some AI‐mocked set
   applyAISuggestions: () => void
 }
 
 export const useRequirementStore = create<RequirementState>((set) => ({
-  // Scanning state management
+  // scanning
   isScanning: false,
   startScanning: () => set({ isScanning: true }),
   stopScanning: () => set({ isScanning: false }),
-  toggleScanning: () => set((state) => ({ isScanning: !state.isScanning })),
+  toggleScanning: () => set((s) => ({ isScanning: !s.isScanning })),
 
-  // Requirements data management
-  requirements: mockRequirements,
+  // real requirements array, start empty
+  requirements: [],
   setRequirements: (requirements) => set({ requirements }),
-  applyAISuggestions: () => set({ requirements: mockAIRequirements }),
+  addRequirement: (req) =>
+    set((state) => ({ requirements: [...state.requirements, req] })),
+  removeRequirement: (id) =>
+    set((s) => ({
+      requirements: s.requirements.filter((r) => r.id !== id),
+    })),
+  applyAISuggestions: () =>
+    set({
+      requirements: [],
+    }),
 }))

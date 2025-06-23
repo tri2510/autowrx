@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Node, NodeProps, Handle, Position } from '@xyflow/react'
-import { TbEdit, TbX } from 'react-icons/tb'
+import { TbEdit, TbTrash, TbX } from 'react-icons/tb'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -36,6 +36,7 @@ type RequirementNodeData = {
   handlePositions?: string[]
   onEdit?: (id: string) => void
   requirement?: any
+  onDelete?: (id: string) => void
 }
 
 type RequirementNodeType = Node<RequirementNodeData>
@@ -52,13 +53,19 @@ function RequirementNode({
   const requirement = data.requirement || data
 
   const ratingAvg = data.ratingAvg || 3
-  const baseSize = 2
+  const baseSize = 15
   const size = baseSize + ratingAvg * 6
 
   const { isScanning } = useRequirementStore()
 
   const handleCloseDropdown = (e: React.MouseEvent) => {
     e.stopPropagation()
+    setOpen(false)
+  }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    data.onDelete?.(data.id)
     setOpen(false)
   }
 
@@ -108,18 +115,28 @@ function RequirementNode({
             Requirement Details
           </div>
           <div className="flex items-center space-x-1">
-            {isAuthorized && data.onEdit && (
-              <DaButton
-                size="sm"
-                variant="plain"
-                className="flex ml-1 !h-6 !p-2 !text-xs !text-da-primary-500"
-                onClick={(e) => {
-                  handleCloseDropdown(e)
-                  data.onEdit && data.onEdit(data.id)
-                }}
-              >
-                <TbEdit className="size-3.5 mr-1" /> Edit
-              </DaButton>
+            {isAuthorized && (
+              <>
+                {/* <DaButton
+                  size="sm"
+                  variant="plain"
+                  className="flex ml-1 !h-6 !p-2 !text-xs !text-da-primary-500"
+                  onClick={(e) => {
+                    handleCloseDropdown(e)
+                    data.onEdit && data.onEdit(data.id)
+                  }}
+                >
+                  <TbEdit className="size-3.5 mr-1" /> Edit
+                </DaButton> */}
+                <DaButton
+                  size="sm"
+                  variant="destructive"
+                  className="flex ml-1 !h-6 !p-2 !text-xs"
+                  onClick={handleDelete}
+                >
+                  <TbTrash className="size-3.5 mr-1" /> Delete
+                </DaButton>
+              </>
             )}
 
             <button

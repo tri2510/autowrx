@@ -88,6 +88,7 @@ export type Prototype = {
   executed_turns?: number
   flow?: string
   editors_choice?: boolean
+  extend?: any
 }
 export interface CustomRequirement {
   text?: string
@@ -109,7 +110,7 @@ export interface RequirementSource {
 }
 
 export interface RequirementRating {
-  priority: number // Could be 1-5 or another scale
+  priority: number
   relevance: number
   impact: number
 }

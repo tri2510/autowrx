@@ -1,4 +1,4 @@
-// DaRequirementExplorer.tsx
+// src/molecules/prototype_requirements/DaRequirementExplorer.tsx
 import React, { useEffect, useMemo } from 'react'
 import {
   ReactFlow,
@@ -18,81 +18,83 @@ const nodeTypes = {
   requirementNode: RequirementNode,
 }
 
-const MAX_RADIUS = 600 // Maximum radius of the radar in px
-const MIN_RADIUS = 50 // Minimum radius of the radar in px
-const MAX_RATING = 5 // Maximum rating value (1-5 scale)
-const NODE_SIZE = 60 // Prevent nodes being too close together
-const DISTANCE_COEFFICIENT = 1.5 // Prevent nodes from overlapping
+const MAX_RADIUS = 600 // maximum radar radius
+const MIN_RADIUS = 50 // never go inside this ring
+const MAX_RATING = 5 // 1…5 scale
+const NODE_SIZE = 60 // diameter in px
+const DIST_COEFF = 1.5 // spread factor
 
-function getPriorityColor(p: number): string {
-  if (p >= 4) return '#ef4444'
-  if (p >= 3) return '#fca5a5'
-  if (p >= 2) return '#93c5fd'
-  if (p >= 1) return '#3b82f6'
-  return '#3b82f6'
+interface Props {
+  onDelete: (id: string) => void
 }
 
-const DaRequirementExplorer: React.FC = () => {
+const DaRequirementExplorer: React.FC<Props> = ({ onDelete }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const { requirements } = useRequirementStore()
 
   const initialNodes = useMemo(() => {
     const reqs = requirements
     const total = reqs.length
-    const angleStep = (2 * Math.PI) / total
+    const isSingle = total === 1
 
-    // Compute a true min-radius so adjacent rays never collide
-    const safeMinByAngle = NODE_SIZE / (2 * Math.sin(angleStep / 2))
-    const effectiveMinRadius = Math.max(MIN_RADIUS, safeMinByAngle)
+    // angle between spokes
+    const angleStep = isSingle ? 0 : (2 * Math.PI) / total
 
-    // 1) Background radar
+    // ensure spokes never overlap
+    const safeMinByAngle =
+      total > 1 ? NODE_SIZE / (2 * Math.sin(angleStep / 2)) : 0
+    const effectiveMinRadius = isSingle
+      ? MIN_RADIUS
+      : Math.max(MIN_RADIUS, safeMinByAngle)
+
+    // 1) Background node
     const bgNode = {
       id: 'radar-bg',
       type: 'radarBackground',
       position: { x: -MAX_RADIUS, y: -MAX_RADIUS },
-      data: {
-        size: MAX_RADIUS,
-        spokes: 8,
-        rings: 5,
-      },
-      style: { pointerEvents: 'none' }, // Prevent interaction with background
+      data: { size: MAX_RADIUS, spokes: 8, rings: 5 },
+      style: { pointerEvents: 'none' },
     }
 
-    // 2) Place each requirement on its own ray
+    // 2) Map each requirement to a node
     const reqNodes = reqs.map((req, i) => {
-      const angle = i * angleStep - Math.PI / 2
+      let x = 0
+      let y = 0
 
-      // composite score & normalize
-      const avgScore =
-        (req.rating.relevance + req.rating.impact + req.rating.priority) / 3
-      const normScore = avgScore / MAX_RATING // 0…1
+      if (!isSingle) {
+        // angle offset so first sits at “12 o’clock”
+        const angle = i * angleStep - Math.PI / 2
 
-      // a) unscaled radius
-      const baseRadius = (1 - normScore) * MAX_RADIUS
-      // b) apply coefficient
-      const scaledRadius = baseRadius * DISTANCE_COEFFICIENT
-      // c) clamp into [min, max]
-      const radius = Math.max(
-        effectiveMinRadius,
-        Math.min(scaledRadius, MAX_RADIUS),
-      )
+        // compute normalized relevance score
+        const avgScore =
+          (req.rating.priority + req.rating.relevance + req.rating.impact) / 3
+        const norm = avgScore / MAX_RATING // 0…1
 
-      // polar → Cartesian
-      let x = radius * Math.cos(angle)
-      let y = radius * Math.sin(angle)
+        // convert to radius
+        const baseR = (1 - norm) * MAX_RADIUS
+        const scaledR = baseR * DIST_COEFF
+        const radius = Math.max(
+          effectiveMinRadius,
+          Math.min(scaledR, MAX_RADIUS),
+        )
 
-      // --- NEW: clamp *after* shift so we never exceed outer circle ---
-      const finalR = Math.hypot(x, y)
-      if (finalR > MAX_RADIUS) {
-        const factor = MAX_RADIUS / finalR
-        x *= factor
-        y *= factor
-      } else if (finalR < effectiveMinRadius) {
-        const factor = effectiveMinRadius / finalR
-        x *= factor
-        y *= factor
+        x = radius * Math.cos(angle)
+        y = radius * Math.sin(angle)
+
+        // final clamp so we never drift outside/inside
+        const finalR = Math.hypot(x, y)
+        if (finalR > MAX_RADIUS) {
+          const f = MAX_RADIUS / finalR
+          x *= f
+          y *= f
+        } else if (finalR < effectiveMinRadius) {
+          const f = effectiveMinRadius / finalR
+          x *= f
+          y *= f
+        }
       }
-      // ------------------------------------------------------------------
+
+      const color = req.source.type === 'internal' ? '#005072' : '#aebd38'
 
       return {
         id: `req-${req.id}`,
@@ -100,24 +102,27 @@ const DaRequirementExplorer: React.FC = () => {
         position: { x, y },
         data: {
           id: req.id,
-          label: req.id,
           title: req.title,
           description: req.description,
           type: req.type,
-          ratingAvg: avgScore,
+          ratingAvg:
+            (req.rating.priority + req.rating.relevance + req.rating.impact) /
+            3,
           rating: req.rating,
           source: req.source,
           creatorUserId: req.creatorUserId,
-          color: getPriorityColor(req.rating.priority),
+          color,
           showHandles: false,
           requirement: req,
+          onDelete,
         },
       }
     })
 
     return [bgNode, ...reqNodes]
-  }, [requirements]) // Dependency on requirements from store
+  }, [requirements, onDelete])
 
+  // push into ReactFlow
   useEffect(() => {
     setNodes(initialNodes as any)
   }, [initialNodes, setNodes])

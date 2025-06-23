@@ -1,4 +1,4 @@
-// DaRequirementExplorer.tsx
+// src/molecules/prototype_requirements/DaRequirementTable.tsx
 import React, { useMemo } from 'react'
 import {
   ColumnDef,
@@ -13,7 +13,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '@/components/atoms/table' // or '@/components/ui/table'
+} from '@/components/atoms/table'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,45 +22,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from '@/components/atoms/dropdown-menu'
-import mockRequirements from './mockup_requirements'
-import {
-  Requirement,
-  RequirementSource,
-  RequirementRating,
-} from '@/types/model.type'
-import { TbDots } from 'react-icons/tb'
+import { TbDots, TbTrash } from 'react-icons/tb'
 import DaTooltip from '@/components/atoms/DaTooltip'
+import { Requirement } from '@/types/model.type'
+import { useRequirementStore } from './hook/useRequirementStore'
 
-const DaRequirementTable: React.FC = () => {
-  // 1) memoize your mock data
-  const data = useMemo<Requirement[]>(() => mockRequirements, [])
+interface Props {
+  onDelete: (id: string) => void
+}
 
-  // 2) define your columns
+const DaRequirementTable: React.FC<Props> = ({ onDelete }) => {
+  // pull real data from store
+  const requirements = useRequirementStore((s) => s.requirements)
+
+  // memoize
+  const data = useMemo<Requirement[]>(() => requirements, [requirements])
+
   const columns = useMemo<ColumnDef<Requirement, any>[]>(
     () => [
+      { accessorKey: 'id', header: 'ID' },
+      { accessorKey: 'title', header: 'Title' },
+      { accessorKey: 'description', header: 'Description' },
+      { accessorKey: 'type', header: 'Type' },
       {
-        accessorKey: 'id',
-        header: 'ID',
-      },
-      {
-        accessorKey: 'title',
-        header: 'Title',
-      },
-      {
-        accessorKey: 'description',
-        header: 'Description',
-      },
-      {
-        accessorKey: 'type',
-        header: 'Type',
-      },
-      {
-        // we need both type & link
         id: 'source',
         header: 'Source',
         accessorFn: (row) => row.source,
-        cell: (info) => {
-          const src = info.getValue() as RequirementSource
+        cell: ({ getValue }) => {
+          const src = getValue() as Requirement['source']
           return src.type === 'external' ? (
             <DaTooltip content={src.link}>
               <a
@@ -78,30 +67,27 @@ const DaRequirementTable: React.FC = () => {
         },
       },
       {
-        // average rating
         id: 'rating',
         header: 'Rating',
-        cell: (info) => {
-          const r = info.row.original.rating
+        cell: ({ row }) => {
+          const r = row.original.rating
           const avg = (r.priority + r.relevance + r.impact) / 3
           return <span>{avg.toFixed(1)}</span>
         },
       },
       {
-        // the "..." column
         id: 'actions',
-        header: '', // no header label
+        header: '',
         cell: ({ row }) => {
           const req = row.original
-
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="h-8 w-8 p-0 flex items-center justify-center hover:bg-gray-100 rounded"
-                  aria-label="Open details"
+                  className="h-8 w-8 flex items-center justify-center hover:bg-gray-100 rounded"
+                  aria-label="Open menu"
                 >
-                  <TbDots className="size-4" />
+                  <TbDots />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -113,48 +99,45 @@ const DaRequirementTable: React.FC = () => {
                   Metadata
                 </DropdownMenuLabel>
                 <DropdownMenuItem>
-                  <div className="font-medium text-da-gray-dark">
-                    Created At:
-                  </div>{' '}
+                  <div className="font-medium">Created At:</div>{' '}
                   {req.createdAt
                     ? new Date(req.createdAt).toLocaleString()
-                    : ''}
+                    : '-'}
                 </DropdownMenuItem>
-
                 <DropdownMenuItem>
-                  <div className="font-medium text-da-gray-dark">
-                    Updated At:
-                  </div>{' '}
+                  <div className="font-medium">Updated At:</div>{' '}
                   {req.updatedAt
                     ? new Date(req.updatedAt).toLocaleString()
-                    : ''}
+                    : '-'}
                 </DropdownMenuItem>
-
                 <DropdownMenuItem>
-                  <div className="font-medium text-da-gray-dark">
-                    Creator ID:
-                  </div>{' '}
+                  <div className="font-medium">Creator ID:</div>{' '}
                   {req.creatorUserId}
                 </DropdownMenuItem>
-
                 <DropdownMenuSeparator />
-
                 <DropdownMenuLabel className="font-medium text-da-primary-500">
                   Rating Detail
                 </DropdownMenuLabel>
                 <DropdownMenuItem>
-                  <div className="font-medium text-da-gray-dark">Priority:</div>{' '}
+                  <div className="font-medium">Priority:</div>{' '}
                   {req.rating.priority}
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <div className="font-medium text-da-gray-dark">
-                    Relevance:
-                  </div>{' '}
+                  <div className="font-medium">Relevance:</div>{' '}
                   {req.rating.relevance}
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <div className="font-medium text-da-gray-dark">Impact:</div>{' '}
-                  {req.rating.impact}
+                  <div className="font-medium">Impact:</div> {req.rating.impact}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="font-medium text-red-500">
+                  Danger Zone
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  className="flex items-center text-da-gray-medium hover:text-red-500 hover:bg-red-100 cursor-pointer"
+                  onClick={() => onDelete(req.id)}
+                >
+                  <TbTrash className="flex mb-0.5" /> Delete Requirement
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -162,10 +145,9 @@ const DaRequirementTable: React.FC = () => {
         },
       },
     ],
-    [],
+    [onDelete],
   )
 
-  // 3) build the table instance
   const table = useReactTable({
     data,
     columns,
@@ -176,9 +158,9 @@ const DaRequirementTable: React.FC = () => {
     <div className="w-full h-full overflow-auto rounded-xl border">
       <Table>
         <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
+          {table.getHeaderGroups().map((hg) => (
+            <TableRow key={hg.id}>
+              {hg.headers.map((header) => (
                 <TableHead
                   key={header.id}
                   className="font-semibold text-da-primary-500"
@@ -208,7 +190,7 @@ const DaRequirementTable: React.FC = () => {
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
+                No requirements found.
               </TableCell>
             </TableRow>
           )}
