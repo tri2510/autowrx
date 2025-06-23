@@ -129,18 +129,6 @@ const PrototypeTabRequirement = () => {
     return <div>No prototype available</div>
   }
 
-  const handleEvaluateWithAI = () => {
-    // Don't restart scanning if already in progress
-    if (isScanning) return
-
-    // Start scanning animation
-    toggleScanning()
-
-    // After 5-6 seconds, show the evaluation dialog
-    setTimeout(() => {
-      setShowEvaluationDialog(true)
-    }, 5500)
-  }
   return (
     <div
       className={cn(
@@ -165,23 +153,6 @@ const PrototypeTabRequirement = () => {
               >
                 <TbPlus className="size-4 mr-1" /> New Requirement
               </DaButton>
-              <DaButton
-                onClick={handleEvaluateWithAI}
-                className={cn(
-                  '!justify-start',
-                  isScanning && 'bg-da-primary-600',
-                )}
-                variant="editor"
-                size="sm"
-              >
-                {isScanning ? (
-                  <TbLoader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <TbTextScan2 className="w-4 h-4 mr-1" />
-                )}
-                {isScanning ? 'Evaluating...' : 'Evaluate with AI'}
-              </DaButton>
-
               <DaButton
                 onClick={() => setIsEditing(!isEditing)}
                 className="!justify-start"

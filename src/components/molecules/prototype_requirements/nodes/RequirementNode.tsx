@@ -56,8 +56,6 @@ function RequirementNode({
   const baseSize = 15
   const size = baseSize + ratingAvg * 6
 
-  const { isScanning } = useRequirementStore()
-
   const handleCloseDropdown = (e: React.MouseEvent) => {
     e.stopPropagation()
     setOpen(false)
@@ -83,9 +81,6 @@ function RequirementNode({
         <div
           className={cn(
             'relative flex flex-col items-center justify-center w-full h-full cursor-pointer',
-            isScanning
-              ? 'animate-pulse cursor-not-allowed pointer-events-none'
-              : '',
           )}
           onClick={(e) => {
             e.stopPropagation()
