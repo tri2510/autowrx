@@ -99,7 +99,7 @@ const home = [
 
         imageURL:
           'https://bewebstudio.digitalauto.tech/data/projects/nTcRsgxcDWgr/image.avif',
-        redirectURL: 'https://sdv.guide/',
+        redirectURL: 'https://www.sdv.guide/',
       },
       {
         title: 'Version v2.0 release',
