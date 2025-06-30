@@ -24,6 +24,7 @@ libs/
 *.gen.*
 *_pb2.py
 *.pb.go
+src/data/CVI_v4.1.ts
 
 # Documentation
 *.md
