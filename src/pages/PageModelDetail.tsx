@@ -196,7 +196,6 @@ const PageModelDetail = () => {
         ref_id: model.id,
         ref_type: 'model',
       })
-      await refetch()
       window.location.href = '/model'
     } catch (error) {
       console.error('Failed to delete model:', error)
