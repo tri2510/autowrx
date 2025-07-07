@@ -10,6 +10,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import './functional.css'
 import { BrowserRouter } from 'react-router-dom'
 import QueryProvider from './providers/QueryProvider.tsx'
 import { Bounce, ToastContainer } from 'react-toastify'
@@ -19,11 +20,16 @@ import { msalConfig } from './services/sso.service'
 import { MsalProvider } from '@azure/msal-react'
 import { ErrorBoundary } from 'react-error-boundary'
 import ErrorFallback from './layouts/ErrorFallback.tsx'
+import DaTestAutomation from './components/molecules/DaTestAutomation.tsx'
+import DaAutomationControl from './components/molecules/DaAutomationControl.tsx'
+
 
 const msalInstance = new PublicClientApplication(msalConfig)
+const showTestAutomation = localStorage.getItem('showTestAutomation') == '1'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
+    <DaAutomationControl/>
     <MsalProvider instance={msalInstance}>
       <BrowserRouter>
         <ErrorBoundary FallbackComponent={ErrorFallback}>

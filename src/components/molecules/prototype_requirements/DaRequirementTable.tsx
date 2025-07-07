@@ -56,9 +56,9 @@ const DaRequirementTable: React.FC<Props> = ({ onDelete, onEdit }) => {
       {
         id: 'source',
         header: 'Source',
-        accessorFn: (row) => row.source,
-        cell: ({ getValue }) => {
-          const src = getValue() as Requirement['source']
+        accessorFn: (row: any) => row.source,
+        cell: ({ getValue }: { getValue: any }) => {
+          const src = getValue()
           return src.type === 'external' ? (
             <DaTooltip content={src.link}>
               <a
@@ -78,7 +78,7 @@ const DaRequirementTable: React.FC<Props> = ({ onDelete, onEdit }) => {
       {
         id: 'rating',
         header: 'Rating',
-        cell: ({ row }) => {
+        cell: ({ row }: {row:any}) => {
           const r = row.original.rating
           const avg = (r.priority + r.relevance + r.impact) / 3
           return <span>{avg.toFixed(1)}</span>
@@ -87,7 +87,7 @@ const DaRequirementTable: React.FC<Props> = ({ onDelete, onEdit }) => {
       {
         id: 'actions',
         header: '',
-        cell: ({ row }) => {
+        cell: ({ row }: {row: any}) => {
           const req = row.original
           return (
             <DropdownMenu>
@@ -173,9 +173,9 @@ const DaRequirementTable: React.FC<Props> = ({ onDelete, onEdit }) => {
     <div className="w-full h-full overflow-auto rounded-xl border">
       <Table>
         <TableHeader>
-          {table.getHeaderGroups().map((hg) => (
+          {table.getHeaderGroups().map((hg: any) => (
             <TableRow key={hg.id}>
-              {hg.headers.map((header) => (
+              {hg.headers.map((header: any) => (
                 <TableHead
                   key={header.id}
                   className="font-semibold text-da-primary-500"
@@ -193,9 +193,9 @@ const DaRequirementTable: React.FC<Props> = ({ onDelete, onEdit }) => {
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
+            table.getRowModel().rows.map((row: any) => (
               <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
+                {row.getVisibleCells().map((cell: any) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

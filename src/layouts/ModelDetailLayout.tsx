@@ -55,6 +55,7 @@ const ModelDetailLayout = () => {
       path: 'overview',
       subs: ['/model/:model_id'],
       count: null, // No count for Overview
+      dataId: 'tab-model-overview',
     },
     {
       title: `Architecture`,
@@ -62,6 +63,7 @@ const ModelDetailLayout = () => {
       path: 'architecture',
       subs: ['/model/:model_id/architecture'],
       count: numberOfNodes,
+      dataId: 'tab-model-architecture',
     },
     {
       title: `Vehicle API`,
@@ -70,6 +72,7 @@ const ModelDetailLayout = () => {
       path: 'api',
       subs: ['/model/:model_id/api', '/model/:model_id/api/:api'],
       count: model?.extend?.vehicle_api?.supports?.length || numberOfApis,
+      dataId: 'tab-model-api',
     },
     {
       title: `Prototype Library`,
@@ -82,6 +85,7 @@ const ModelDetailLayout = () => {
         '/model/:model_id/library/:tab/:prototype_id',
       ],
       count: numberOfPrototypes,
+      dataId: 'tab-model-library',
     },
   ]
 
@@ -101,6 +105,7 @@ const ModelDetailLayout = () => {
                 )?.at(0)
               }
               key={index}
+              dataId={intro.dataId}
             >
               {intro.title}
               {intro.count !== null && (

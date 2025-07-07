@@ -6,10 +6,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-#
-# SPDX-License-Identifier: MIT
+import axios from "axios"
 
-# flake8: noqa: E501,B950 line too long
+let prefix_copyright = `
 import asyncio
 import json
 import logging

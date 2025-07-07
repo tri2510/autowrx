@@ -28,14 +28,17 @@ import { IoIosHelpBuoy } from 'react-icons/io'
 import config from '@/configs/config'
 import DaTooltip from '../atoms/DaTooltip'
 import ChatBox from '../molecules/ChatBox'
+import LearningIntegration from './LearningIntegration'
 
 import Switch from 'react-switch'
-import { useState, useEffect, useRef } from 'react'
-import useAuthStore from '@/stores/authStore'
+import { useState, useEffect, useRef, Fragment } from 'react'
+
 import useLastAccessedModel from '@/hooks/useLastAccessedModel'
 import { FaCar } from 'react-icons/fa'
+import DaTestAutomation from '../molecules/DaTestAutomation'
 
 const NavigationBar = ({}) => {
+
   const { data: user } = useSelfProfileQuery()
   const { data: model } = useCurrentModel()
   const [isAuthorized, allowUseAgent, allowLearningAccess] = usePermissionHook(
@@ -44,9 +47,6 @@ const NavigationBar = ({}) => {
     [PERMISSIONS.LEARNING_MODE],
   )
   const [learningMode, setIsLearningMode] = useState(false)
-  const { access } = useAuthStore()
-
-  const frameLearning = useRef<HTMLIFrameElement>(null)
 
   const { lastAccessedModel } = useLastAccessedModel()
   const isAtInventoryPage = useMatch('/inventory/*')
@@ -56,7 +56,7 @@ const NavigationBar = ({}) => {
       <Link to="/">
         <DaImage src="/imgs/logo-wide.png" className="da-nav-bar-logo" />
       </Link>
-
+      
       {config && config.enableBranding && (
         <div className="ml-4 text-sm text-white/90">
           <a
@@ -184,21 +184,7 @@ const NavigationBar = ({}) => {
         </>
       )}
 
-      {learningMode && (
-        <div
-          style={{ zIndex: 999 }}
-          className="fixed top-14 left-0 bottom-0 
-            w-[60%] min-w-[1060px] bg-white learning-appear inset-0 shadow-[4px_4px_6px_rgba(0,0,0,0.3)]"
-        >
-          <iframe
-            ref={frameLearning}
-            src={`${config?.learning?.url}?user_id=${encodeURIComponent(user?.id || '')}&token=${encodeURIComponent(access?.token || '')}`}
-            className="m-0 h-full w-full"
-            allow="camera;microphone"
-            onLoad={() => {}}
-          ></iframe>
-        </div>
-      )}
+      {learningMode && <LearningIntegration requestClose={() => setIsLearningMode(false)} />}
       <DaNavUser />
     </header>
   )

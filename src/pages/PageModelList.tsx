@@ -254,7 +254,7 @@ const PageModelList = () => {
                     )}
                     <DaPopup
                       trigger={
-                        <DaButton variant="solid" size="sm">
+                        <DaButton variant="solid" size="sm" data-id='btn-open-form-create'>
                           <HiPlus className="mr-1 text-lg" />
                           Create New Model
                         </DaButton>
@@ -285,7 +285,7 @@ const PageModelList = () => {
                       <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3 pb-4 mt-2">
                         {ownedModels.map((model: ModelLite, index: number) => (
                           <Link key={index} to={`/model/${model.id}`}>
-                            <DaModelItem model={model} />
+                            <DaModelItem model={model} className='my_model_grid_item'/>
                           </Link>
                         ))}
                       </div>
