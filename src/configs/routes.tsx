@@ -47,6 +47,9 @@ const PageTestForm = lazy(() =>
 const PagePrototypeLibrary = lazy(() =>
   retry(() => import('@/pages/PagePrototypeLibrary')),
 )
+const PageTestM89 = lazy(() =>
+  retry(() => import('@/pages/TestM89')),
+)
 const PageResetPassword = lazy(() =>
   retry(() => import('@/pages/PageResetPassword')),
 )
@@ -358,6 +361,22 @@ const routesConfig: RouteConfig[] = [
       {
         path: '/auth/:provider/success',
         element: <PageAuthSuccess />,
+      },
+      {
+        path: '/test-m89',
+        element: (
+          <SuspenseProvider>
+            <PageTestM89 />
+          </SuspenseProvider>
+        ),
+      },
+      {
+        path: '/test-ui',
+        element: (
+          <SuspenseProvider>
+            <PageTestM89 />
+          </SuspenseProvider>
+        ),
       },
       ...(!process.env.NODE_ENV || process.env.NODE_ENV === 'development'
         ? [
