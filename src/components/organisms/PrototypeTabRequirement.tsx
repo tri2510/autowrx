@@ -36,489 +36,511 @@ import RequirementCreateDialog from '../molecules/prototype_requirements/Require
 import RequirementUpdateDialog from '../molecules/prototype_requirements/RequirementUpdateDialog'
 import config from '@/configs/config'
 import { toast } from 'react-toastify'
+import axios from 'axios'
 
 let mockData: Requirement[] = [
-    {
-        "id": "REQ-012",
-        "title": "OTA Update Capability",
-        "description": "The system shall support over-the-air (OTA) updates to ensure the software can be updated remotely. Updates shall be delivered securely with cryptographic signature verification. The update process shall be fault-tolerant with automatic rollback capability in case of failures. Updates shall be downloadable in the background and be applicable either immediately or at a user-scheduled time, with appropriate user notifications.",
-        "type": "Operational Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 3,
-            "relevance": 5,
-            "impact": 4
-        }
+  {
+    "id": "REQ-012",
+    "title": "OTA Update Capability",
+    "description": "The system shall support over-the-air (OTA) updates to ensure the software can be updated remotely. Updates shall be delivered securely with cryptographic signature verification. The update process shall be fault-tolerant with automatic rollback capability in case of failures. Updates shall be downloadable in the background and be applicable either immediately or at a user-scheduled time, with appropriate user notifications.",
+    "type": "Operational Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-011",
-        "title": "Automotive Standard Compliance",
-        "description": "The system shall comply with relevant automotive standards such as ISO 26262 for functional safety with ASIL-B rating for door control functions and ASIL-A for comfort functions. The system shall also conform to SAE J3061 for cybersecurity engineering, UN Regulation No. 155 for cybersecurity management systems, and regional type approval requirements including ECE regulations for the European market.",
-        "type": "Regulatory & Homologation Requirement",
-        "source": {
-            "type": "external",
-            "link": "https://www.iso.org/standard/68383.html"
-        },
-        "rating": {
-            "priority": 5,
-            "relevance": 3,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 3,
+      "relevance": 5,
+      "impact": 4
+    }
+  },
+  {
+    "id": "REQ-011",
+    "title": "Automotive Standard Compliance",
+    "description": "The system shall comply with relevant automotive standards such as ISO 26262 for functional safety with ASIL-B rating for door control functions and ASIL-A for comfort functions. The system shall also conform to SAE J3061 for cybersecurity engineering, UN Regulation No. 155 for cybersecurity management systems, and regional type approval requirements including ECE regulations for the European market.",
+    "type": "Regulatory & Homologation Requirement",
+    "source": {
+      "type": "external",
+      "link": "https://www.iso.org/standard/68383.html"
     },
-    {
-        "id": "REQ-010",
-        "title": "Seamless Welcome Experience",
-        "description": "The welcome sequence shall execute smoothly without noticeable delays between steps. The total time from initial driver detection to completion of all welcome sequence steps shall not exceed 7 seconds. The system shall provide progress indicators for steps requiring more than 2 seconds. Transitions between welcome sequence steps shall be visually harmonious with smooth animations where applicable.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 3,
-            "relevance": 4,
-            "impact": 5
-        }
+    "rating": {
+      "priority": 5,
+      "relevance": 3,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-010",
+    "title": "Seamless Welcome Experience",
+    "description": "The welcome sequence shall execute smoothly without noticeable delays between steps. The total time from initial driver detection to completion of all welcome sequence steps shall not exceed 7 seconds. The system shall provide progress indicators for steps requiring more than 2 seconds. Transitions between welcome sequence steps shall be visually harmonious with smooth animations where applicable.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-SVC-HORN-002",
-        "title": "Horn Usage Time and Loudness Restriction",
-        "description": "The horn activation function shall be disabled between 9:00 PM and 6:00 AM to prevent noise disturbance in city environments. Additionally, the horn loudness shall not exceed 85 dB(A) at a distance of 7 meters, in compliance with urban noise regulations.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 5,
-            "relevance": 4,
-            "impact": 4
-        }
+    "rating": {
+      "priority": 3,
+      "relevance": 4,
+      "impact": 5
+    }
+  },
+  {
+    "id": "REQ-SVC-HORN-002",
+    "title": "Horn Usage Time and Loudness Restriction",
+    "description": "The horn activation function shall be disabled between 9:00 PM and 6:00 AM to prevent noise disturbance in city environments. Additionally, the horn loudness shall not exceed 85 dB(A) at a distance of 7 meters, in compliance with urban noise regulations.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-SVC-TURNLI-001",
-        "title": "Turn Signal Control and Notification",
-        "description": "The system shall support control and notification of turn signal status, brightness, gradient time, and stop pattern via the respective fields and methods. The system shall notify the current state and indication status of the turn signals and allow configuration of brightness and gradient time.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 3,
-            "relevance": 4,
-            "impact": 3
-        }
+    "rating": {
+      "priority": 5,
+      "relevance": 4,
+      "impact": 4
+    }
+  },
+  {
+    "id": "REQ-SVC-TURNLI-001",
+    "title": "Turn Signal Control and Notification",
+    "description": "The system shall support control and notification of turn signal status, brightness, gradient time, and stop pattern via the respective fields and methods. The system shall notify the current state and indication status of the turn signals and allow configuration of brightness and gradient time.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-004",
-        "title": "Driver Seat Adjustment",
-        "description": "The system shall adjust the driver's seat to the position stored in the cloud-based user profile within 3 seconds of authentication. Adjustments shall include at minimum: height, distance from steering wheel, backrest angle, lumbar support, and headrest position. The system shall support seat position memory for at least 5 different drivers per vehicle.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 3,
-            "impact": 3
-        }
+    "rating": {
+      "priority": 3,
+      "relevance": 4,
+      "impact": 3
+    }
+  },
+  {
+    "id": "REQ-004",
+    "title": "Driver Seat Adjustment",
+    "description": "The system shall adjust the driver's seat to the position stored in the cloud-based user profile within 3 seconds of authentication. Adjustments shall include at minimum: height, distance from steering wheel, backrest angle, lumbar support, and headrest position. The system shall support seat position memory for at least 5 different drivers per vehicle.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-SVC-ANTITHEFT-002",
-        "title": "Real-Time Anti-Theft Status Update",
-        "description": "The system shall update and broadcast the anti-theft status in real time whenever a change in armed state occurs.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 5,
-            "relevance": 5,
-            "impact": 5
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 3,
+      "impact": 3
+    }
+  },
+  {
+    "id": "REQ-SVC-ANTITHEFT-002",
+    "title": "Real-Time Anti-Theft Status Update",
+    "description": "The system shall update and broadcast the anti-theft status in real time whenever a change in armed state occurs.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-001",
-        "title": "Coffee Cup Holder Color Preference",
-        "description": "The system shall allow users to select the color of the coffee cup holder, with at least three color options.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 5,
+      "relevance": 5,
+      "impact": 5
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-001",
+    "title": "Coffee Cup Holder Color Preference",
+    "description": "The system shall allow users to select the color of the coffee cup holder, with at least three color options.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-002",
-        "title": "Sunroof Opening Sound Customization",
-        "description": "The system shall allow users to customize the sound played when the sunroof opens.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-002",
+    "title": "Sunroof Opening Sound Customization",
+    "description": "The system shall allow users to customize the sound played when the sunroof opens.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-003",
-        "title": "Dashboard Font Style Selection",
-        "description": "The system shall provide at least five different font styles for the dashboard display.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 2,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-003",
+    "title": "Dashboard Font Style Selection",
+    "description": "The system shall provide at least five different font styles for the dashboard display.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-004",
-        "title": "Ambient Light Color Cycling",
-        "description": "The system shall support automatic cycling of ambient light colors in the cabin.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 2,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 2,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-004",
+    "title": "Ambient Light Color Cycling",
+    "description": "The system shall support automatic cycling of ambient light colors in the cabin.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-005",
-        "title": "Windshield Wiper Melody",
-        "description": "The system shall play a melody when the windshield wipers are activated.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 1,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 2,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-005",
+    "title": "Windshield Wiper Melody",
+    "description": "The system shall play a melody when the windshield wipers are activated.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-006",
-        "title": "Trunk Welcome Message",
-        "description": "The system shall display a welcome message on the trunk screen when opened.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 1,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-006",
+    "title": "Trunk Welcome Message",
+    "description": "The system shall display a welcome message on the trunk screen when opened.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-007",
-        "title": "Rearview Mirror Animation",
-        "description": "The system shall animate the rearview mirror icon on the dashboard when adjusting the mirror.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 2,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-007",
+    "title": "Rearview Mirror Animation",
+    "description": "The system shall animate the rearview mirror icon on the dashboard when adjusting the mirror.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-008",
-        "title": "Seatbelt Buckle Color Option",
-        "description": "The system shall allow users to choose the color of the seatbelt buckle indicator.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 2,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-008",
+    "title": "Seatbelt Buckle Color Option",
+    "description": "The system shall allow users to choose the color of the seatbelt buckle indicator.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-009",
-        "title": "Air Freshener Scent Selection",
-        "description": "The system shall provide a menu for selecting the scent of the in-cabin air freshener.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 1,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-009",
+    "title": "Air Freshener Scent Selection",
+    "description": "The system shall provide a menu for selecting the scent of the in-cabin air freshener.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-010",
-        "title": "Horn Volume Adjustment",
-        "description": "The system shall allow users to adjust the volume of the vehicle horn.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 2,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 1,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-010",
+    "title": "Horn Volume Adjustment",
+    "description": "The system shall allow users to adjust the volume of the vehicle horn.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-011",
-        "title": "Sunroof Chime Customization",
-        "description": "The system shall allow users to select a custom chime when the sunroof is opened.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 1,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 2,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-011",
+    "title": "Sunroof Chime Customization",
+    "description": "The system shall allow users to select a custom chime when the sunroof is opened.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-012",
-        "title": "Dashboard Pet Mode",
-        "description": "The system shall display a pet animation on the dashboard when Pet Mode is activated.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 1,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-012",
+    "title": "Dashboard Pet Mode",
+    "description": "The system shall display a pet animation on the dashboard when Pet Mode is activated.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-013",
-        "title": "Cup Holder Temperature Display",
-        "description": "The system shall show the temperature of the cup holder on the infotainment screen.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 2,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-013",
+    "title": "Cup Holder Temperature Display",
+    "description": "The system shall show the temperature of the cup holder on the infotainment screen.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-014",
-        "title": "License Plate Light Color Change",
-        "description": "The system shall allow users to change the color of the license plate light.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 1,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 2,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-014",
+    "title": "License Plate Light Color Change",
+    "description": "The system shall allow users to change the color of the license plate light.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-015",
-        "title": "Animated Tire Pressure Indicator",
-        "description": "The system shall animate the tire pressure icon when pressure is optimal.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 1,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-015",
+    "title": "Animated Tire Pressure Indicator",
+    "description": "The system shall animate the tire pressure icon when pressure is optimal.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-016",
-        "title": "Personalized Welcome Sound",
-        "description": "The system shall play a personalized sound when the driver enters the vehicle.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 2,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-016",
+    "title": "Personalized Welcome Sound",
+    "description": "The system shall play a personalized sound when the driver enters the vehicle.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-017",
-        "title": "Animated Fuel Gauge",
-        "description": "The system shall animate the fuel gauge needle when the vehicle is started.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 1,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 2,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-017",
+    "title": "Animated Fuel Gauge",
+    "description": "The system shall animate the fuel gauge needle when the vehicle is started.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-018",
-        "title": "Rear Seat Reminder Joke",
-        "description": "The system shall display a random joke when reminding about rear seat passengers.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 1,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-018",
+    "title": "Rear Seat Reminder Joke",
+    "description": "The system shall display a random joke when reminding about rear seat passengers.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-019",
-        "title": "Turn Signal Melody",
-        "description": "The system shall play a melody instead of a click for the turn signal.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 2,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-019",
+    "title": "Turn Signal Melody",
+    "description": "The system shall play a melody instead of a click for the turn signal.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-020",
-        "title": "Customizable Odometer Font",
-        "description": "The system shall allow users to change the font of the odometer display.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 1,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 2,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-020",
+    "title": "Customizable Odometer Font",
+    "description": "The system shall allow users to change the font of the odometer display.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-021",
-        "title": "Animated Window Controls",
-        "description": "The system shall animate the window control icons when pressed.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 1,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-021",
+    "title": "Animated Window Controls",
+    "description": "The system shall animate the window control icons when pressed.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-022",
-        "title": "Heated Steering Wheel Notification",
-        "description": "The system shall display a notification with an emoji when the heated steering wheel is activated.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 2,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-022",
+    "title": "Heated Steering Wheel Notification",
+    "description": "The system shall display a notification with an emoji when the heated steering wheel is activated.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-023",
-        "title": "Animated Door Lock Indicator",
-        "description": "The system shall animate the door lock icon when the doors are locked or unlocked.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 1,
-            "impact": 2
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 2,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-023",
+    "title": "Animated Door Lock Indicator",
+    "description": "The system shall animate the door lock icon when the doors are locked or unlocked.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-024",
-        "title": "Customizable Trunk Open Sound",
-        "description": "The system shall allow users to select a custom sound when the trunk is opened.",
-        "type": "User Experience Requirement",
-        "source": {
-            "type": "internal",
-            "link": ""
-        },
-        "rating": {
-            "priority": 2,
-            "relevance": 1,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 1,
+      "relevance": 1,
+      "impact": 2
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-024",
+    "title": "Customizable Trunk Open Sound",
+    "description": "The system shall allow users to select a custom sound when the trunk is opened.",
+    "type": "User Experience Requirement",
+    "source": {
+      "type": "internal",
+      "link": ""
     },
-    {
-        "id": "REQ-IRRELEVANT-025",
-        "title": "Animated Headlight Indicator",
-        "description": "The system shall animate the headlight icon when headlights are turned on.",
-        "type": "Functional Requirement",
-        "source": {
-            "type": "external",
-            "link": ""
-        },
-        "rating": {
-            "priority": 1,
-            "relevance": 2,
-            "impact": 1
-        }
+    "rating": {
+      "priority": 2,
+      "relevance": 1,
+      "impact": 1
+    }
+  },
+  {
+    "id": "REQ-IRRELEVANT-025",
+    "title": "Animated Headlight Indicator",
+    "description": "The system shall animate the headlight icon when headlights are turned on.",
+    "type": "Functional Requirement",
+    "source": {
+      "type": "external",
+      "link": ""
     },
+    "rating": {
+      "priority": 1,
+      "relevance": 2,
+      "impact": 1
+    }
+  },
 ]
+
+const fetchRequirements = async (input: string) => {
+  try {
+    let req = await axios.post('https://sematha.digitalauto.tech/api/similarity',
+      {
+        text: input ||  "Requirement: The system must detect a strong impact via the airbag ECU sensor, triggering an event that sends a signal to the SDV App. This signal must initiate the recording of a video and concurrently alert the vehicle owner through an automated email. The entire process, from impact detection to email notification, must be executed within a predefined and safety-critical time frame (e.g., less than 500ms) to ensure timely data capture and owner communication in the event of a crash.",
+        similarityThreshold: 0.5,
+        topNMatches: 40
+      }
+    )
+    if(!req?.data?.success) throw new Error("No data")
+    if(req.data.matches && Array.isArray(req.data.matches)) {
+      return req.data.matches
+    }
+    return []
+
+  } catch (error) {
+    console.error("Error fetching requirements:", error)
+    throw error
+  }
+}
 
 const PrototypeTabRequirement = () => {
   const { data: model } = useCurrentModel()
@@ -548,7 +570,7 @@ const PrototypeTabRequirement = () => {
     setShowPrototypeRequirementFullScreen,
   } = useSystemUI() || {
     showPrototypeRequirementFullScreen: false,
-    setShowPrototypeRequirementFullScreen: (val: boolean) => {},
+    setShowPrototypeRequirementFullScreen: (val: boolean) => { },
   }
 
   useEffect(() => {
@@ -599,12 +621,12 @@ const PrototypeTabRequirement = () => {
 
     // console.log(indices)
 
-    for(let i=0; i<indices.length; i++) {
+    for (let i = 0; i < indices.length; i++) {
       let showItems = JSON.parse(JSON.stringify(items))
       showItems = JSON.parse(JSON.stringify(showItems))
       showItems[indices[i]].isHidden = false
       showItems[indices[i]].angle = indices[i] * 2 * Math.PI
-      for(let j=i; j<indices.length; j++) {
+      for (let j = i; j < indices.length; j++) {
         showItems[indices[j]].isHidden = true
       }
       setRequirements(showItems)
@@ -630,16 +652,27 @@ const PrototypeTabRequirement = () => {
     }
     setIsScanning(true)
     // Re-order mockData with random order
-    if (Array.isArray(mockData)) {
-      // Fisher-Yates shuffle
-      for (let i = mockData.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [mockData[i], mockData[j]] = [mockData[j], mockData[i]];
+    // if (Array.isArray(mockData)) {
+    //   // Fisher-Yates shuffle
+    //   for (let i = mockData.length - 1; i > 0; i--) {
+    //     const j = Math.floor(Math.random() * (i + 1));
+    //     [mockData[i], mockData[j]] = [mockData[j], mockData[i]];
+    //   }
+    // }
+    try {
+      let reqs = await fetchRequirements('')
+      if(reqs.length === 0) {
+        toast.info('No relevant requirements found')
+        setRequirements([])
+      } else {
+        await showResultOneByOne(reqs)
       }
+    } catch (error) {
+      console.error('Failed to fetch requirements', error)
+    } finally {
+      setIsScanning(false)
+      return
     }
-    await showResultOneByOne(mockData)
-    setIsScanning(false)
-    return
 
     let scanUrl = config?.requirements?.journey_2_requirements
     if (!scanUrl) return
@@ -648,7 +681,7 @@ const PrototypeTabRequirement = () => {
       // The native fetch API does not support a timeout option directly.
       // To implement a timeout, use AbortController:
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5*60000); // 60 seconds timeout
+      const timeout = setTimeout(() => controller.abort(), 5 * 60000); // 60 seconds timeout
 
       let response;
       try {
@@ -667,7 +700,7 @@ const PrototypeTabRequirement = () => {
       }
       const data = await response.json()
       console.log(data)
-      if(Array.isArray(data) && data.length>0) {
+      if (Array.isArray(data) && data.length > 0) {
         let items = data[0].output || []
         showResultOneByOne(items)
       }
