@@ -453,87 +453,91 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files
       if (files) {
-        Array.from(files).forEach((file) => {
-          const reader = new FileReader()
-          reader.onload = (event) => {
-            const isBin = isBinaryFile(file.name)
-
-            if (isBin) {
-              const content = event.target?.result as ArrayBuffer
-              if (content.byteLength > 500 * 1024) {
-                console.warn(
-                  `File ${file.name} is larger than 500kb and will be ignored.`,
-                )
-                return
-              }
-              const base64Content = arrayBufferToBase64(content)
-              const newItem: File = {
-                type: 'file',
-                name: file.name,
-                content: base64Content,
-                isBase64: true,
-              }
-
-              // Handle root folder case
-              if (target.name === 'root') {
-                // Add to the root folder's items (fsData[0] should be the root folder)
-                setFsData((prevFsData) => {
-                  const newFsData = [...prevFsData]
-                  const rootFolder = newFsData[0]
-                  if (rootFolder && rootFolder.type === 'folder') {
-                    rootFolder.items = [...rootFolder.items, newItem]
-                  } else {
-                    // If no root folder exists, create one
-                    newFsData.unshift({
-                      type: 'folder',
-                      name: 'root',
-                      items: [newItem],
-                    })
-                  }
-                  return newFsData
-                })
-              } else {
-                handleAddItem(target, newItem)
-              }
-            } else {
-              const content = event.target?.result as string
-              const newItem: File = { type: 'file', name: file.name, content }
-
-              // Handle root folder case
-              if (target.name === 'root') {
-                // Add to the root folder's items (fsData[0] should be the root folder)
-                setFsData((prevFsData) => {
-                  const newFsData = [...prevFsData]
-                  const rootFolder = newFsData[0]
-                  if (rootFolder && rootFolder.type === 'folder') {
-                    rootFolder.items = [...rootFolder.items, newItem]
-                  } else {
-                    // If no root folder exists, create one
-                    newFsData.unshift({
-                      type: 'folder',
-                      name: 'root',
-                      items: [newItem],
-                    })
-                  }
-                  return newFsData
-                })
-              } else {
-                handleAddItem(target, newItem)
-              }
-            }
-          }
-          reader.onerror = (error) => {
-            console.error('File reader error:', error)
-          }
-          if (isBinaryFile(file.name)) {
-            reader.readAsArrayBuffer(file)
-          } else {
-            reader.readAsText(file)
-          }
-        })
+        handleDropFiles(files, target)
       }
     }
     input.click()
+  }
+
+  const handleDropFiles = (files: FileList, target: Folder) => {
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const isBin = isBinaryFile(file.name)
+
+        if (isBin) {
+          const content = event.target?.result as ArrayBuffer
+          if (content.byteLength > 500 * 1024) {
+            console.warn(
+              `File ${file.name} is larger than 500kb and will be ignored.`,
+            )
+            return
+          }
+          const base64Content = arrayBufferToBase64(content)
+          const newItem: File = {
+            type: 'file',
+            name: file.name,
+            content: base64Content,
+            isBase64: true,
+          }
+
+          // Handle root folder case
+          if (target.name === 'root') {
+            // Add to the root folder's items (fsData[0] should be the root folder)
+            setFsData((prevFsData) => {
+              const newFsData = [...prevFsData]
+              const rootFolder = newFsData[0]
+              if (rootFolder && rootFolder.type === 'folder') {
+                rootFolder.items = [...rootFolder.items, newItem]
+              } else {
+                // If no root folder exists, create one
+                newFsData.unshift({
+                  type: 'folder',
+                  name: 'root',
+                  items: [newItem],
+                })
+              }
+              return newFsData
+            })
+          } else {
+            handleAddItem(target, newItem)
+          }
+        } else {
+          const content = event.target?.result as string
+          const newItem: File = { type: 'file', name: file.name, content }
+
+          // Handle root folder case
+          if (target.name === 'root') {
+            // Add to the root folder's items (fsData[0] should be the root folder)
+            setFsData((prevFsData) => {
+              const newFsData = [...prevFsData]
+              const rootFolder = newFsData[0]
+              if (rootFolder && rootFolder.type === 'folder') {
+                rootFolder.items = [...rootFolder.items, newItem]
+              } else {
+                // If no root folder exists, create one
+                newFsData.unshift({
+                  type: 'folder',
+                  name: 'root',
+                  items: [newItem],
+                })
+              }
+              return newFsData
+            })
+          } else {
+            handleAddItem(target, newItem)
+          }
+        }
+      }
+      reader.onerror = (error) => {
+        console.error('File reader error:', error)
+      }
+      if (isBinaryFile(file.name)) {
+        reader.readAsArrayBuffer(file)
+      } else {
+        reader.readAsText(file)
+      }
+    })
   }
 
   const triggerImport = () => {
@@ -676,6 +680,7 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
                 onRenameItem={handleRenameItem}
                 onAddItem={handleAddItem}
                 onUploadFile={handleUploadFile}
+                onDropFiles={handleDropFiles}
                 allCollapsed={allCollapsed}
                 activeFile={activeFile}
               />

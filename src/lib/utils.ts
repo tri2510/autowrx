@@ -382,3 +382,35 @@ export const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   }
   return bytes.buffer
 }
+
+export const validateFileSize = (
+  file: File,
+  maxSizeKB: number = 500,
+): { isValid: boolean; actualSizeKB: number } => {
+  const actualSizeKB = Math.round(file.size / 1024)
+  return {
+    isValid: actualSizeKB <= maxSizeKB,
+    actualSizeKB,
+  }
+}
+
+export const validateTextFileLines = (
+  content: string,
+  maxLines: number = 2000,
+): { isValid: boolean; actualLines: number } => {
+  const lines = content.split('\n')
+  return {
+    isValid: lines.length <= maxLines,
+    actualLines: lines.length,
+  }
+}
+
+export const formatFileSize = (sizeInBytes: number): string => {
+  if (sizeInBytes < 1024) {
+    return `${sizeInBytes} B`
+  } else if (sizeInBytes < 1024 * 1024) {
+    return `${Math.round(sizeInBytes / 1024)} KB`
+  } else {
+    return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+}

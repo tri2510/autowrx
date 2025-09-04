@@ -36,6 +36,7 @@ interface FileTreeProps {
   onRenameItem: (item: FileSystemItem, newName: string) => void
   onAddItem: (parent: Folder, item: FileSystemItem) => void
   onUploadFile: (target: Folder) => void
+  onDropFiles: (files: FileList, target: Folder) => void
   allCollapsed: boolean
   activeFile: File | null
 }
@@ -47,6 +48,7 @@ const FileTree: React.FC<FileTreeProps> = ({
   onRenameItem,
   onAddItem,
   onUploadFile,
+  onDropFiles,
   allCollapsed,
   activeFile,
 }) => {
@@ -73,6 +75,8 @@ const FileTree: React.FC<FileTreeProps> = ({
     top: number
     left: number
   } | null>(null)
+  const [dragOver, setDragOver] = useState<string | null>(null)
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const rootMenuRef = useRef<HTMLDivElement>(null)
 
@@ -636,6 +640,60 @@ const FileTree: React.FC<FileTreeProps> = ({
     return clipboard && folder.name !== clipboard.item.name
   }
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Only set dragging to false if we're leaving the container completely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDraggingOver(false)
+      setDragOver(null)
+    }
+  }
+
+  const handleFolderDragOver = (e: React.DragEvent, folderName: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(folderName)
+    setIsDraggingOver(true)
+  }
+
+  const handleFolderDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, targetFolder?: Folder) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(false)
+    setDragOver(null)
+
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      // Determine target folder
+      const target = targetFolder || {
+        type: 'folder' as const,
+        name: 'root',
+        items: [],
+      }
+
+      // Process files with the same validation logic as regular upload
+      processDroppedFiles(files, target)
+    }
+  }
+
+  const processDroppedFiles = (files: FileList, target: Folder) => {
+    // Use the onDropFiles prop to handle the dropped files
+    onDropFiles(files, target)
+  }
+
   const renderItem = (item: FileSystemItem, depth: number = 0) => {
     const isExpanded = expandedFolders.includes(item.name)
     const isActive = activeFile?.name === item.name
@@ -707,10 +765,14 @@ const FileTree: React.FC<FileTreeProps> = ({
             className={`
               flex items-center px-2 py-1 text-sm cursor-pointer hover:bg-gray-100 group
               ${isActive ? 'bg-blue-100 text-blue-900' : 'text-gray-700'}
+              ${dragOver === item.name ? 'bg-green-50 border-l-4 border-green-400' : ''}
             `}
             style={{ paddingLeft: `${depth * 16 + 8}px` }}
             onClick={() => toggleFolder(item.name)}
             onContextMenu={(e) => handleContextMenu(e, item)}
+            onDragOver={(e) => handleFolderDragOver(e, item.name)}
+            onDragLeave={handleFolderDragLeave}
+            onDrop={(e) => handleDrop(e, item as Folder)}
           >
             <button
               className="mr-1 p-0.5 hover:bg-gray-200 rounded transition-colors"
@@ -725,7 +787,6 @@ const FileTree: React.FC<FileTreeProps> = ({
                 <VscChevronRight size={14} />
               )}
             </button>
-            {/* <VscFolder className="mr-2 text-blue-600 flex-shrink-0" size={16} /> */}
             <span className="truncate">{item.name}</span>
 
             {/* Context menu button */}
@@ -841,7 +902,15 @@ const FileTree: React.FC<FileTreeProps> = ({
       </div> */}
 
       {/* File tree items */}
-      <div className="py-2 min-h-[200px]" onContextMenu={handleRootContextMenu}>
+      <div
+        className={`py-2 min-h-[200px] ${isDraggingOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''}`}
+        onContextMenu={handleRootContextMenu}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) =>
+          handleDrop(e, { type: 'folder', name: 'root', items: items })
+        }
+      >
         {sortItems(items).map((item) => renderItem(item))}
 
         {/* Root level creation input */}
