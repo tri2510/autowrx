@@ -14,13 +14,13 @@ import JSZip from 'jszip'
 import {
   isBinaryFile,
   arrayBufferToBase64,
-  base64ToArrayBuffer,
+  validateFileSize,
+  validateTextFileLines,
 } from '../../../lib/utils'
 
 import {
   VscNewFile,
   VscNewFolder,
-  VscRefresh,
   VscCollapseAll,
   VscChevronLeft,
   VscChevronRight,
@@ -336,10 +336,6 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
     }
   }
 
-  const handleRefresh = () => {
-    setFsData(JSON.parse(data))
-  }
-
   const [allCollapsed, setAllCollapsed] = useState(false)
 
   const handleCollapseAll = () => {
@@ -397,7 +393,6 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
     reader.onload = (event) => {
       const zip = new JSZip()
       zip.loadAsync(event.target?.result as ArrayBuffer).then((zip) => {
-        const fileSystem: FileSystemItem[] = []
         const folders: { [key: string]: Folder } = {}
 
         const getOrCreateFolder = (path: string): Folder => {
@@ -453,19 +448,32 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files
       if (files) {
+        let rejectedFiles: string[] = []
+        let processedCount = 0
+        const totalFiles = files.length
+
         Array.from(files).forEach((file) => {
+          const isBin = isBinaryFile(file.name)
+          const sizeValidation = validateFileSize(file, 500) // 500KB limit for all files
+
+          // Check file size first
+          if (!sizeValidation.isValid) {
+            rejectedFiles.push(
+              `${file.name} (${sizeValidation.actualSizeKB} KB > 500 KB limit)`,
+            )
+            processedCount++
+            if (processedCount === totalFiles && rejectedFiles.length > 0) {
+              alert(
+                `The following files were too large and not uploaded:\n\n${rejectedFiles.join('\n')}\n\nLimits:\n• Text files: 2000 lines or 500 KB\n• Binary files: 500 KB`,
+              )
+            }
+            return
+          }
+
           const reader = new FileReader()
           reader.onload = (event) => {
-            const isBin = isBinaryFile(file.name)
-
             if (isBin) {
               const content = event.target?.result as ArrayBuffer
-              if (content.byteLength > 500 * 1024) {
-                console.warn(
-                  `File ${file.name} is larger than 500kb and will be ignored.`,
-                )
-                return
-              }
               const base64Content = arrayBufferToBase64(content)
               const newItem: File = {
                 type: 'file',
@@ -474,16 +482,14 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
                 isBase64: true,
               }
 
-              // Handle root folder case
+              // Add to target folder
               if (target.name === 'root') {
-                // Add to the root folder's items (fsData[0] should be the root folder)
                 setFsData((prevFsData) => {
                   const newFsData = [...prevFsData]
                   const rootFolder = newFsData[0]
                   if (rootFolder && rootFolder.type === 'folder') {
                     rootFolder.items = [...rootFolder.items, newItem]
                   } else {
-                    // If no root folder exists, create one
                     newFsData.unshift({
                       type: 'folder',
                       name: 'root',
@@ -497,18 +503,32 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
               }
             } else {
               const content = event.target?.result as string
+              const lineValidation = validateTextFileLines(content, 2000) // 2000 lines limit for text files
+
+              // Check line count for text files
+              if (!lineValidation.isValid) {
+                rejectedFiles.push(
+                  `${file.name} (${lineValidation.actualLines} lines > 2000 lines limit)`,
+                )
+                processedCount++
+                if (processedCount === totalFiles && rejectedFiles.length > 0) {
+                  alert(
+                    `The following files were too large and not uploaded:\n\n${rejectedFiles.join('\n')}\n\nLimits:\n• Text files: 2000 lines or 500 KB\n• Binary files: 500 KB`,
+                  )
+                }
+                return
+              }
+
               const newItem: File = { type: 'file', name: file.name, content }
 
-              // Handle root folder case
+              // Add to target folder
               if (target.name === 'root') {
-                // Add to the root folder's items (fsData[0] should be the root folder)
                 setFsData((prevFsData) => {
                   const newFsData = [...prevFsData]
                   const rootFolder = newFsData[0]
                   if (rootFolder && rootFolder.type === 'folder') {
                     rootFolder.items = [...rootFolder.items, newItem]
                   } else {
-                    // If no root folder exists, create one
                     newFsData.unshift({
                       type: 'folder',
                       name: 'root',
@@ -521,10 +541,21 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
                 handleAddItem(target, newItem)
               }
             }
+
+            processedCount++
+            // Show alert after all files are processed if there were rejections
+            if (processedCount === totalFiles && rejectedFiles.length > 0) {
+              alert(
+                `The following files were too large and not uploaded:\n\n${rejectedFiles.join('\n')}\n\nLimits:\n• Text files: 2000 lines or 500 KB\n• Binary files: 500 KB`,
+              )
+            }
           }
+
           reader.onerror = (error) => {
             console.error('File reader error:', error)
+            processedCount++
           }
+
           if (isBinaryFile(file.name)) {
             reader.readAsArrayBuffer(file)
           } else {
