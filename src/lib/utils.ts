@@ -1,5 +1,5 @@
 // Copyright (c) 2025 Eclipse Foundation.
-// 
+//
 // This program and the accompanying materials are made available under the
 // terms of the MIT License which is available at
 // https://opensource.org/licenses/MIT.
@@ -320,4 +320,65 @@ export const filterAndCompareVehicleApis = (
     apisInModel: apisInModel || [], // Fallback to empty array
     apisNotInModel: apisNotInModel || [], // Fallback to empty array
   }
+}
+
+export const isBinaryFile = (fileName: string): boolean => {
+  const binaryExtensions = [
+    // Images
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.bmp',
+    '.ico',
+    '.webp',
+    '.svg',
+    // Archives
+    '.zip',
+    '.gz',
+    '.tar',
+    '.rar',
+    '.7z',
+    // Documents
+    '.pdf',
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.ppt',
+    '.pptx',
+    // Other
+    '.exe',
+    '.dll',
+    '.so',
+    '.class',
+    '.pyc',
+    '.woff',
+    '.woff2',
+    '.ttf',
+    '.otf',
+    '.eot',
+  ]
+  const extension = (fileName.match(/\.[^.]+$/) || [''])[0].toLowerCase()
+  return binaryExtensions.includes(extension)
+}
+
+export const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  let binary = ''
+  const bytes = new Uint8Array(buffer)
+  const len = bytes.byteLength
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return window.btoa(binary)
+}
+
+export const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
+  const binary_string = window.atob(base64)
+  const len = binary_string.length
+  const bytes = new Uint8Array(len)
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary_string.charCodeAt(i)
+  }
+  return bytes.buffer
 }
