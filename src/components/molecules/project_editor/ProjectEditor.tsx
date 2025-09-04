@@ -567,6 +567,123 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
     input.click()
   }
 
+  const handleDropFiles = (files: FileList, target: Folder) => {
+    let rejectedFiles: string[] = []
+    let processedCount = 0
+    const totalFiles = files.length
+
+    Array.from(files).forEach((file) => {
+      const isBin = isBinaryFile(file.name)
+      const sizeValidation = validateFileSize(file, 500) // 500KB limit for all files
+
+      // Check file size first
+      if (!sizeValidation.isValid) {
+        rejectedFiles.push(
+          `${file.name} (${sizeValidation.actualSizeKB} KB > 500 KB limit)`,
+        )
+        processedCount++
+        if (processedCount === totalFiles && rejectedFiles.length > 0) {
+          alert(
+            `The following files were too large and not uploaded:\n\n${rejectedFiles.join('\n')}\n\nLimits:\n• Text files: 2000 lines or 500 KB\n• Binary files: 500 KB`,
+          )
+        }
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (isBin) {
+          const content = event.target?.result as ArrayBuffer
+          const base64Content = arrayBufferToBase64(content)
+          const newItem: File = {
+            type: 'file',
+            name: file.name,
+            content: base64Content,
+            isBase64: true,
+          }
+
+          // Add to target folder
+          if (target.name === 'root') {
+            setFsData((prevFsData) => {
+              const newFsData = [...prevFsData]
+              const rootFolder = newFsData[0]
+              if (rootFolder && rootFolder.type === 'folder') {
+                rootFolder.items = [...rootFolder.items, newItem]
+              } else {
+                newFsData.unshift({
+                  type: 'folder',
+                  name: 'root',
+                  items: [newItem],
+                })
+              }
+              return newFsData
+            })
+          } else {
+            handleAddItem(target, newItem)
+          }
+        } else {
+          const content = event.target?.result as string
+          const lineValidation = validateTextFileLines(content, 2000) // 2000 lines limit for text files
+
+          // Check line count for text files
+          if (!lineValidation.isValid) {
+            rejectedFiles.push(
+              `${file.name} (${lineValidation.actualLines} lines > 2000 lines limit)`,
+            )
+            processedCount++
+            if (processedCount === totalFiles && rejectedFiles.length > 0) {
+              alert(
+                `The following files were too large and not uploaded:\n\n${rejectedFiles.join('\n')}\n\nLimits:\n• Text files: 2000 lines or 500 KB\n• Binary files: 500 KB`,
+              )
+            }
+            return
+          }
+
+          const newItem: File = { type: 'file', name: file.name, content }
+
+          // Add to target folder
+          if (target.name === 'root') {
+            setFsData((prevFsData) => {
+              const newFsData = [...prevFsData]
+              const rootFolder = newFsData[0]
+              if (rootFolder && rootFolder.type === 'folder') {
+                rootFolder.items = [...rootFolder.items, newItem]
+              } else {
+                newFsData.unshift({
+                  type: 'folder',
+                  name: 'root',
+                  items: [newItem],
+                })
+              }
+              return newFsData
+            })
+          } else {
+            handleAddItem(target, newItem)
+          }
+        }
+
+        processedCount++
+        // Show alert after all files are processed if there were rejections
+        if (processedCount === totalFiles && rejectedFiles.length > 0) {
+          alert(
+            `The following files were too large and not uploaded:\n\n${rejectedFiles.join('\n')}\n\nLimits:\n• Text files: 2000 lines or 500 KB\n• Binary files: 500 KB`,
+          )
+        }
+      }
+
+      reader.onerror = (error) => {
+        console.error('File reader error:', error)
+        processedCount++
+      }
+
+      if (isBinaryFile(file.name)) {
+        reader.readAsArrayBuffer(file)
+      } else {
+        reader.readAsText(file)
+      }
+    })
+  }
+
   const triggerImport = () => {
     if (
       window.confirm(
@@ -707,6 +824,7 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({ data, onChange }) => {
                 onRenameItem={handleRenameItem}
                 onAddItem={handleAddItem}
                 onUploadFile={handleUploadFile}
+                onDropFiles={handleDropFiles}
                 allCollapsed={allCollapsed}
                 activeFile={activeFile}
               />
