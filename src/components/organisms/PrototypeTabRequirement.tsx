@@ -521,6 +521,20 @@ let mockData: Requirement[] = [
   },
 ]
 
+const convertCustomerJourneyToRequirements = async (customerJourney: string) => {
+  try {
+    let res = await axios.post('https://workflow.digital.auto/webhook/0df932d3-22ed-4bf9-9748-8602d03b1363',
+      {
+        data: customerJourney
+      }
+    )
+    return res?.data?.output || ''
+  } catch(error) {
+    console.error("Error converting customer journey to requirements:", error)
+    throw error
+  }
+}
+
 const fetchRequirements = async (input: string) => {
   try {
     let req = await axios.post('https://sematha.digitalauto.tech/api/similarity',
@@ -619,8 +633,6 @@ const PrototypeTabRequirement = () => {
       [indices[i], indices[j]] = [indices[j], indices[i]];
     }
 
-    // console.log(indices)
-
     for (let i = 0; i < indices.length; i++) {
       let showItems = JSON.parse(JSON.stringify(items))
       showItems = JSON.parse(JSON.stringify(showItems))
@@ -632,17 +644,6 @@ const PrototypeTabRequirement = () => {
       setRequirements(showItems)
       await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (600 - 200 + 1)) + 200))
     }
-
-    // for(let i=0; i<items.length; i++) {
-    //   let showItems = JSON.parse(JSON.stringify(items))
-    //   showItems = JSON.parse(JSON.stringify(showItems))
-    //   showItems[i].isHidden = false
-    //   for(let j=i; j<showItems.length; j++) {
-    //     showItems[j].isHidden = true
-    //   }
-    //   setRequirements(showItems)
-    //   await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (2500 - 1000 + 1)) + 1000))
-    // }
   }
 
   const scanRequirements = async () => {
@@ -651,16 +652,17 @@ const PrototypeTabRequirement = () => {
       return
     }
     setIsScanning(true)
-    // Re-order mockData with random order
-    // if (Array.isArray(mockData)) {
-    //   // Fisher-Yates shuffle
-    //   for (let i = mockData.length - 1; i > 0; i--) {
-    //     const j = Math.floor(Math.random() * (i + 1));
-    //     [mockData[i], mockData[j]] = [mockData[j], mockData[i]];
-    //   }
-    // }
+    let requiremnetText: string = ''
     try {
-      let reqs = await fetchRequirements('')
+      let processedRed = await convertCustomerJourneyToRequirements(prototype.customer_journey)
+      if(processedRed && typeof processedRed === 'string') {
+        requiremnetText = processedRed
+      }
+    } catch(err) {
+      console.error('Failed to convert customer journey to requirements', err)
+    }
+    try {
+      let reqs = await fetchRequirements(requiremnetText)
       if(reqs.length === 0) {
         toast.info('No relevant requirements found')
         setRequirements([])
