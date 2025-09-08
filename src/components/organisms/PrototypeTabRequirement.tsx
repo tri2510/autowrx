@@ -37,7 +37,6 @@ import RequirementUpdateDialog from '../molecules/prototype_requirements/Require
 import config from '@/configs/config'
 import { toast } from 'react-toastify'
 import axios from 'axios'
-import axios from 'axios'
 
 let mockData: Requirement[] = [
   {
