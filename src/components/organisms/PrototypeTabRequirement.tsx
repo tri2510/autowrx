@@ -522,37 +522,46 @@ let mockData: Requirement[] = [
 ]
 
 const convertCustomerJourneyToRequirements = async (customerJourney: string) => {
-  try {
-    let res = await axios.post('https://workflow.digital.auto/webhook/0df932d3-22ed-4bf9-9748-8602d03b1363',
-      {
-        data: customerJourney
-      }
-    )
-    return res?.data?.output || ''
-  } catch(error) {
-    console.error("Error converting customer journey to requirements:", error)
-    throw error
-  }
+    try {
+      let res = await axios.post('https://workflow.digital.auto/webhook/0df932d3-22ed-4bf9-9748-8602d03b1363',
+        {
+          data: customerJourney
+        }
+      )
+      return res?.data?.output || ''
+    } catch(error: any) {
+      console.error("Error converting customer journey to requirements:", error)
+      throw error
+    }
 }
 
-const fetchRequirements = async (input: string) => {
-  try {
-    let req = await axios.post('https://sematha.digitalauto.tech/api/similarity',
-      {
-        text: input ||  "Requirement: The system must detect a strong impact via the airbag ECU sensor, triggering an event that sends a signal to the SDV App. This signal must initiate the recording of a video and concurrently alert the vehicle owner through an automated email. The entire process, from impact detection to email notification, must be executed within a predefined and safety-critical time frame (e.g., less than 500ms) to ensure timely data capture and owner communication in the event of a crash.",
-        similarityThreshold: 0.5,
-        topNMatches: 40
+const fetchRequirements = async (input: string, retries = 2) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      let req = await axios.post('https://sematha.digitalauto.tech/api/similarity',
+        {
+          text: input ||  "Requirement: The system must detect a strong impact via the airbag ECU sensor, triggering an event that sends a signal to the SDV App. This signal must initiate the recording of a video and concurrently alert the vehicle owner through an automated email. The entire process, from impact detection to email notification, must be executed within a predefined and safety-critical time frame (e.g., less than 500ms) to ensure timely data capture and owner communication in the event of a crash.",
+          similarityThreshold: 0.5,
+          topNMatches: 40
+        }
+      )
+      if(!req?.data?.success) throw new Error("No data")
+      if(req.data.matches && Array.isArray(req.data.matches)) {
+        return req.data.matches || []
+      } else {
+        throw new Error("No data")
       }
-    )
-    if(!req?.data?.success) throw new Error("No data")
-    if(req.data.matches && Array.isArray(req.data.matches)) {
-      return req.data.matches
+    } catch (error: any) {
+      const isLastAttempt = attempt === retries
+      if (!isLastAttempt) {
+        console.log(`Error on attempt ${attempt}, retrying in 1 second...`)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        continue
+      } else {
+        console.error("Error fetching requirements:", error)
+        throw error
+      }
     }
-    return []
-
-  } catch (error) {
-    console.error("Error fetching requirements:", error)
-    throw error
   }
 }
 
@@ -620,28 +629,38 @@ const PrototypeTabRequirement = () => {
   }, [prototype, setRequirements])
 
   const showResultOneByOne = async (items: Requirement[]) => {
+    // Safety check: ensure items is an array
+    if (!Array.isArray(items) || items.length === 0) {
+      console.warn('showResultOneByOne called with invalid items:', items)
+      return
+    }
 
-    setRequirements([])
+    // First, set all items and hide them all (let DaRequirementExplorer calculate positions)
+    const itemsWithHidden = items.map((item) => ({
+      ...item,
+      isHidden: true
+    }));
+
+    // Set all items at once (all hidden) - DaRequirementExplorer will calculate positions
+    setRequirements(itemsWithHidden)
     await new Promise(resolve => setTimeout(resolve, 200))
-    // setRequirements(items)
-    // return
 
-    // Create a random array of indices from 0 to items.length - 1
+    // Create a random array of indices for the order of appearance
     const indices = Array.from({ length: items.length }, (_, i) => i);
     for (let i = indices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [indices[i], indices[j]] = [indices[j], indices[i]];
     }
 
+    // Now show them one by one by just toggling visibility
     for (let i = 0; i < indices.length; i++) {
-      let showItems = JSON.parse(JSON.stringify(items))
-      showItems = JSON.parse(JSON.stringify(showItems))
-      showItems[indices[i]].isHidden = false
-      showItems[indices[i]].angle = indices[i] * 2 * Math.PI
-      for (let j = i; j < indices.length; j++) {
-        showItems[indices[j]].isHidden = true
-      }
-      setRequirements(showItems)
+      const currentItems = useRequirementStore.getState().requirements
+      const updatedItems = currentItems.map((item: Requirement, index: number) => 
+        index === indices[i] 
+          ? { ...item, isHidden: false }
+          : item
+      )
+      setRequirements(updatedItems)
       await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (600 - 200 + 1)) + 200))
     }
   }
@@ -652,6 +671,8 @@ const PrototypeTabRequirement = () => {
       return
     }
     setIsScanning(true)
+    setRequirements([])
+
     let requiremnetText: string = ''
     try {
       let processedRed = await convertCustomerJourneyToRequirements(prototype.customer_journey)
@@ -661,53 +682,22 @@ const PrototypeTabRequirement = () => {
     } catch(err) {
       console.error('Failed to convert customer journey to requirements', err)
     }
+    
     try {
-      let reqs = await fetchRequirements(requiremnetText)
-      if(reqs.length === 0) {
+      let reqs = await fetchRequirements(requiremnetText, 2)
+      if(reqs && Array.isArray(reqs) && reqs.length === 0) {
         toast.info('No relevant requirements found')
         setRequirements([])
-      } else {
+      } else if (reqs && Array.isArray(reqs)) {
         await showResultOneByOne(reqs)
+      } else {
+        toast.error('Invalid requirements data received')
+        setRequirements([])
       }
     } catch (error) {
       console.error('Failed to fetch requirements', error)
-    } finally {
-      setIsScanning(false)
-      return
-    }
-
-    let scanUrl = config?.requirements?.journey_2_requirements
-    if (!scanUrl) return
-    setIsScanning(true)
-    try {
-      // The native fetch API does not support a timeout option directly.
-      // To implement a timeout, use AbortController:
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5 * 60000); // 60 seconds timeout
-
-      let response;
-      try {
-        response = await fetch(scanUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            raw_customer_journey: prototype?.customer_journey || '',
-          }),
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeout);
-      }
-      const data = await response.json()
-      console.log(data)
-      if (Array.isArray(data) && data.length > 0) {
-        let items = data[0].output || []
-        showResultOneByOne(items)
-      }
-    } catch (error) {
-      console.error('Failed to scan requirements', error)
+      toast.error('Failed to fetch requirements')
+      setRequirements([])
     } finally {
       setIsScanning(false)
     }
