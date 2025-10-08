@@ -1,15 +1,16 @@
 // Copyright (c) 2025 Eclipse Foundation.
-// 
+//
 // This program and the accompanying materials are made available under the
 // terms of the MIT License which is available at
 // https://opensource.org/licenses/MIT.
 //
 // SPDX-License-Identifier: MIT
 
-import { FC, useEffect, useState, useRef } from 'react'
+import { FC, useEffect, useState, useRef, useMemo } from 'react'
 import useRuntimeStore from '@/stores/runtimeStore'
 import { WidgetConfig } from '@/types/widget.type'
 import DaPopup from '@/components/atoms/DaPopup'
+import useCurrentModelApi from '@/hooks/useCurrentModelApi'
 
 interface DaDashboardGridProps {
   widgetItems: any[]
@@ -32,22 +33,30 @@ interface PropsWidgetItem {
   widgetConfig: WidgetConfig
   apisValue: any
   appLog?: string
+  vssTree?: any
 }
 
 const WidgetItem: FC<PropsWidgetItem> = ({
   widgetConfig,
   apisValue,
   appLog,
+  vssTree,
 }) => {
   const [rSpan, setRSpan] = useState<number>(0)
   const [cSpan, setCSpan] = useState<number>(0)
   const frameElement = useRef<HTMLIFrameElement>(null)
   const [url, setUrl] = useState<string>()
+  const [iframeLoaded, setIframeLoaded] = useState(false)
 
   useEffect(() => {
     if (!widgetConfig) return
     let url = widgetConfig.url
-    if (url && widgetConfig.options) {
+
+    // Don't append query parameters to built-in widget paths (local static files)
+    // They receive options via postMessage instead
+    if (url && url.startsWith('/builtin-widgets/')) {
+      setUrl(url)
+    } else if (url && widgetConfig.options) {
       let send_options = JSON.parse(JSON.stringify(widgetConfig.options))
       delete send_options.url
       url = url + '?options=' + encodeURIComponent(JSON.stringify(send_options))
@@ -88,10 +97,27 @@ const WidgetItem: FC<PropsWidgetItem> = ({
     )
   }
 
+  const sendVssTreeToWidget = (tree: any) => {
+    if (!tree) return
+    frameElement?.current?.contentWindow?.postMessage(
+      JSON.stringify({
+        cmd: 'vss-tree',
+        vssTree: tree,
+      }),
+      '*',
+    )
+  }
+
   useEffect(() => {
     if (!appLog) return
     sendAppLogToWidget(appLog)
   }, [appLog])
+
+  // Send VSS tree to widget when both iframe is loaded AND vssTree is available
+  useEffect(() => {
+    if (!iframeLoaded || !vssTree) return
+    sendVssTreeToWidget(vssTree)
+  }, [vssTree, iframeLoaded])
 
   if (!widgetConfig)
     return (
@@ -109,7 +135,26 @@ const WidgetItem: FC<PropsWidgetItem> = ({
         src={url}
         className="m-0 h-full w-full"
         allow="camera;microphone"
-        onLoad={() => {}}
+        onLoad={() => {
+          // Mark iframe as loaded
+          setIframeLoaded(true)
+
+          // Send widget options via postMessage for built-in widgets
+          if (widgetConfig?.url?.startsWith('/builtin-widgets/')) {
+            setTimeout(() => {
+              if (widgetConfig?.options) {
+                frameElement?.current?.contentWindow?.postMessage(
+                  JSON.stringify({
+                    cmd: 'widget-options',
+                    options: widgetConfig.options,
+                  }),
+                  '*',
+                )
+              }
+              // VSS tree will be sent by useEffect when both iframe and vssTree are ready
+            }, 100)
+          }
+        }}
       ></iframe>
     </div>
   )
@@ -119,8 +164,11 @@ const DaDashboardGrid: FC<DaDashboardGridProps> = ({ widgetItems }) => {
   // const CELLS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   const [showModal, setShowModal] = useState(false)
   const [payload, setPayload] = useState<any>()
-
+  const { data: cvi } = useCurrentModelApi()
   const [renderCell, setRenderCell] = useState<any[]>([])
+
+  // Memoize VSS tree to prevent unnecessary re-renders with large data
+  const memoizedVssTree = useMemo(() => cvi, [cvi])
 
   useEffect(() => {
     //
@@ -149,7 +197,7 @@ const DaDashboardGrid: FC<DaDashboardGridProps> = ({ widgetItems }) => {
   const [allVars, setAllVars] = useState<any>({})
 
   useEffect(() => {
-    setAllVars({...traceVars, ...apisValue})
+    setAllVars({ ...traceVars, ...apisValue })
   }, [traceVars, apisValue])
 
   // useEffect(() => {
@@ -218,6 +266,7 @@ const DaDashboardGrid: FC<DaDashboardGridProps> = ({ widgetItems }) => {
           widgetConfig={widgetItem}
           apisValue={allVars}
           appLog={appLog}
+          vssTree={memoizedVssTree}
         />
       ))}
     </div>

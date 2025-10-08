@@ -1,5 +1,5 @@
 // Copyright (c) 2025 Eclipse Foundation.
-// 
+//
 // This program and the accompanying materials are made available under the
 // terms of the MIT License which is available at
 // https://opensource.org/licenses/MIT.
@@ -63,7 +63,6 @@ const DaWidgetLibrary: FC<DaWidgetLibraryProp> = ({
 
   const PIN_WIDGETS = [
     { name: 'Single Signal Widget', weight: 0 },
-    { name: 'Chart Signal Widget', weight: 1 },
     { name: 'Signal List Settable', weight: 2 },
     { name: 'Terminal', weight: 3 },
     { name: 'Image by Signal value', weight: 4 },
@@ -71,6 +70,7 @@ const DaWidgetLibrary: FC<DaWidgetLibraryProp> = ({
     { name: 'General 3D Car Model', weight: 6 },
     { name: 'Simple Fan Widget', weight: 7 },
     { name: 'Simple Wiper Widget', weight: 8 },
+    { name: 'Chart Multiple Signals', weight: 1 },
   ]
 
   const handleAddWidgetClick = async () => {
@@ -165,8 +165,10 @@ const DaWidgetLibrary: FC<DaWidgetLibraryProp> = ({
     setActiveWidget(activeTab === 'genAI' ? {} : null)
     setIsWidgetGenAI(activeTab === 'genAI')
     let widgets = []
-    try {
-      widgets = JSON.parse(JSON.stringify(marketWidgets))
+
+    if (activeTab === 'builtin') {
+      // For built-in widgets, use the buildinWidgets data
+      widgets = JSON.parse(JSON.stringify(buildinWidgets))
       widgets.forEach((w: any) => {
         let match = PIN_WIDGETS.find((p) => p.name == w.label)
         if (match) {
@@ -180,10 +182,28 @@ const DaWidgetLibrary: FC<DaWidgetLibraryProp> = ({
         if (a.weight > b.weight) return 1
         return 0
       })
-    } catch (e) {}
+    } else if (activeTab === 'market') {
+      // For marketplace widgets
+      try {
+        widgets = JSON.parse(JSON.stringify(marketWidgets))
+        widgets.forEach((w: any) => {
+          let match = PIN_WIDGETS.find((p) => p.name == w.label)
+          if (match) {
+            w.weight = match.weight
+          } else {
+            w.weight = 999
+          }
+        })
+        widgets.sort((a: any, b: any) => {
+          if (a.weight < b.weight) return -1
+          if (a.weight > b.weight) return 1
+          return 0
+        })
+      } catch (e) {}
+    }
+
     setRenderWidgets(widgets)
-    // setRenderWidgets(activeTab === 'builtin' ? buildinWidgets : marketWidgets)
-  }, [activeTab, marketWidgets])
+  }, [activeTab, marketWidgets, buildinWidgets])
 
   useEffect(() => {
     let tmp_usageCells: any[] = []
@@ -226,13 +246,13 @@ const DaWidgetLibrary: FC<DaWidgetLibraryProp> = ({
         </DaText>
         <div className="flex w-full justify-between items-center">
           <div className="flex mb-2 w-fit rounded !da-label-small mt-2">
-            {/* <DaTabItem
+            <DaTabItem
               active={activeTab === 'builtin'}
               onClick={() => setActiveTab('builtin')}
             >
               <TbLayoutGrid className="mr-2" />
               Built-in ({buildinWidgets.length})
-            </DaTabItem> */}
+            </DaTabItem>
             {marketWidgets && (
               <DaTabItem
                 active={activeTab === 'market'}
@@ -266,7 +286,7 @@ const DaWidgetLibrary: FC<DaWidgetLibraryProp> = ({
             </DaButton>
           )}
         </div>
-        {activeTab == 'market' && (
+        {(activeTab == 'market' || activeTab == 'builtin') && (
           <div className="flex h-full overflow-y-auto space-x-2  my-2">
             <DaWidgetList
               renderWidgets={renderWidgets}
@@ -299,7 +319,7 @@ const DaWidgetLibrary: FC<DaWidgetLibraryProp> = ({
           {pickedCells && pickedCells.length > 0 && !isWidgetDiscrete && (
             <DaButton
               variant="solid"
-              dataId='btn-add-widget-in-widget-library'
+              dataId="btn-add-widget-in-widget-library"
               disabled={(isWidgetGenAI || !activeWidget) && !widgetUrl}
               className="px-4 py-2 !text-base h-8"
               onClick={() => {

@@ -1,12 +1,12 @@
 // Copyright (c) 2025 Eclipse Foundation.
-// 
+//
 // This program and the accompanying materials are made available under the
 // terms of the MIT License which is available at
 // https://opensource.org/licenses/MIT.
 //
 // SPDX-License-Identifier: MIT
 
-import { url } from "inspector"
+import { url } from 'inspector'
 
 const config: any = {
   serverBaseUrl:
@@ -16,58 +16,37 @@ const config: any = {
     import.meta.env.VITE_SERVER_BASE_WSS_URL ||
     'wss://backend-core-dev.digital.auto',
   serverVersion: import.meta.env.VITE_SERVER_VERSION || 'v2',
-  logBaseUrl: import.meta.env.PROD
-    ? 'https://logs.digital.auto'
-    : 'https://logs.digitalauto.asia',
-  cacheBaseUrl:
-    import.meta.env.VITE_CACHE_BASE_URL || 'https://cache.digitalauto.tech',
+  logBaseUrl: '',
+  cacheBaseUrl: '',
   studioUrl: 'https://studio.digital.auto',
   studioBeUrl: 'https://bewebstudio.digitalauto.tech',
   widgetMarketPlaceUrl: 'https://marketplace.digital.auto/packagetype/widget',
   widgetMarketPlaceBe: 'https://store-be.digitalauto.tech',
-  uploadFileUrl: 'https://upload.digitalauto.tech',
+  uploadFileUrl: import.meta.env.VITE_SERVER_BASE_URL + '/v2/file',
   instanceLogo:
     'https://covesa.global/wp-content/uploads/2024/03/covesa_logo.png',
-  sso: 'bosch',
-  instance: 'digitalauto',
+  sso: '',
+  instance: 'uaes',
   showPrivacyPolicy: false,
   showGenAIWizard: false,
   defaultModelId: '665826e3194aff003dd2f67b',
   genAI: {
-    wizardCover: '/imgs/default_prototype_cover.jpg',
-    hideMarketplace: false,
-    defaultEndpointUrl: 'https://backend-core-dev.digital.auto/v2/genai',
-    marketplaceUrl: 'https://store-be.digitalauto.tech/marketplace/genai',
-    agent: {
-      url: 'https://workflow.digital.auto/webhook/e9b346c8-68be-4c9d-8453-6c03a0bdca96/chat'
-    },
-    sdvApp: [
-      {
-        id: '674fed13c2a9e9b37198ff2a',
-        type: 'GenAI_Python',
-        name: 'SDV Copilot',
-        description: 'Support develop basic SDV Python App',
-        apiKey: 'Empty',
-        endpointUrl: 'https://backend-core-dev.digital.auto/v2/genai',
-        customPayload: (prompt: string) => ({ prompt }),
-      },
-    ],
+    sdvApp: [],
     dashboard: [],
     widget: [],
   },
   inventory: {
     frontend: {
-      url:
-        import.meta.env.VITE_INVENTORY_FRONTEND_URL ||
-        'https://fe.inventory.digital.auto',
+      url: '',
     },
   },
   github: {
-    clientId: import.meta.env.VITE_GITHUB_CLIENT_ID,
+    clientId: '',
   },
   disableEmailLogin: false,
   runtime: {
-    url: import.meta.env.VITE_KIT_SERVER_URL || 'https://kit.digitalauto.tech',
+    // url: 'https://uspsimulation-qa.uaes.com/kit',
+    url: 'https://kit.digitalauto.tech',
   },
   strictAuth: false,
   enableSupport: true,
@@ -75,7 +54,7 @@ const config: any = {
     url: import.meta.env.VITE_LEARNING_URL || 'https://learning-dev.digital.auto',
   },
   requirements: {
-    journey_2_requirements: 'https://workflow.digital.auto/webhook/3dd23494-225b-4254-a121-733af39faa43',
+    journey_2_requirements: '',
   },
 }
 
