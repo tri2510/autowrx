@@ -1,0 +1,40 @@
+name: Deploy to Staging
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Images"]
+    types:
+      - completed
+    branches:
+      - v3-base
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment: staging
+
+    steps:
+      - name: Trigger deployment via webhook
+        run: |
+          curl -X POST ${{ secrets.STAGING_WEBHOOK_URL }} \
+            -H "Authorization: Bearer ${{ secrets.STAGING_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "ref": "${{ github.ref }}",
+              "sha": "${{ github.sha }}",
+              "environment": "staging",
+              "images": {
+                "frontend": "ghcr.io/${{ github.repository }}/frontend:v3-base-${{ github.sha }}",
+                "backend": "ghcr.io/${{ github.repository }}/backend:v3-base-${{ github.sha }}"
+              }
+            }'
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Verify deployment
+        run: |
+          # Check if staging is accessible
+          curl -f ${{ secrets.STAGING_URL }}/health || exit 1
+          echo "✓ Staging deployment verified"

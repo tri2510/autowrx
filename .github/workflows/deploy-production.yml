@@ -1,0 +1,70 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to deploy (e.g., v1.0.0 or commit SHA)'
+        required: true
+        type: string
+      confirm:
+        description: 'Type "deploy" to confirm'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'deploy'
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Validate version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Deploying version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: production
+
+    steps:
+      - name: Trigger deployment via webhook
+        run: |
+          curl -X POST ${{ secrets.PRODUCTION_WEBHOOK_URL }} \
+            -H "Authorization: Bearer ${{ secrets.PRODUCTION_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "version": "${{ needs.validate.outputs.version }}",
+              "environment": "production",
+              "images": {
+                "frontend": "ghcr.io/${{ github.repository }}/frontend:${{ needs.validate.outputs.version }}",
+                "backend": "ghcr.io/${{ github.repository }}/backend:${{ needs.validate.outputs.version }}"
+              },
+              "deployer": "${{ github.actor }}"
+            }'
+
+      - name: Wait for deployment
+        run: sleep 60
+
+      - name: Verify deployment
+        run: |
+          curl -f ${{ secrets.PRODUCTION_URL }}/health || exit 1
+          echo "✓ Production deployment verified"
+
+      - name: Create deployment record
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: '${{ needs.validate.outputs.version }}',
+              environment: 'production',
+              description: 'Deployed by ${{ github.actor }}',
+              auto_merge: false
+            });
