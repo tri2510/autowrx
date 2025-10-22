@@ -96,8 +96,8 @@ Control which versions to deploy via `.env.stack`:
 
 **Staging (auto-deploy latest):**
 ```bash
-FRONTEND_IMAGE_TAG=v3-base
-BACKEND_IMAGE_TAG=v3-base
+FRONTEND_IMAGE_TAG=main
+BACKEND_IMAGE_TAG=main
 ```
 
 **Production (specific versions):**
@@ -113,11 +113,11 @@ BACKEND_IMAGE_TAG=v1.0.0
 ### Staging (Automatic)
 
 ```
-Developer → Push to v3-base → GitHub Actions builds → Push to ghcr.io
-                                                           ↓
-                                    Staging server polls (every 5 min)
-                                                           ↓
-                                    Auto-deploys if new images found
+Developer → Push to main → GitHub Actions builds → Push to ghcr.io
+                                                        ↓
+                                 Staging server polls (every 5 min)
+                                                        ↓
+                                 Auto-deploys if new images found
 ```
 
 ### Production (Manual)
@@ -287,7 +287,7 @@ sudo chown deploy:deploy /var/log/autowrx-deploy.log
 **Staging:** Frequent updates, auto-deploy everything
 ```bash
 OnUnitActiveSec=5min
-FRONTEND_IMAGE_TAG=v3-base
+FRONTEND_IMAGE_TAG=main
 ```
 
 **Production:** Conservative updates, specific versions only

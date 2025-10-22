@@ -6,7 +6,7 @@ on:
     types:
       - completed
     branches:
-      - v3-base
+      - main
 
 jobs:
   notify:
@@ -21,10 +21,10 @@ jobs:
           echo "=========================================="
           echo ""
           echo "Images:"
-          echo "  - ghcr.io/${{ github.repository }}/frontend:v3-base"
-          echo "  - ghcr.io/${{ github.repository }}/frontend:v3-base-${{ github.sha }}"
-          echo "  - ghcr.io/${{ github.repository }}/backend:v3-base"
-          echo "  - ghcr.io/${{ github.repository }}/backend:v3-base-${{ github.sha }}"
+          echo "  - ghcr.io/${{ github.repository }}/frontend:main"
+          echo "  - ghcr.io/${{ github.repository }}/frontend:sha-${GITHUB_SHA:0:7}"
+          echo "  - ghcr.io/${{ github.repository }}/backend:main"
+          echo "  - ghcr.io/${{ github.repository }}/backend:sha-${GITHUB_SHA:0:7}"
           echo ""
           echo "Deployment:"
           echo "  Staging server will automatically deploy within 5 minutes"

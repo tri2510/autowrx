@@ -145,7 +145,7 @@ AutoWRX v3 uses container registry-based deployment with server-side polling.
 - Features: Docker layer caching, parallel builds, semantic versioning
 
 **Staging Notification** (`.github/workflows/deploy-staging.yml`):
-- Trigger: After successful build on v3-base
+- Trigger: After successful build on main
 - Process: Notifies that images are ready
 - Deployment: Server polls registry every 5 minutes and auto-deploys
 
