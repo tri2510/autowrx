@@ -6,7 +6,7 @@ on:
       branch:
         description: 'Branch to build'
         required: true
-        default: '236-v3-docker-stack'
+        default: 'v3-base'
 
 env:
   REGISTRY: ghcr.io
