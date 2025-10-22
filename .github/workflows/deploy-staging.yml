@@ -1,4 +1,4 @@
-name: Deploy to Staging
+name: Notify Staging Update
 
 on:
   workflow_run:
@@ -9,32 +9,31 @@ on:
       - v3-base
 
 jobs:
-  deploy:
+  notify:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    environment: staging
 
     steps:
-      - name: Trigger deployment via webhook
+      - name: Deployment notification
         run: |
-          curl -X POST ${{ secrets.STAGING_WEBHOOK_URL }} \
-            -H "Authorization: Bearer ${{ secrets.STAGING_WEBHOOK_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "ref": "${{ github.ref }}",
-              "sha": "${{ github.sha }}",
-              "environment": "staging",
-              "images": {
-                "frontend": "ghcr.io/${{ github.repository }}/frontend:v3-base-${{ github.sha }}",
-                "backend": "ghcr.io/${{ github.repository }}/backend:v3-base-${{ github.sha }}"
-              }
-            }'
-
-      - name: Wait for deployment
-        run: sleep 30
-
-      - name: Verify deployment
-        run: |
-          # Check if staging is accessible
-          curl -f ${{ secrets.STAGING_URL }}/health || exit 1
-          echo "✓ Staging deployment verified"
+          echo "=========================================="
+          echo "✓ Images pushed to GitHub Container Registry"
+          echo "=========================================="
+          echo ""
+          echo "Images:"
+          echo "  - ghcr.io/${{ github.repository }}/frontend:v3-base"
+          echo "  - ghcr.io/${{ github.repository }}/frontend:v3-base-${{ github.sha }}"
+          echo "  - ghcr.io/${{ github.repository }}/backend:v3-base"
+          echo "  - ghcr.io/${{ github.repository }}/backend:v3-base-${{ github.sha }}"
+          echo ""
+          echo "Deployment:"
+          echo "  Staging server will automatically deploy within 5 minutes"
+          echo "  Using server-side polling (no webhook required)"
+          echo ""
+          echo "Monitoring:"
+          echo "  ssh deploy@staging 'tail -f /var/log/autowrx-deploy.log'"
+          echo "  ssh deploy@staging 'sudo journalctl -u autowrx-update.service -f'"
+          echo ""
+          echo "Manual trigger:"
+          echo "  ssh deploy@staging '/opt/deploy/scripts/auto-update.sh'"
+          echo ""

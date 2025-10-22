@@ -137,28 +137,32 @@ docker compose --env-file .env.stack -f docker-compose.stack.yml up -d
 
 ## CI/CD Workflows (Modern Approach)
 
-AutoWRX v3 uses container registry-based deployment following GitOps principles.
+AutoWRX v3 uses container registry-based deployment with server-side polling.
 
 **Build & Push** (`.github/workflows/build-and-push.yml`):
 - Trigger: Push to main/v3-base, PRs, tags
 - Process: Build images → Push to GitHub Container Registry (ghcr.io)
 - Features: Docker layer caching, parallel builds, semantic versioning
 
-**Staging** (`.github/workflows/deploy-staging.yml`):
+**Staging Notification** (`.github/workflows/deploy-staging.yml`):
 - Trigger: After successful build on v3-base
-- Process: Webhook → Server pulls images → Zero-downtime deployment
+- Process: Notifies that images are ready
+- Deployment: Server polls registry every 5 minutes and auto-deploys
 
-**Production** (`.github/workflows/deploy-production.yml`):
+**Production Release** (`.github/workflows/deploy-production.yml`):
 - Trigger: Manual dispatch (requires version + "deploy" confirmation)
-- Process: Webhook → Server pulls images → Health check → Deployment record
+- Process: Tags release for production deployment
+- Deployment: Update .env.stack on server, auto-deploys on next poll
 
 **Key Benefits:**
-- ✅ No SSH from CI - Webhook-based deployment
+- ✅ Enterprise network friendly - Only outbound HTTPS connections
+- ✅ Zero GitHub secrets - No credentials in public repository
+- ✅ Firewall compatible - No inbound webhook ports required
 - ✅ Immutable images - Build once, deploy many times
-- ✅ Easy rollback - Deploy any previous version
-- ✅ Full audit trail - GitHub deployment records
+- ✅ Easy rollback - Change version tag in .env.stack
+- ✅ Full audit trail - Server logs and GitHub deployment records
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed setup and architecture.
+See [SERVER-POLLING.md](./SERVER-POLLING.md) for detailed setup and configuration.
 
 ---
 
@@ -177,4 +181,4 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed setup and architecture.
 
 ## Additional Documentation
 
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Modern deployment architecture, workflows, and setup guide
+- **[SERVER-POLLING.md](./SERVER-POLLING.md)** - Server polling deployment setup and configuration guide
