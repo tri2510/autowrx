@@ -6,56 +6,24 @@
 #
 # SPDX-License-Identifier: MIT
 
-# AutoWRX v3 Complete Stack
-# This docker-compose file orchestrates the complete AutoWRX v3 application stack
-# including frontend, backend, Kong gateway, databases, and supporting services.
-#
+# AutoWRX v3 Stack
 # Usage:
-#   Local Development: docker compose -f docker-compose.stack.yml --env-file .env.stack up -d
-#   Production: Uses Azure DevOps pipelines (see azure-pipelines-stack-*.yml)
-#
-# Required environment variables are defined in .env.stack.example
-#
-# v3 Architecture:
-#   - Backend builds from ./backend/ directory
-#   - Frontend builds from ./frontend/ directory
-#   - All services orchestrated in single stack
+#   docker compose -f docker-compose.stack.yml --env-file .env.stack up -d
 
 services:
-  # Kong API Gateway - Routes all API requests
-  kong:
+  # AutoWRX - Backend serves both API and frontend static files
+  autowrx:
     platform: linux/amd64
-    image: boschvn/playground-kong:latest
-    container_name: ${ENV:-prod}-autowrx-kong
-    environment:
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_NGINX_WORKER_PROCESSES: ${KONG_NGINX_WORKER_PROCESSES:-auto}
-      CORS_ORIGINS: ${CORS_ORIGINS}
-    ports:
-      - '${KONG_PROXY_PORT:-9800}:8000'
-    restart: always
-    networks:
-      - autowrx-network
-    depends_on:
-      - backend
-      - inventory-be
-
-  # Backend Core - Main application backend
-  backend:
-    platform: linux/amd64
-    container_name: ${ENV:-prod}-autowrx-backend
+    container_name: ${ENV:-prod}-autowrx
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: boschvn/playground-be:${BACKEND_IMAGE_TAG:-latest}
+      context: .
+      dockerfile: ./backend/Dockerfile
+    image: ghcr.io/${GITHUB_REPOSITORY:-eclipse-autowrx/autowrx}/autowrx:${IMAGE_TAG:-latest}
+    ports:
+      - "${FRONTEND_PORT:-8090}:8080"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 8080
-      KONG_PROXY_PORT: ${KONG_PROXY_PORT:-9800}
-      KONG_NGINX_WORKER_PROCESSES: ${KONG_NGINX_WORKER_PROCESSES:-auto}
       MONGODB_URL: ${MONGODB_URL:-mongodb://autowrx-db:27017/autowrx-be}
       CORS_ORIGINS: ${CORS_ORIGINS}
       UPLOAD_PORT: ${UPLOAD_PORT:-9810}
@@ -68,46 +36,25 @@ services:
       JWT_VERIFY_EMAIL_EXPIRATION_MINUTES: ${JWT_VERIFY_EMAIL_EXPIRATION_MINUTES:-10}
       JWT_COOKIE_NAME: ${JWT_COOKIE_NAME:-token}
       JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN}
-      CACHE_URL: ${CACHE_URL}
-      LOG_URL: ${LOG_URL}
       CLIENT_BASE_URL: ${CLIENT_BASE_URL:-http://localhost:8090}
       EMAIL_API_KEY: ${EMAIL_API_KEY}
       EMAIL_ENDPOINT_URL: ${EMAIL_ENDPOINT_URL}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-      HOMOLOGATION_URL: ${HOMOLOGATION_URL}
-      GENAI_URL: ${GENAI_URL}
       ADMIN_EMAILS: ${ADMIN_EMAILS}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       LOGS_MAX_SIZE: ${LOGS_MAX_SIZE:-100}
+    volumes:
+      - '${UPLOAD_PATH_HOST:-./data/upload}:/opt/data/upload'
     depends_on:
       - autowrx-db
-      - upload
     networks:
       - autowrx-network
     restart: always
 
-  # Frontend - React application served by Nginx
-  # Uses pre-built dist folder for faster deployment
-  frontend:
-    container_name: ${ENV:-prod}-autowrx-frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.production
-    image: boschvn/playground-fe:${FRONTEND_IMAGE_TAG:-latest}
-    ports:
-      - "${FRONTEND_PORT:-8090}:80"
-    environment:
-      # Frontend environment variables if needed
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:9800}
-    networks:
-      - autowrx-network
-    restart: always
-    depends_on:
-      - kong
-
-  # MongoDB - Main application database
+  # MongoDB - Database
   autowrx-db:
+    platform: linux/amd64
     container_name: ${ENV:-prod}-autowrx-db
     image: mongo:4.4.6-bionic
     volumes:
@@ -116,64 +63,9 @@ services:
       - autowrx-network
     restart: always
 
-  # Upload Service - Handles file uploads
-  upload:
-    platform: linux/amd64
-    container_name: ${ENV:-prod}-autowrx-upload
-    image: boschvn/upload:1.1.0
-    environment:
-      UPLOAD_PORT: ${UPLOAD_PORT:-9810}
-      UPLOAD_PATH: ${UPLOAD_PATH:-/opt/data/upload}
-    volumes:
-      - '${UPLOAD_PATH_HOST:-./data/upload}:/usr/src/upload/data'
-    networks:
-      - autowrx-network
-    restart: always
-
-  # Homologation Service - Vehicle homologation workflows
-  homologation:
-    platform: linux/amd64
-    container_name: ${ENV:-prod}-autowrx-homologation
-    image: boschvn/homologation-node:latest
-    networks:
-      - autowrx-network
-    environment:
-      - HOMOLOGATION_AUTH_CLIENT_ID=${HOMOLOGATION_AUTH_CLIENT_ID}
-      - HOMOLOGATION_AUTH_CLIENT_SECRET=${HOMOLOGATION_AUTH_CLIENT_SECRET}
-    restart: always
-
-  # Inventory Backend - Manages vehicle inventory
-  inventory-be:
-    platform: linux/amd64
-    container_name: ${ENV:-prod}-autowrx-inventory-be
-    image: boschvn/inventory-be:latest
-    environment:
-      - NODE_ENV=${NODE_ENV:-production}
-      - MONGODB_URL=mongodb://inventory-db:27017/inventory
-      - AUTHORIZATION_URL=http://backend:8080/v2/auth/authorize
-      - CORS_ORIGIN=${CORS_ORIGINS}
-    networks:
-      - autowrx-network
-    restart: always
-    depends_on:
-      - inventory-db
-
-  # MongoDB - Inventory database
-  inventory-db:
-    platform: linux/amd64
-    container_name: ${ENV:-prod}-autowrx-inventory-db
-    image: mongo:4.4.6-bionic
-    volumes:
-      - autowrx-inventorydata:/data/db
-    restart: always
-    networks:
-      - autowrx-network
-
 volumes:
   autowrx-dbdata:
     name: ${ENV:-prod}-autowrx-dbdata
-  autowrx-inventorydata:
-    name: ${ENV:-prod}-autowrx-inventorydata
 
 networks:
   autowrx-network:
