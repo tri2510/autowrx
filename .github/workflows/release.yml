@@ -49,7 +49,9 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/autowrx-app:${{ env.TAG }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/autowrx-app:${{ env.TAG }}
+            ghcr.io/${{ github.repository_owner }}/autowrx-app:latest
 
       # Call the quevee gh action to create the manifest file for SDV maturity assessment.
       - name: Collect quality artifacts

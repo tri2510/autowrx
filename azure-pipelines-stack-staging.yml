@@ -1,0 +1,166 @@
+# Azure Pipeline for AutoWRX Stack Deployment - Staging
+# Issue: #236 - Build docker image for new project structure
+#
+# This pipeline deploys the unified docker-compose.stack.yml to staging environment
+# Replaces the deployment phase in the existing dev-staging-to-prod pipeline (#26)
+
+trigger:
+  branches:
+    include:
+      - main
+      - 236-build-docker-image-for-new-project-structure
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: staging_name
+    value: 'staging'
+  - name: deploy_path
+    value: '/opt/deploy/dev-autowrx/staging'
+
+stages:
+  - stage: DeployToStaging
+    displayName: 'Deploy Stack to Staging'
+    jobs:
+      - deployment: DeployStack
+        displayName: 'Deploy AutoWRX Stack'
+        environment: 'staging'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  clean: true
+
+                - task: Bash@3
+                  displayName: 'Get git short hash'
+                  inputs:
+                    targetType: 'inline'
+                    script: |
+                      short_hash=$(git rev-parse --short=7 HEAD)
+                      echo "##vso[task.setvariable variable=short_hash]$short_hash"
+                      echo "Short hash: $short_hash"
+
+                - task: DownloadSecureFile@1
+                  displayName: 'Download secure .env file'
+                  name: envFile
+                  inputs:
+                    secureFile: '.env.stack.secrets'
+                    retryCount: 8
+
+                - task: Bash@3
+                  displayName: 'Prepare deployment files'
+                  inputs:
+                    targetType: 'inline'
+                    script: |
+                      set -e
+
+                      echo "Creating deployment package..."
+                      mkdir -p deployment-package
+
+                      # Copy stack files
+                      cp docker-compose.stack.yml deployment-package/
+                      cp .env.stack.example deployment-package/.env.stack
+
+                      # Update image tags for staging
+                      cd deployment-package
+                      sed -i "s|^FRONTEND_IMAGE_TAG=.*|FRONTEND_IMAGE_TAG=${short_hash}-staging|" .env.stack
+                      sed -i "s|^BACKEND_IMAGE_TAG=.*|BACKEND_IMAGE_TAG=${short_hash}|" .env.stack
+                      sed -i "s|^ENV=.*|ENV=staging|" .env.stack
+
+                      # Merge secrets from secure file
+                      echo "Merging secrets..."
+                      source $(envFile.secureFilePath)
+
+                      # Update sensitive values (add all your secrets here)
+                      sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET}|" .env.stack
+                      sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.stack
+                      sed -i "s|^MONGODB_URL=.*|MONGODB_URL=${MONGODB_URL}|" .env.stack
+                      sed -i "s|^EMAIL_API_KEY=.*|EMAIL_API_KEY=${EMAIL_API_KEY}|" .env.stack
+                      sed -i "s|^GITHUB_CLIENT_ID=.*|GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}|" .env.stack
+                      sed -i "s|^GITHUB_CLIENT_SECRET=.*|GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}|" .env.stack
+
+                      # Display non-sensitive config for verification
+                      echo "Configuration:"
+                      grep -v -E "(SECRET|PASSWORD|KEY)" .env.stack || true
+
+                      cd ..
+
+                      # Create archive for transfer
+                      tar -czf deployment-package.tar.gz deployment-package/
+
+                - task: CopyFilesOverSSH@0
+                  displayName: 'Copy files to staging server'
+                  inputs:
+                    sshEndpoint: 'staging-server-ssh'
+                    sourceFolder: '$(Build.SourcesDirectory)'
+                    contents: 'deployment-package.tar.gz'
+                    targetFolder: '/tmp/'
+                    cleanTargetFolder: false
+
+                - task: SSH@0
+                  displayName: 'Deploy stack on staging server'
+                  inputs:
+                    sshEndpoint: 'staging-server-ssh'
+                    runOptions: 'inline'
+                    inline: |
+                      set -e
+
+                      echo "Extracting deployment package..."
+                      cd /tmp
+                      tar -xzf deployment-package.tar.gz
+
+                      # Create deployment directory if not exists
+                      sudo mkdir -p $(deploy_path)
+                      sudo mkdir -p $(deploy_path)/data/upload
+
+                      # Copy files to deployment directory
+                      sudo cp deployment-package/docker-compose.stack.yml $(deploy_path)/
+                      sudo cp deployment-package/.env.stack $(deploy_path)/
+
+                      # Set permissions
+                      sudo chown -R $(whoami):$(whoami) $(deploy_path)
+                      sudo chmod -R 755 $(deploy_path)/data
+
+                      # Deploy the stack
+                      cd $(deploy_path)
+
+                      echo "Pulling latest images..."
+                      docker compose --env-file .env.stack -f docker-compose.stack.yml pull
+
+                      echo "Stopping old containers..."
+                      docker compose --env-file .env.stack -f docker-compose.stack.yml down
+
+                      echo "Starting new stack..."
+                      docker compose --env-file .env.stack -f docker-compose.stack.yml up -d --remove-orphans
+
+                      # Wait for services to start
+                      sleep 10
+
+                      # Verify deployment
+                      echo "Verifying deployment..."
+                      docker compose --env-file .env.stack -f docker-compose.stack.yml ps
+
+                      # Health checks
+                      echo "Running health checks..."
+                      curl -f http://localhost:8090 || echo "Frontend health check failed"
+                      curl -f http://localhost:9800 || echo "Kong health check failed"
+
+                      # Cleanup
+                      cd /tmp
+                      rm -rf deployment-package deployment-package.tar.gz
+
+                      echo "Deployment complete!"
+
+                - task: Bash@3
+                  displayName: 'Post-deployment verification'
+                  inputs:
+                    targetType: 'inline'
+                    script: |
+                      echo "Deployment to staging completed successfully"
+                      echo "Frontend: http://staging.autowrx.digital.auto"
+                      echo "Backend API: http://staging.autowrx.digital.auto:9800"
+                      echo "Image tags used:"
+                      echo "  Frontend: $(short_hash)-staging"
+                      echo "  Backend: $(short_hash)"

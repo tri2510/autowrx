@@ -27,5 +27,6 @@ ref-projects
 
 .env*
 !.env.example
+!.env.stack.example
 
 stats.html

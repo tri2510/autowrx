@@ -1,0 +1,110 @@
+# Azure Pipeline for AutoWRX Stack Deployment - Production
+# Issue: #236 - Build docker image for new project structure
+#
+# This pipeline deploys the unified docker-compose.stack.yml to production environment
+# Includes manual approval gate before production deployment
+
+trigger: none  # Manual trigger only for production
+
+pr: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: prod_name
+    value: 'prod'
+  - name: deploy_path
+    value: '/opt/deploy/dev-autowrx/production'
+
+stages:
+  - stage: PrepareDeployment
+    displayName: 'Prepare Production Deployment'
+    jobs:
+      - job: Prepare
+        displayName: 'Prepare Deployment Package'
+        steps:
+          - checkout: self
+            clean: true
+
+          - task: Bash@3
+            displayName: 'Get git short hash'
+            inputs:
+              targetType: 'inline'
+              script: |
+                short_hash=$(git rev-parse --short=7 HEAD)
+                echo "##vso[task.setvariable variable=short_hash;isOutput=true]$short_hash"
+                echo "Production will use image tag: $short_hash"
+
+          - task: DownloadSecureFile@1
+            displayName: 'Download secure .env file'
+            name: envFile
+            inputs:
+              secureFile: '.env.stack.secrets'
+              retryCount: 8
+
+          - task: Bash@3
+            displayName: 'Prepare production deployment files'
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -e
+                echo "Creating production deployment package..."
+                mkdir -p deployment-package
+                cp docker-compose.stack.yml deployment-package/
+                cp .env.stack.example deployment-package/.env.stack
+                cd deployment-package
+                sed -i "s|^FRONTEND_IMAGE_TAG=.*|FRONTEND_IMAGE_TAG=${short_hash}|" .env.stack
+                sed -i "s|^BACKEND_IMAGE_TAG=.*|BACKEND_IMAGE_TAG=${short_hash}|" .env.stack
+                sed -i "s|^ENV=.*|ENV=prod|" .env.stack
+                source $(envFile.secureFilePath)
+                sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET}|" .env.stack
+                sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASSWORD}|" .env.stack
+                cd ..
+                tar -czf deployment-package.tar.gz deployment-package/
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: 'deployment-package.tar.gz'
+              artifact: 'deployment-package'
+
+  - stage: ManualApproval
+    displayName: 'Manual Approval Gate'
+    dependsOn: PrepareDeployment
+    jobs:
+      - job: waitForValidation
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            displayName: 'Approve Production Deployment'
+            inputs:
+              instructions: 'Review and approve production deployment'
+
+  - stage: DeployToProduction
+    displayName: 'Deploy to Production'
+    dependsOn: [PrepareDeployment, ManualApproval]
+    jobs:
+      - deployment: DeployStack
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: 'deployment-package'
+
+                - task: SSH@0
+                  displayName: 'Deploy stack on production server'
+                  inputs:
+                    sshEndpoint: 'production-server-ssh'
+                    runOptions: 'inline'
+                    inline: |
+                      set -e
+                      cd /tmp
+                      tar -xzf deployment-package.tar.gz
+                      sudo mkdir -p /opt/deploy/dev-autowrx/production
+                      sudo cp deployment-package/* /opt/deploy/dev-autowrx/production/
+                      cd /opt/deploy/dev-autowrx/production
+                      docker compose --env-file .env.stack -f docker-compose.stack.yml pull
+                      docker compose --env-file .env.stack -f docker-compose.stack.yml up -d
