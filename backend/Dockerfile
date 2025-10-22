@@ -7,15 +7,15 @@ COPY ../frontend/ ./
 RUN yarn build
 
 # Stage 2: Build Backend with Frontend
-FROM node:22-slim
+FROM node:20-alpine
 
 RUN mkdir -p /usr/src/playground-be && chown -R node:node /usr/src/playground-be
 
 WORKDIR /usr/src/playground-be
 
-COPY package.json package-lock.json ./
+COPY package.json yarn.lock ./
 
-RUN npm ci --omit=dev --ignore-scripts
+RUN yarn install --frozen-lockfile --production
 
 COPY --chown=node:node . .
 
@@ -26,5 +26,5 @@ USER node
 
 EXPOSE 8080
 
-CMD ["npm", "start"]
+CMD ["yarn", "start"]
 
