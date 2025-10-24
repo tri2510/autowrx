@@ -31,9 +31,6 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS}
       ADMIN_EMAILS: ${ADMIN_EMAILS}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      UPLOAD_PORT: ${UPLOAD_PORT:-9810}
-      UPLOAD_PATH: ${UPLOAD_PATH:-/opt/data/upload}
-      UPLOAD_DOMAIN: ${UPLOAD_DOMAIN:-/api/v2/file/}
     volumes:
       - '${UPLOAD_PATH_HOST:-./data/upload}:/opt/data/upload'
     depends_on:
