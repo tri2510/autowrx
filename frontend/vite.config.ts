@@ -25,11 +25,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/v2': {
-        target: 'http://localhost:3200',
-        changeOrigin: true,
-        secure: false,
-      },
+      // '/v2': {
+      //   target: 'http://localhost:3200',
+      //   changeOrigin: true,
+      //   secure: false,
+      // },
       '/d': {
         target: 'http://localhost:3200',
         changeOrigin: true,
@@ -39,12 +39,7 @@ export default defineConfig({
         target: 'http://localhost:3200',
         changeOrigin: true,
         secure: false,
-      },
-      '/imgs': {
-        target: 'http://localhost:3200',
-        changeOrigin: true,
-        secure: false,
-      },
+      }
     },
   },
 })

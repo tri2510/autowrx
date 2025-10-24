@@ -38,17 +38,12 @@ const envVarsSchema = Joi.object()
     CLIENT_BASE_URL: Joi.string().description('Client base url').default('http://localhost:3000'),
     GITHUB_CLIENT_ID: Joi.string().description('Github client id'),
     GITHUB_CLIENT_SECRET: Joi.string().description('Github client secret'),
-    // Upload service
-    UPLOAD_PORT: Joi.number().required().description('Upload port'),
-    UPLOAD_DOMAIN: Joi.string().required().description('Upload domain'),
     // Log service URL
     LOG_URL: Joi.string().description('Log base url'),
     // Cache service URL
     CACHE_URL: Joi.string().description('Cache base url'),
     // Auth service
     AUTH_URL: Joi.string().description('Auth service url'),
-    // GenAI service
-    GENAI_URL: Joi.string().description('GenAI service url'),
     // Email URL
     EMAIL_URL: Joi.string().description('URL to your custom email service'),
     EMAIL_API_KEY: Joi.string().description('API key for default email service (Brevo)'),
@@ -59,8 +54,6 @@ const envVarsSchema = Joi.object()
     // OpenAI,
     OPENAI_API_KEY: Joi.string().description('OpenAI API key'),
     OPENAI_ENDPOINT_URL: Joi.string().description('OpenAI endpoint url'),
-    // Homologation
-    HOMOLOGATION_URL: Joi.string().description('Homologation service url'),
     STRICT_AUTH: Joi.boolean().description('Strict auth'),
     // Admin emails
     ADMIN_EMAILS: Joi.string().description('Admin emails'),
@@ -154,10 +147,6 @@ const config = {
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
   },
   services: {
-    upload: {
-      port: envVars.UPLOAD_PORT,
-      domain: envVars.UPLOAD_DOMAIN,
-    },
     log: {
       port: envVars.LOG_PORT || 9600,
     },
@@ -167,9 +156,6 @@ const config = {
     auth: {
       url: envVars.AUTH_URL,
     },
-    genAI: {
-      url: envVars.GENAI_URL,
-    },
     email: {
       url: envVars.EMAIL_URL, // This is the URL for your custom email service
       apiKey: envVars.EMAIL_API_KEY,
@@ -177,9 +163,6 @@ const config = {
     },
     log: {
       url: envVars.LOG_URL,
-    },
-    homologation: {
-      url: envVars.HOMOLOGATION_URL,
     },
   },
   openai: {
@@ -190,7 +173,6 @@ const config = {
     publicKey: envVars.AWS_PUBLIC_KEY,
     secretKey: envVars.AWS_SECRET_KEY,
   },
-  githubIssueSubmitUrl: 'https://api.github.com/repos/digital-auto/vehicle_signal_specification/issues',
   sso: {
     msGraphMeEndpoint: 'https://graph.microsoft.com/v1.0/me',
   },
