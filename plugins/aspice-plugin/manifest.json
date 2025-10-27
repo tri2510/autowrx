@@ -1,0 +1,24 @@
+{
+  "name": "ASPICE Assessment Plugin",
+  "version": "1.0.0",
+  "description": "Automotive SPICE assessment and compliance plugin for vehicle software development processes",
+  "author": "AutoWRX Team",
+  "id": "aspice-plugin",
+  "tabs": [
+    {
+      "id": "aspice-assessment",
+      "label": "ASPICE",
+      "icon": "🔍",
+      "path": "/aspice",
+      "component": "AspiceTabComponent",
+      "position": 6,
+      "permissions": ["read:vehicle-data"]
+    }
+  ],
+  "activationEvents": ["onStartup"],
+  "permissions": [
+    "read:vehicle-data",
+    "write:plugin-storage"
+  ],
+  "main": "index.tsx"
+}
