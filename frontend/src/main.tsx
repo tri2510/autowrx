@@ -18,6 +18,10 @@ import 'react-toastify/dist/ReactToastify.css'
 import { ErrorBoundary } from 'react-error-boundary'
 import ErrorFallback from './layouts/ErrorFallback.tsx'
 
+// Make React available globally for plugins
+;(window as any).React = React
+;(window as any).ReactDOM = ReactDOM
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>

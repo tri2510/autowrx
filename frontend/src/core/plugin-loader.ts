@@ -114,10 +114,10 @@ class AutoWRXPluginLoader implements PluginLoader {
   private createMockRequire() {
     return (moduleId: string) => {
       if (moduleId === 'react') {
-        return (window as any).React
+        return (window as any).React || require('react')
       }
       if (moduleId === 'react-dom') {
-        return (window as any).ReactDOM
+        return (window as any).ReactDOM || require('react-dom')
       }
       
       throw new Error(`Module ${moduleId} not available in plugin context`)

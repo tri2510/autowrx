@@ -25,6 +25,7 @@ import useGlobalStore from '@/stores/globalStore.ts'
 //   retry(() => import('@/components/organisms/NavigationBar.tsx')),
 // )
 import { NavigationBar } from '@/components/organisms/NavigationBar.tsx'
+import PluginTabSystem from '@/components/organisms/PluginTabSystem'
 
 const traverse = (
   route: RouteConfig,
@@ -80,8 +81,11 @@ const RootLayout = () => {
         )} */}
       </Suspense>
 
-      <div className="h-full overflow-y-auto">
-        <Outlet />
+      <div className="h-full overflow-y-auto flex flex-col">
+        <PluginTabSystem className="flex-shrink-0" />
+        <div className="flex-1">
+          <Outlet />
+        </div>
       </div>
 
       {config && config.instance !== 'digitalauto' && (

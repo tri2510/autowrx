@@ -1,0 +1,20 @@
+{
+  "name": "Demo Tab Plugin",
+  "version": "1.0.0",
+  "description": "A simple demo plugin to test the tab system",
+  "author": "AutoWRX Team",
+  "id": "demo-plugin",
+  "tabs": [
+    {
+      "id": "demo-tab",
+      "label": "Demo",
+      "icon": "✨",
+      "path": "/demo",
+      "component": "DemoComponent",
+      "position": 1
+    }
+  ],
+  "activationEvents": ["onStartup"],
+  "permissions": ["read:vehicle-data"],
+  "main": "index.js"
+}

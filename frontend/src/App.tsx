@@ -15,6 +15,7 @@ import { useEffect } from 'react'
 import { addLog } from '@/services/log.service.ts'
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/molecules/toaster/use-toast.ts'
+import { pluginManager } from '@/core/plugin-manager'
 
 function App() {
   const routes = useRoutes(routesConfig)
@@ -27,6 +28,10 @@ function App() {
   useEffect(() => {
     (window as any).reactToast = toast;
   }, [toast])
+
+  useEffect(() => {
+    pluginManager.initialize().catch(console.error)
+  }, [])
 
   const { data: currentUser } = useSelfProfileQuery()
 

@@ -62,10 +62,11 @@ class AutoWRXPluginAPIImpl implements AutoWRXPluginAPI {
   }
 
   getVehicleData(): VehicleData {
+    const globalState = this.getGlobalState()
     return {
-      signals: this.getGlobalState().vehicleSignals || {},
-      apis: this.getGlobalState().vehicleApis || [],
-      model: this.getGlobalState().vehicleModel || null
+      signals: globalState.vehicleSignals || {},
+      apis: globalState.vehicleApis || [],
+      model: globalState.currentModel || globalState.vehicleModel || null
     }
   }
 

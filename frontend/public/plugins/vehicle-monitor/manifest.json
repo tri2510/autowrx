@@ -1,0 +1,20 @@
+{
+  "name": "Vehicle Monitor Plugin",
+  "version": "1.0.0",
+  "description": "Real-time vehicle data monitoring and visualization",
+  "author": "Your Name",
+  "id": "vehicle-monitor",
+  "tabs": [
+    {
+      "id": "vehicle-monitor-tab",
+      "label": "Vehicle Monitor",
+      "icon": "🚗",
+      "path": "/vehicle-monitor",
+      "component": "VehicleMonitorComponent",
+      "position": 2
+    }
+  ],
+  "activationEvents": ["onStartup"],
+  "permissions": ["read:vehicle-data", "write:plugin-storage"],
+  "main": "index.js"
+}

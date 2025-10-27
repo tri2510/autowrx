@@ -1,0 +1,20 @@
+{
+  "name": "My First Plugin",
+  "version": "1.0.0",
+  "description": "Learning how to create AutoWRX plugins",
+  "author": "Me",
+  "id": "my-first-plugin",
+  "tabs": [
+    {
+      "id": "first-tab",
+      "label": "My First Tab",
+      "icon": "🎯",
+      "path": "/first",
+      "component": "FirstComponent",
+      "position": 3
+    }
+  ],
+  "activationEvents": ["onStartup"],
+  "permissions": ["read:vehicle-data"],
+  "main": "index.js"
+}

@@ -17,11 +17,13 @@ class PluginManager {
   async initialize(): Promise<void> {
     if (this.initialized) return
 
+    console.log('🔌 Initializing plugin system...')
     this.exposeGlobalAPI()
     await this.loadBuiltInPlugins()
     await this.loadUserPlugins()
     
     this.initialized = true
+    console.log('✅ Plugin system initialized')
   }
 
   private exposeGlobalAPI(): void {
@@ -32,18 +34,24 @@ class PluginManager {
 
   private async loadBuiltInPlugins(): Promise<void> {
     const builtInPlugins = [
-      '/plugins/journey-plugin',
-      '/plugins/flow-plugin',
-      '/plugins/sdv-code-plugin',
-      '/plugins/dashboard-plugin',
-      '/plugins/homologation-plugin'
+      '/plugins/demo-plugin',
+      '/plugins/vehicle-monitor',
+      '/plugins/my-first-plugin',
+      // Future built-in plugins:
+      // '/plugins/journey-plugin',
+      // '/plugins/flow-plugin', 
+      // '/plugins/sdv-code-plugin',
+      // '/plugins/dashboard-plugin',
+      // '/plugins/homologation-plugin'
     ]
 
     for (const pluginPath of builtInPlugins) {
       try {
+        console.log(`📦 Loading plugin: ${pluginPath}`)
         await this.loadPlugin(pluginPath)
+        console.log(`✅ Plugin loaded: ${pluginPath}`)
       } catch (error) {
-        console.warn(`Failed to load built-in plugin ${pluginPath}:`, error)
+        console.warn(`❌ Failed to load built-in plugin ${pluginPath}:`, error)
       }
     }
   }

@@ -35,8 +35,17 @@ const PluginTabSystem: React.FC<PluginTabSystemProps> = ({ className = '' }) => 
     tabManager.setActiveTab(tab.id)
   }
 
+  // Debug info
+  console.log('PluginTabSystem render - tabs:', tabs.length, tabs)
+
   if (tabs.length === 0) {
-    return null
+    return (
+      <div className={`plugin-tab-system ${className} bg-gray-100 p-2`}>
+        <div className="text-sm text-gray-600">
+          Plugin system loaded - no tabs registered yet
+        </div>
+      </div>
+    )
   }
 
   return (

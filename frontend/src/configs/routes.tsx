@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-// import { lazy } from 'react'
+import { lazy } from 'react'
 import RootLayout from '@/layouts/RootLayout'
 import SuspenseProvider from '@/providers/SuspenseProvider'
 import { RouteConfig } from '@/types/common.type.ts'
@@ -14,18 +14,12 @@ import PageUserProfile from '@/pages/PageUserProfile.tsx'
 import PageMyAssets from '@/pages/PageMyAssets.tsx'
 import PageNotFound from '@/pages/PageNotFound.tsx'
 import SiteConfigManagement from '@/pages/SiteConfigManagement.tsx'
-// import PageAuthSuccess from '@/pages/PageAuthSuccess.ts'
-// import { retry } from '@/lib/retry.ts'
+import PluginDemo from '@/pages/PluginDemo.tsx'
+import { retry } from '@/lib/retry.ts'
 
-// const PageHome = lazy(() => retry(() => import('@/pages/PageHome')))
-// const PageAbout = lazy(() => retry(() => import('@/pages/PageAbout')))
-// const PageModelList = lazy(() => retry(() => import('@/pages/PageModelList')))
-// const ModelDetailLayout = lazy(() =>
-//   retry(() => import('@/layouts/ModelDetailLayout')),
-// )
-// const PageModelDetail = lazy(() =>
-//   retry(() => import('@/pages/PageModelDetail')),
-// )
+// Real AutoWRX Pages
+const PageModelList = lazy(() => retry(() => import('@/pages/PageModelList')))
+const PageModelDetail = lazy(() => retry(() => import('@/pages/PageModelDetail')))
 // const PageModelArchitecture = lazy(
 //   () => import('@/pages/PageModelArchitecture'),
 // )
@@ -102,10 +96,27 @@ const routesConfig: RouteConfig[] = [
             index: true,
             element: (
               <SuspenseProvider>
-                <div 
-                  className='text-2xl font-bold grid place-items-center 
-                    h-screen w-full bg-slate-400 text-white'>
-                    Home Page</div>
+                <div className='flex flex-col items-center justify-center h-screen w-full bg-gradient-to-br from-blue-500 to-purple-600 text-white'>
+                  <div className='text-4xl font-bold mb-4'>🚀 AutoWRX</div>
+                  <div className='text-xl mb-8'>Software Defined Vehicle Platform</div>
+                  <div className='space-y-4'>
+                    <a 
+                      href='/model' 
+                      className='block bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors'
+                    >
+                      🚗 Browse Vehicle Models
+                    </a>
+                    <a 
+                      href='/plugin-demo' 
+                      className='block bg-blue-700 text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition-colors'
+                    >
+                      🔌 Plugin System Demo
+                    </a>
+                    <div className='text-center text-blue-100 text-sm'>
+                      Full plugin system integrated with vehicle models
+                    </div>
+                  </div>
+                </div>
               </SuspenseProvider>
             ),
             noBreadcrumbs: true,
@@ -144,6 +155,40 @@ const routesConfig: RouteConfig[] = [
                 element: (
                   <SuspenseProvider>
                     <SiteConfigManagement />
+                  </SuspenseProvider>
+                ),
+              },
+            ],
+          },
+          {
+            path: '/plugin-demo',
+            children: [
+              {
+                index: true,
+                element: (
+                  <SuspenseProvider>
+                    <PluginDemo />
+                  </SuspenseProvider>
+                ),
+              },
+            ],
+          },
+          {
+            path: '/model',
+            children: [
+              {
+                index: true,
+                element: (
+                  <SuspenseProvider>
+                    <PageModelList />
+                  </SuspenseProvider>
+                ),
+              },
+              {
+                path: ':model_id',
+                element: (
+                  <SuspenseProvider>
+                    <PageModelDetail />
                   </SuspenseProvider>
                 ),
               },
