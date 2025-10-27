@@ -10,7 +10,17 @@ const dotenv = require('dotenv');
 const path = require('path');
 const Joi = require('joi');
 
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+// Load isolated environment configuration
+dotenv.config({ 
+  path: path.join(__dirname, '../../.env.isolated'),
+  override: true
+});
+
+// Ensure isolated mode
+delete process.env.AUTH_URL;
+delete process.env.EMAIL_URL;
+process.env.NODE_ENV = 'production';
+process.env.STRICT_AUTH = 'false';
 
 const envVarsSchema = Joi.object()
   .keys({
@@ -42,10 +52,10 @@ const envVarsSchema = Joi.object()
     LOG_URL: Joi.string().description('Log base url'),
     // Cache service URL
     CACHE_URL: Joi.string().description('Cache base url'),
-    // Auth service
-    AUTH_URL: Joi.string().description('Auth service url'),
-    // Email URL
-    EMAIL_URL: Joi.string().description('URL to your custom email service'),
+    // Auth service - allow undefined for isolated mode
+    AUTH_URL: Joi.string().allow('').optional().description('Auth service url'),
+    // Email URL - allow undefined for isolated mode
+    EMAIL_URL: Joi.string().allow('').optional().description('URL to your custom email service'),
     EMAIL_API_KEY: Joi.string().description('API key for default email service (Brevo)'),
     EMAIL_ENDPOINT_URL: Joi.string().description('Endpoint url for default email service (Brevo)'),
     // AWS,
@@ -68,7 +78,7 @@ const envVarsSchema = Joi.object()
 const { value: envVars, error } = envVarsSchema.prefs({ errors: { label: 'key' } }).validate(process.env);
 
 if (error) {
-  throw new Error(`Config validation error: ${error.message}`);
+  throw new Error(`Isolated config validation error: ${error.message}`);
 }
 
 const config = {
@@ -154,12 +164,12 @@ const config = {
       url: envVars.CACHE_URL,
     },
     auth: {
-      url: process.env.AUTOWRX_ISOLATED ? '' : envVars.AUTH_URL, // Use empty string in isolated mode
+      url: '', // Force empty for isolated mode
     },
     email: {
-      url: process.env.AUTOWRX_ISOLATED ? '' : envVars.EMAIL_URL, // Use empty string in isolated mode
+      url: '', // Force empty for isolated mode
       apiKey: envVars.EMAIL_API_KEY,
-      endpointUrl: envVars.EMAIL_ENDPOINT_URL, // This is the endpoint URL for the default email service: Brevo
+      endpointUrl: envVars.EMAIL_ENDPOINT_URL,
     },
     log: {
       url: envVars.LOG_URL,
@@ -187,5 +197,7 @@ const config = {
 if (config.env === 'development') {
   config.jwt.accessExpirationUnit = 'days';
 }
+
+console.log('🔧 Loaded isolated configuration - AUTH_URL:', config.services.auth.url || 'DISABLED');
 
 module.exports = config;

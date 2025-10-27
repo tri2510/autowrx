@@ -21,6 +21,18 @@ const jwtVerify = async (payload, done) => {
     if (payload.type !== tokenTypes.ACCESS) {
       throw new Error('Invalid token type');
     }
+    
+    // In isolated mode, use local auth service
+    if (process.env.AUTOWRX_ISOLATED) {
+      const localAuthService = require('../services/localAuth');
+      const user = await localAuthService.getUserById(payload.sub);
+      if (user) {
+        return done(null, user);
+      }
+      return done(null, false);
+    }
+    
+    // Normal mode - use database
     const user = await User.findById(payload.sub);
     if (user) {
       return done(null, user);

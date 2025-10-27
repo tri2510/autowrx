@@ -52,6 +52,10 @@ const auth =
         user = await new Promise((resolve, reject) => {
           passport.authenticate('jwt', { session: false }, (err, user, info) => {
             if (err || info || !user) {
+              // For optional auth, resolve with null instead of rejecting
+              if (optional) {
+                return resolve(null);
+              }
               return reject(new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate'));
             }
             resolve(user);
@@ -59,14 +63,20 @@ const auth =
         });
       }
 
-      if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+      // For optional auth, it's OK if user is null
+      if (!user && !optional) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+      }
 
-      req.user = user;
+      if (user) {
+        req.user = user;
+      }
       next();
     } catch (error) {
       // If the middleware is optional, call the next middleware
-      if (optional) next();
-      else {
+      if (optional) {
+        next();
+      } else {
         logger.error(`Failed to authenticate user: %o`, error?.message || error);
         if (isAxiosError(error)) {
           next(new ApiError(error.response?.status || 401, error.response?.data?.message || 'Please authenticate'));

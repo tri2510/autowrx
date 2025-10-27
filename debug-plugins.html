@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AutoWRX Plugin Debug</title>
+</head>
+<body>
+    <h1>Plugin Loading Debug</h1>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message) {
+            console.log(message);
+            output.innerHTML += '<div>' + message + '</div>';
+        }
+
+        // Mock React for plugins
+        window.React = {
+            createElement: function(type, props, ...children) {
+                if (typeof type === 'string') {
+                    const element = document.createElement(type);
+                    if (props) {
+                        Object.keys(props).forEach(key => {
+                            if (key === 'className') {
+                                element.className = props[key];
+                            } else if (key.startsWith('on')) {
+                                element.addEventListener(key.slice(2).toLowerCase(), props[key]);
+                            } else {
+                                element.setAttribute(key, props[key]);
+                            }
+                        });
+                    }
+                    children.forEach(child => {
+                        if (typeof child === 'string') {
+                            element.appendChild(document.createTextNode(child));
+                        } else if (child) {
+                            element.appendChild(child);
+                        }
+                    });
+                    return element;
+                }
+                return null;
+            },
+            useState: function(initial) {
+                return [initial, function() {}];
+            },
+            useEffect: function(fn) {
+                setTimeout(fn, 0);
+            }
+        };
+
+        // Mock Plugin API
+        window.AutoWRXPluginAPI = {
+            registerTab: function(tab) {
+                log('✅ Tab registered: ' + tab.label);
+            },
+            showToast: function(message, type) {
+                log('📢 Toast: ' + message + ' (' + type + ')');
+            },
+            getVehicleData: function() {
+                return {
+                    signals: {'Vehicle.Speed': 50},
+                    apis: ['TestAPI'],
+                    model: {name: 'Test Model'}
+                };
+            },
+            setStorage: async function(key, value) {
+                localStorage.setItem('plugin_' + key, JSON.stringify(value));
+                log('💾 Stored: ' + key);
+            },
+            getStorage: async function(key) {
+                const value = localStorage.getItem('plugin_' + key);
+                return value ? JSON.parse(value) : null;
+            }
+        };
+
+        // Test plugin loading
+        async function testPluginLoading() {
+            log('🔌 Testing plugin loading...');
+            
+            const plugins = [
+                '/plugins/demo-plugin',
+                '/plugins/vehicle-monitor', 
+                '/plugins/my-first-plugin'
+            ];
+
+            for (const pluginPath of plugins) {
+                try {
+                    log('📦 Loading: ' + pluginPath);
+                    
+                    // Load manifest
+                    const manifestResponse = await fetch(pluginPath + '/manifest.json');
+                    if (!manifestResponse.ok) {
+                        log('❌ Failed to load manifest: ' + manifestResponse.status);
+                        continue;
+                    }
+                    const manifest = await manifestResponse.json();
+                    log('✅ Manifest loaded: ' + manifest.name);
+                    
+                    // Load plugin script
+                    const scriptResponse = await fetch(pluginPath + '/' + manifest.main);
+                    if (!scriptResponse.ok) {
+                        log('❌ Failed to load script: ' + scriptResponse.status);
+                        continue;
+                    }
+                    const scriptCode = await scriptResponse.text();
+                    log('✅ Script loaded: ' + manifest.main);
+                    
+                    // Execute plugin
+                    eval(scriptCode);
+                    log('✅ Plugin executed');
+                    
+                    // Test plugin activation
+                    const PluginClass = window[manifest.name.replace(/\s+/g, '') + 'Plugin'] || 
+                                       window.DemoPlugin || 
+                                       window.VehicleMonitorPlugin ||
+                                       window.MyFirstPlugin;
+                                       
+                    if (PluginClass) {
+                        const instance = new PluginClass();
+                        await instance.activate();
+                        log('✅ Plugin activated: ' + manifest.name);
+                    } else {
+                        log('❌ Plugin class not found for: ' + manifest.name);
+                    }
+                    
+                } catch (error) {
+                    log('❌ Error loading ' + pluginPath + ': ' + error.message);
+                }
+            }
+            
+            log('🎉 Plugin loading test complete!');
+        }
+
+        // Start test
+        testPluginLoading();
+    </script>
+</body>
+</html>

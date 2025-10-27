@@ -6,6 +6,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+import React from 'react'
 import { pluginLoader } from './plugin-loader'
 import { tabManager } from './tab-manager'
 import { pluginAPI } from './plugin-api'
@@ -18,7 +19,7 @@ class PluginManager {
     if (this.initialized) return
 
     console.log('🔌 Initializing plugin system...')
-    this.exposeGlobalAPI()
+    await this.exposeGlobalAPI()
     await this.loadBuiltInPlugins()
     await this.loadUserPlugins()
     
@@ -26,50 +27,35 @@ class PluginManager {
     console.log('✅ Plugin system initialized')
   }
 
-  private exposeGlobalAPI(): void {
+  private async exposeGlobalAPI(): Promise<void> {
     if (typeof window !== 'undefined') {
       (window as any).AutoWRXPluginAPI = pluginAPI
+      // Expose React for plugins
+      ;(window as any).React = React
+      console.log('✅ Global API and React exposed for plugins')
     }
   }
 
   private async loadBuiltInPlugins(): Promise<void> {
-    const builtInPlugins = [
-      '/plugins/demo-plugin',
-      '/plugins/vehicle-monitor',
-      '/plugins/my-first-plugin',
-      // Future built-in plugins:
-      // '/plugins/journey-plugin',
-      // '/plugins/flow-plugin', 
-      // '/plugins/sdv-code-plugin',
-      // '/plugins/dashboard-plugin',
-      // '/plugins/homologation-plugin'
-    ]
-
-    for (const pluginPath of builtInPlugins) {
-      try {
-        console.log(`📦 Loading plugin: ${pluginPath}`)
-        await this.loadPlugin(pluginPath)
-        console.log(`✅ Plugin loaded: ${pluginPath}`)
-      } catch (error) {
-        console.warn(`❌ Failed to load built-in plugin ${pluginPath}:`, error)
-      }
-    }
+    // Built-in plugins are handled by user plugins for now
+    console.log('📦 Built-in plugins: None currently')
   }
 
   private async loadUserPlugins(): Promise<void> {
-    try {
-      const response = await fetch('/api/plugins')
-      const userPlugins = await response.json()
+    const userPlugins = [
+      '/plugins/demo-plugin',
+      '/plugins/vehicle-monitor', 
+      '/plugins/my-first-plugin'
+    ]
 
-      for (const plugin of userPlugins) {
-        try {
-          await this.loadPlugin(plugin.path)
-        } catch (error) {
-          console.error(`Failed to load user plugin ${plugin.path}:`, error)
-        }
+    for (const pluginPath of userPlugins) {
+      try {
+        console.log(`📦 Loading user plugin: ${pluginPath}`)
+        await this.loadPlugin(pluginPath)
+        console.log(`✅ User plugin loaded: ${pluginPath}`)
+      } catch (error) {
+        console.warn(`❌ Failed to load user plugin ${pluginPath}:`, error)
       }
-    } catch (error) {
-      console.warn('No user plugins API available')
     }
   }
 

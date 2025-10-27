@@ -219,6 +219,20 @@ const sso = catchAsync(async (req, res) => {
   res.send({ user, tokens });
 });
 
+const status = catchAsync(async (req, res) => {
+  const config = require('../config/config');
+  // Check if AUTH_URL exists and is not undefined/null
+  const mode = config.services.auth.url && config.services.auth.url !== 'undefined' ? 'external' : 'isolated';
+  
+  res.status(httpStatus.OK).json({
+    mode,
+    message: mode === 'isolated' ? 'AutoWRX Isolated Development Environment' : 'AutoWRX Production Environment',
+    authenticated: !!req.user,
+    user: req.user || null,
+    authUrl: config.services.auth.url || 'none'
+  });
+});
+
 module.exports = {
   authenticate,
   authorize,
@@ -232,4 +246,5 @@ module.exports = {
   verifyEmail,
   githubCallback,
   sso,
+  status,
 };

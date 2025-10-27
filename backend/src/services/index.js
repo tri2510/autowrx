@@ -6,9 +6,31 @@
 //
 // SPDX-License-Identifier: MIT
 
-module.exports.authService = require('./auth.service');
+// Use local auth service if no external auth URL is configured
+const config = require('../config/config');
+if (config.services.auth.url) {
+  module.exports.authService = require('./auth.service');
+} else {
+  module.exports.authService = require('./localAuth');
+}
+
+// Use simple token service in isolated mode
+if (process.env.AUTOWRX_ISOLATED) {
+  const originalTokenService = require('./token.service');
+  const localAuthService = require('./localAuth');
+  
+  // Override generateAuthTokens to use simple tokens
+  module.exports.tokenService = {
+    ...originalTokenService,
+    generateAuthTokens: (user) => {
+      return localAuthService.generateSimpleTokens(user);
+    }
+  };
+} else {
+  module.exports.tokenService = require('./token.service');
+}
 module.exports.emailService = require('./email.service');
-module.exports.tokenService = require('./token.service');
+// tokenService is already assigned above in isolated mode check
 module.exports.userService = require('./user.service');
 module.exports.tagService = require('./tag.service');
 module.exports.modelService = require('./model.service');
