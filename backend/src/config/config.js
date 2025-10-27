@@ -43,9 +43,9 @@ const envVarsSchema = Joi.object()
     // Cache service URL
     CACHE_URL: Joi.string().description('Cache base url'),
     // Auth service
-    AUTH_URL: Joi.string().description('Auth service url'),
+    AUTH_URL: Joi.string().allow('').description('Auth service url'),
     // Email URL
-    EMAIL_URL: Joi.string().description('URL to your custom email service'),
+    EMAIL_URL: Joi.string().allow('').description('URL to your custom email service'),
     EMAIL_API_KEY: Joi.string().description('API key for default email service (Brevo)'),
     EMAIL_ENDPOINT_URL: Joi.string().description('Endpoint url for default email service (Brevo)'),
     // AWS,
