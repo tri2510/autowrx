@@ -69,10 +69,21 @@ const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
   const user = await authService.loginUserWithEmailAndPassword(email, password);
   const tokens = await tokenService.generateAuthTokens(user);
+  
+  // Set refresh token cookie
   res.cookie(config.jwt.cookie.name, tokens.refresh.token, {
     expires: tokens.refresh.expires,
     ...config.jwt.cookie.options,
   });
+  
+  // Also set access token cookie for isolated mode
+  if (process.env.AUTOWRX_ISOLATED) {
+    res.cookie(`${config.jwt.cookie.name}_access`, tokens.access.token, {
+      expires: tokens.access.expires,
+      ...config.jwt.cookie.options,
+    });
+  }
+  
   delete tokens.refresh;
   res.send({ user, tokens });
 });
@@ -83,6 +94,15 @@ const logout = catchAsync(async (req, res) => {
   res.clearCookie(config.jwt.cookie.name, {
     ...config.jwt.cookie.options,
   });
+  
+  // Clear access token cookie in isolated mode
+  if (process.env.AUTOWRX_ISOLATED) {
+    res.clearCookie(`${config.jwt.cookie.name}_access`);
+    res.clearCookie(`${config.jwt.cookie.name}_access`, {
+      ...config.jwt.cookie.options,
+    });
+  }
+  
   res.status(httpStatus.NO_CONTENT).send();
 });
 

@@ -13,7 +13,21 @@ const { User, Asset } = require('../models');
 
 const jwtOptions = {
   secretOrKey: config.jwt.secret,
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  jwtFromRequest: ExtractJwt.fromExtractors([
+    ExtractJwt.fromAuthHeaderAsBearerToken(),
+    function(request) {
+      let token = null;
+      if (request && request.cookies) {
+        // First try access token cookie (for isolated mode)
+        token = request.cookies[`${config.jwt.cookie.name}_access`];
+        // Fallback to refresh token cookie (shouldn't be used for auth but as backup)
+        if (!token) {
+          token = request.cookies[config.jwt.cookie.name];
+        }
+      }
+      return token;
+    }
+  ]),
 };
 
 const jwtVerify = async (payload, done) => {

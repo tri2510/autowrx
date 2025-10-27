@@ -48,14 +48,31 @@ class PluginManager {
       '/plugins/my-first-plugin'
     ]
 
+    console.log(`🔍 Starting to load ${userPlugins.length} user plugins...`)
+    let loadedCount = 0
+    let errorCount = 0
+
     for (const pluginPath of userPlugins) {
       try {
         console.log(`📦 Loading user plugin: ${pluginPath}`)
         await this.loadPlugin(pluginPath)
+        loadedCount++
         console.log(`✅ User plugin loaded: ${pluginPath}`)
       } catch (error) {
-        console.warn(`❌ Failed to load user plugin ${pluginPath}:`, error)
+        errorCount++
+        console.error(`❌ Failed to load user plugin ${pluginPath}:`, error)
+        if (error instanceof Error) {
+          console.error(`   Error details: ${error.message}`)
+          console.error(`   Stack trace:`, error.stack)
+        }
       }
+    }
+
+    console.log(`📊 Plugin loading summary: ${loadedCount} loaded, ${errorCount} failed`)
+    
+    // Store plugin count for debugging
+    if (typeof window !== 'undefined') {
+      (window as any).pluginLoadStatus = { loaded: loadedCount, failed: errorCount, total: userPlugins.length }
     }
   }
 
