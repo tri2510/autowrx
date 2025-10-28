@@ -23,10 +23,11 @@ class AutoWRXPluginLoader implements PluginLoader {
       const moduleFunction = new Function('exports', 'require', 'module', moduleCode)
       const moduleExports: any = {}
       const mockModule = { exports: moduleExports }
-      
+
       moduleFunction.call(moduleExports, moduleExports, this.createMockRequire(), mockModule)
-      
-      const PluginClass = moduleExports.default || moduleExports
+
+      // Get the exported class from module.exports (set by plugin code)
+      const PluginClass = mockModule.exports.default || mockModule.exports
       const instance: PluginInstance = new PluginClass()
 
       const loadedPlugin: LoadedPlugin = {
@@ -125,4 +126,16 @@ class AutoWRXPluginLoader implements PluginLoader {
   }
 }
 
-export const pluginLoader = new AutoWRXPluginLoader()
+// Use window-level singleton to persist across HMR reloads
+function getPluginLoaderSingleton(): AutoWRXPluginLoader {
+  if (typeof window !== 'undefined') {
+    if (!(window as any).__pluginLoader) {
+      ;(window as any).__pluginLoader = new AutoWRXPluginLoader()
+    }
+    return (window as any).__pluginLoader
+  }
+  // Fallback for SSR
+  return new AutoWRXPluginLoader()
+}
+
+export const pluginLoader = getPluginLoaderSingleton()

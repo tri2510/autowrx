@@ -118,4 +118,16 @@ class AutoWRXPluginAPIImpl implements AutoWRXPluginAPI {
   }
 }
 
-export const pluginAPI = new AutoWRXPluginAPIImpl()
+// Use window-level singleton to persist across HMR reloads
+function getPluginAPISingleton(): AutoWRXPluginAPIImpl {
+  if (typeof window !== 'undefined') {
+    if (!(window as any).__pluginAPI) {
+      ;(window as any).__pluginAPI = new AutoWRXPluginAPIImpl()
+    }
+    return (window as any).__pluginAPI
+  }
+  // Fallback for SSR
+  return new AutoWRXPluginAPIImpl()
+}
+
+export const pluginAPI = getPluginAPISingleton()

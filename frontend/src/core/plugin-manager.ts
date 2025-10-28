@@ -20,18 +20,69 @@ type InstalledPluginRecord = {
 
 class PluginManager {
   private initialized = false
+  private initializationPromise: Promise<void> | null = null
   private installedCache: Map<string, InstalledPluginRecord> = new Map()
 
   async initialize(): Promise<void> {
-    if (this.initialized) return
+    // If already initialized, return immediately
+    if (this.initialized) {
+      console.log('🔌 Plugin system already initialized, skipping...')
+      return
+    }
+
+    // If initialization is in progress, wait for it to complete
+    if (this.initializationPromise) {
+      console.log('🔌 Plugin system initialization in progress, waiting...')
+      return this.initializationPromise
+    }
 
     console.log('🔌 Initializing plugin system...')
-    await this.exposeGlobalAPI()
-    await this.loadBuiltInPlugins()
-    await this.loadUserPlugins()
-    
-    this.initialized = true
-    console.log('✅ Plugin system initialized')
+
+    // Create initialization promise and store it
+    this.initializationPromise = this.doInitialize()
+
+    try {
+      await this.initializationPromise
+    } finally {
+      this.initializationPromise = null
+    }
+  }
+
+  private async doInitialize(): Promise<void> {
+    try {
+      await this.exposeGlobalAPI()
+      await this.loadBuiltInPlugins()
+      await this.loadUserPlugins()
+
+      this.initialized = true
+
+      // Defensive checks for pluginLoader and tabManager
+      const loadedCount = (pluginLoader && typeof pluginLoader.listPlugins === 'function')
+        ? pluginLoader.listPlugins().length
+        : 0
+      const tabCount = (tabManager && typeof tabManager.getActiveTabs === 'function')
+        ? tabManager.getActiveTabs().length
+        : 0
+
+      console.log(`✅ Plugin system initialized: ${loadedCount} plugins loaded, ${tabCount} tabs registered`)
+
+      // Expose for debugging
+      try {
+        if (typeof window !== 'undefined') {
+          console.log('🔍 Exposing plugin managers to window...')
+          ;(window as any).pluginManager = this
+          ;(window as any).tabManager = tabManager
+          console.log('✅ Managers exposed to window')
+        }
+      } catch (exposeError) {
+        console.error('❌ Failed to expose managers:', exposeError)
+      }
+    } catch (error) {
+      console.error('❌ Failed to initialize plugin system:', error)
+      console.error('❌ Error stack:', (error as Error).stack)
+      this.initialized = false
+      throw error
+    }
   }
 
   private async exposeGlobalAPI(): Promise<void> {
@@ -50,21 +101,30 @@ class PluginManager {
 
   private async loadUserPlugins(): Promise<void> {
     try {
+      console.log('🔌 Fetching installed plugins from API...')
       const installed = await this.fetchInstalledPlugins()
+      console.log(`🔌 Found ${installed.length} installed plugins:`, installed)
       this.installedCache.clear()
       installed.forEach((plugin) => this.installedCache.set(plugin.id, plugin))
+      console.log('🔌 Syncing installed plugins...')
       await this.syncInstalledPlugins(installed)
+      console.log('✅ Plugin sync complete')
     } catch (error) {
-      console.error('Failed to load installed plugins:', error)
+      console.error('❌ Failed to load installed plugins:', error)
     }
   }
 
   async loadPlugin(pluginPath: string): Promise<LoadedPlugin> {
-    const plugin = await pluginLoader.loadPlugin(pluginPath)
-    
-    pluginAPI.setCurrentPlugin(plugin.manifest.id)
-    
+    // First, fetch the manifest to get the plugin ID
+    const manifestResponse = await fetch(`${pluginPath}/manifest.json`)
+    const manifest = await manifestResponse.json()
+
+    // Set plugin context BEFORE loading (so activate() can use it)
+    pluginAPI.setCurrentPlugin(manifest.id)
+
     try {
+      const plugin = await pluginLoader.loadPlugin(pluginPath)
+
       if (plugin.manifest.tabs) {
         for (const tab of plugin.manifest.tabs) {
           tabManager.registerTab(plugin.manifest.id, tab)
@@ -191,11 +251,14 @@ class PluginManager {
   }
 
   private async syncInstalledPlugins(installed: InstalledPluginRecord[]): Promise<void> {
+    console.log('🔄 Starting plugin sync...')
     const installedIds = new Set(installed.map((plugin) => plugin.id))
     const currentlyLoaded = pluginLoader.listPlugins()
+    console.log(`📊 Currently loaded: ${currentlyLoaded.length}, Installed: ${installed.length}`)
 
     for (const loaded of currentlyLoaded) {
       if (!installedIds.has(loaded.manifest.id)) {
+        console.log(`❌ Unloading plugin: ${loaded.manifest.id}`)
         await this.unloadPlugin(loaded.manifest.id)
       }
     }
@@ -205,10 +268,29 @@ class PluginManager {
     for (const plugin of installed) {
       const alreadyLoaded = updatedLoaded.find((loaded) => loaded.manifest.id === plugin.id)
       if (!alreadyLoaded) {
+        console.log(`⏳ Loading plugin: ${plugin.id} from ${plugin.baseUrl}`)
         await this.loadPlugin(plugin.baseUrl)
+        console.log(`✅ Loaded plugin: ${plugin.id}`)
+      } else {
+        console.log(`✓ Plugin already loaded: ${plugin.id}`)
       }
     }
   }
 }
 
-export const pluginManager = new PluginManager()
+// Use window-level singleton to persist across HMR reloads
+function getPluginManagerSingleton(): PluginManager {
+  if (typeof window !== 'undefined') {
+    if (!(window as any).__pluginManager) {
+      console.log('🔌 Creating new PluginManager singleton')
+      ;(window as any).__pluginManager = new PluginManager()
+    } else {
+      console.log('🔌 Reusing existing PluginManager singleton')
+    }
+    return (window as any).__pluginManager
+  }
+  // Fallback for SSR
+  return new PluginManager()
+}
+
+export const pluginManager = getPluginManagerSingleton()

@@ -130,4 +130,16 @@ class AutoWRXTabManager implements TabManager {
   }
 }
 
-export const tabManager = new AutoWRXTabManager()
+// Use window-level singleton to persist across HMR reloads
+function getTabManagerSingleton(): AutoWRXTabManager {
+  if (typeof window !== 'undefined') {
+    if (!(window as any).__tabManager) {
+      ;(window as any).__tabManager = new AutoWRXTabManager()
+    }
+    return (window as any).__tabManager
+  }
+  // Fallback for SSR
+  return new AutoWRXTabManager()
+}
+
+export const tabManager = getTabManagerSingleton()

@@ -78,12 +78,11 @@ const PageModelDetail: React.FC = () => {
         api.setGlobalState('vehicleApis', currentModel.apis)
       }
 
-      // Get plugin tabs
-      setTimeout(() => {
-        const tabs = tabManager.getActiveTabs()
-        setPluginTabs(tabs)
-        setIsLoading(false)
-      }, 1000)
+      // Get plugin tabs immediately after initialization
+      const tabs = tabManager.getActiveTabs()
+      console.log('🔌 Plugin tabs loaded:', tabs)
+      setPluginTabs(tabs)
+      setIsLoading(false)
 
     } catch (error) {
       console.error('Failed to initialize model page:', error)
