@@ -14,6 +14,7 @@ const extensions = [
     createdAt: now,
     updatedAt: now,
     latestVersion: '1.1.0',
+    channel: 'stable',
     versions: [
       {
         version: '1.1.0',
@@ -22,6 +23,7 @@ const extensions = [
         bundleUrl: 'http://localhost:3200/plugins-runtime/weather-insights/index.js',
         integrity: undefined,
         permissions: ['vehicle:read', 'dom:read'],
+        channel: 'stable',
         engine: { autowrx: '^2.0.0' },
         manifest: {
           id: 'weather-insights',
@@ -51,6 +53,7 @@ const extensions = [
         bundleUrl: 'http://localhost:3200/plugins-runtime/weather-insights/index.js',
         integrity: undefined,
         permissions: ['vehicle:read'],
+        channel: 'legacy',
         engine: { autowrx: '^1.9.0' }
       }
     ]

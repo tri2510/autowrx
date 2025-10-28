@@ -1,5 +1,12 @@
 import { PluginManifest } from '@/types/plugin.types'
 
+export interface ExtensionVersionSummary {
+  version: string
+  state: 'draft' | 'released' | 'deprecated'
+  permissions?: string[]
+  channel?: string
+}
+
 export interface ExtensionSummary {
   id: string
   providerId: string
@@ -8,6 +15,8 @@ export interface ExtensionSummary {
   description?: string
   tags?: string[]
   latestVersion?: string
+  channel?: string
+  versions?: ExtensionVersionSummary[]
 }
 
 export interface ExtensionVersionInfo {

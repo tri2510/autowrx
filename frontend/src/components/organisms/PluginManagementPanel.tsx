@@ -8,7 +8,7 @@ import {
   uploadPlugin,
   updatePlugin
 } from '@/services/pluginMarketplace.service'
-import { fetchRegistryCatalog, ExtensionSummary } from '@/services/extensionRegistry.service'
+import { fetchRegistryCatalog, fetchRegistryVersion, ExtensionSummary } from '@/services/extensionRegistry.service'
 import { pluginManager, InstalledPluginRecord } from '@/core/plugin-manager'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
@@ -24,6 +24,7 @@ interface PluginManagementPanelProps {
 interface MarketplaceEntry extends ExtensionSummary {
   source: 'registry' | 'local'
   version?: string
+  permissions?: string[]
 }
 
 interface EditFormState {
@@ -129,11 +130,16 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
       let registryCatalog: MarketplaceEntry[] = []
       try {
         const items = await fetchRegistryCatalog()
-        registryCatalog = items.map((item) => ({
-          ...item,
-          source: 'registry',
-          version: item.latestVersion
-        }))
+        registryCatalog = items.map((item) => {
+          const latestVersion = item.latestVersion || item.versions?.find((entry) => entry.state === 'released')?.version
+          const latestMeta = item.versions?.find((entry) => entry.version === latestVersion)
+          return {
+            ...item,
+            source: 'registry' as const,
+            version: latestVersion,
+            permissions: latestMeta?.permissions || []
+          }
+        })
       } catch (registryError) {
         console.warn('Registry catalog fetch failed, falling back to local catalog', registryError)
         try {
@@ -147,7 +153,9 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
             tags: plugin.tags,
             latestVersion: plugin.version,
             version: plugin.version,
-            source: 'local'
+            channel: 'local',
+            permissions: plugin.permissions || [],
+            source: 'local' as const
           }))
         } catch (localError) {
           console.error('Failed to load fallback catalog:', localError)
@@ -178,10 +186,30 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
     }
   }
 
-  const handleRegistryInstall = async (extensionId: string, version?: string) => {
+  const handleRegistryInstall = async (entry: MarketplaceEntry) => {
     try {
       setLoading(true)
-      await pluginManager.installFromRegistry(extensionId, version)
+      let permissions: string[] = entry.permissions || []
+      let resolvedVersion = entry.version
+
+      try {
+        const versionInfo = await fetchRegistryVersion(entry.id, entry.version || 'latest')
+        permissions = versionInfo.permissions || versionInfo.manifest?.permissions || permissions
+        resolvedVersion = versionInfo.version
+      } catch (versionError) {
+        console.warn('Failed to fetch registry version details:', versionError)
+      }
+
+      if (permissions && permissions.length > 0) {
+        const confirmMessage = `Install "${entry.name}" with the following permissions:\n\n• ${permissions.join('\n• ')}\n\nDo you want to continue?`
+        const confirmed = window.confirm(confirmMessage)
+        if (!confirmed) {
+          setLoading(false)
+          return
+        }
+      }
+
+      await pluginManager.installFromRegistry(entry.id, resolvedVersion)
       await pluginManager.refreshInstalledPlugins()
       toast.success('Extension installed from registry')
       await loadData()
@@ -537,10 +565,20 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
                               <span key={tag} className='rounded-full border border-slate-700 px-2 py-0.5'>#{tag}</span>
                             ))}
                           </div>
+                          <div className='flex items-center gap-3 flex-wrap'>
+                            {plugin.channel && (
+                              <span className='rounded-full border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 text-xs text-blue-100'>
+                                {plugin.channel}
+                              </span>
+                            )}
+                            {plugin.permissions && plugin.permissions.length > 0 && (
+                              <span className='text-xs text-slate-400'>Requires: {plugin.permissions.join(', ')}</span>
+                            )}
+                          </div>
                           <div className='flex items-center gap-3'>
                             <button
                               className='rounded-md border border-emerald-500/60 px-3 py-1 text-sm text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-60'
-                              onClick={() => plugin.source === 'registry' ? handleRegistryInstall(plugin.id, plugin.version) : handleLocalInstall(plugin.id)}
+                              onClick={() => plugin.source === 'registry' ? handleRegistryInstall(plugin) : handleLocalInstall(plugin.id)}
                               disabled={alreadyInstalled || loading}
                             >
                               {alreadyInstalled ? 'Installed' : plugin.source === 'registry' ? 'Install' : 'Install (local)'}
