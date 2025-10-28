@@ -114,6 +114,11 @@ passport.use('jwt', jwtStrategy);
 app.use('/v2', routesV2);
 app.use('/api/plugins', pluginRegistryRoutes);
 app.use('/api/extensions', extensionRegistryRoutes);
+
+// Basic health endpoint for orchestration scripts
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok' });
+});
 app.use('/static', express.static(path.join(__dirname, '../static')));
 app.use('/images', express.static(path.join(__dirname, '../static/images')));
 app.use('/plugins-runtime', express.static(pluginRegistryService.getInstalledStaticPath()));
