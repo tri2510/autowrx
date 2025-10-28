@@ -33,9 +33,26 @@ if [ ! -d "$REGISTRY_DIR/node_modules" ]; then
   (cd "$REGISTRY_DIR" && npm install)
 fi
 
+REGISTRY_STARTED=0
+
+stop_registry() {
+  if [ "$REGISTRY_STARTED" -eq 1 ] && [ -f "$REGISTRY_PID_FILE" ]; then
+    local REGISTRY_PID=$(cat "$REGISTRY_PID_FILE")
+    if ps -p "$REGISTRY_PID" >/dev/null 2>&1; then
+      echo "Stopping registry-service (PID $REGISTRY_PID)"
+      kill "$REGISTRY_PID" 2>/dev/null || true
+      wait "$REGISTRY_PID" 2>/dev/null || true
+    fi
+    rm -f "$REGISTRY_PID_FILE"
+  fi
+}
+
+trap stop_registry EXIT
+
 echo "Starting registry-service on http://localhost:4400"
 (cd "$REGISTRY_DIR" && npm run dev >"$REGISTRY_LOG_FILE" 2>&1 &)
 REGISTRY_PID=$!
+REGISTRY_STARTED=1
 echo $REGISTRY_PID > "$REGISTRY_PID_FILE"
 
 echo "Registry service PID: $REGISTRY_PID (logs: $REGISTRY_LOG_FILE)"
@@ -50,4 +67,12 @@ if [ ! -x "$SCRIPT_DIR/start-isolated.sh" ]; then
 fi
 
 echo "Launching AutoWRX isolated stack..."
-EXTENSION_REGISTRY_URL="$EXTENSION_REGISTRY_URL" "$SCRIPT_DIR/start-isolated.sh"
+if ! EXTENSION_REGISTRY_URL="$EXTENSION_REGISTRY_URL" "$SCRIPT_DIR/start-isolated.sh"; then
+  echo "AutoWRX isolated stack failed to start." >&2
+  if [ -f "$SCRIPT_DIR/logs/backend-isolated.log" ]; then
+    echo "---- backend-isolated.log (tail) ----" >&2
+    tail -n 40 "$SCRIPT_DIR/logs/backend-isolated.log" >&2
+    echo "-------------------------------------" >&2
+  fi
+  exit 1
+fi
