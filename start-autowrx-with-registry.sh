@@ -44,6 +44,21 @@ if [ -f "$REGISTRY_PID_FILE" ]; then
   rm -f "$REGISTRY_PID_FILE"
 fi
 
+kill_port() {
+  local port=$1
+  if command -v lsof >/dev/null 2>&1; then
+    local pids
+    pids=$(lsof -ti ":$port" 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+      echo "Port $port in use by PID(s): $pids — terminating."
+      for pid in $pids; do
+        kill "$pid" 2>/dev/null || true
+      done
+      sleep 1
+    fi
+  fi
+}
+
 kill_port 4400
 
 if [ ! -d "$REGISTRY_DIR/node_modules" ]; then
