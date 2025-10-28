@@ -25,6 +25,42 @@ export type InstalledPluginRecord = {
 
 const DYNAMIC_INSTALL_STORAGE_KEY = 'autowrx-registry-installs'
 
+async function verifyBundleIntegrity(bundleCode: string, integrity?: string): Promise<void> {
+  if (!integrity) {
+    return
+  }
+
+  const [algToken, hash] = integrity.split('-')
+  if (!algToken || !hash) {
+    throw new Error('Invalid integrity format')
+  }
+
+  if (typeof window === 'undefined' || !(window.crypto?.subtle)) {
+    console.warn('Web Crypto not available; skipping integrity verification')
+    return
+  }
+
+  const normalizedAlg = algToken.toLowerCase() === 'sha256' ? 'SHA-256'
+    : algToken.toLowerCase() === 'sha384' ? 'SHA-384'
+      : algToken.toLowerCase() === 'sha512' ? 'SHA-512'
+        : null
+
+  if (!normalizedAlg) {
+    console.warn(`Unsupported integrity algorithm: ${algToken}; skipping verification`)
+    return
+  }
+
+  const encoder = new TextEncoder()
+  const data = encoder.encode(bundleCode)
+  const digestBuffer = await window.crypto.subtle.digest(normalizedAlg, data)
+  const digestArray = Array.from(new Uint8Array(digestBuffer))
+  const digestHex = digestArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+
+  if (digestHex !== hash.toLowerCase()) {
+    throw new Error('Bundle integrity check failed')
+  }
+}
+
 class PluginManager {
   private initialized = false
   private initializationPromise: Promise<void> | null = null
@@ -302,6 +338,7 @@ class PluginManager {
     }
 
     const bundleCode = await bundleResponse.text()
+    await verifyBundleIntegrity(bundleCode, payload.integrity)
     const baseUrl = `registry://${manifest.id}@${payload.version || 'latest'}`
 
     await this.activatePlugin(manifest, () => pluginLoader.loadPluginFromBundle(manifest, bundleCode, {
@@ -418,6 +455,7 @@ class PluginManager {
       throw new Error(`Failed to download bundle for ${record.id}: ${bundleResponse.statusText}`)
     }
     const bundleCode = await bundleResponse.text()
+    await verifyBundleIntegrity(bundleCode, record.integrity)
 
     await this.activatePlugin(record.manifest, () => pluginLoader.loadPluginFromBundle(record.manifest, bundleCode, {
       baseUrl: record.baseUrl,

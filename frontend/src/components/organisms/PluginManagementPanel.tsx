@@ -196,9 +196,19 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
       setLoading(true)
       const record = installed.find((item) => item.id === pluginId)
       if (record?.source === 'registry') {
+        const confirmDisable = window.confirm('Disable this registry extension for this environment? You can reinstall it later from the marketplace.')
+        if (!confirmDisable) {
+          setLoading(false)
+          return
+        }
         await pluginManager.uninstallRegistryPlugin(pluginId)
         toast.success('Extension disabled for this environment')
       } else {
+        const confirmRemove = window.confirm('Remove this local plugin? This deletes the runtime copy for all users.')
+        if (!confirmRemove) {
+          setLoading(false)
+          return
+        }
         await uninstall(pluginId)
         toast.success('Plugin removed')
       }

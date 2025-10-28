@@ -20,7 +20,7 @@ const extensions = [
         state: 'released',
         releasedAt: now,
         bundleUrl: 'http://localhost:3200/plugins-runtime/weather-insights/index.js',
-        integrity: 'sha256-PLACEHOLDER',
+        integrity: undefined,
         permissions: ['vehicle:read', 'dom:read'],
         engine: { autowrx: '^2.0.0' },
         manifest: {
@@ -49,7 +49,7 @@ const extensions = [
         state: 'deprecated',
         releasedAt: now,
         bundleUrl: 'http://localhost:3200/plugins-runtime/weather-insights/index.js',
-        integrity: 'sha256-PLACEHOLDER-OLD',
+        integrity: undefined,
         permissions: ['vehicle:read'],
         engine: { autowrx: '^1.9.0' }
       }
