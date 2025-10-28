@@ -3,8 +3,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REGISTRY_DIR="$SCRIPT_DIR/registry-service"
-LOG_DIR="$SCRIPT_DIR/logs"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REGISTRY_DIR="$REPO_ROOT/registry-service"
+LOG_DIR="$REPO_ROOT/logs"
 
 mkdir -p "$LOG_DIR"
 
@@ -14,7 +15,8 @@ if ! command -v npm >/dev/null 2>&1; then
 fi
 
 if [ ! -d "$REGISTRY_DIR" ]; then
-  echo "registry-service directory not found. Did you check out the feature branch?" >&2
+  echo "registry-service directory not found at: $REGISTRY_DIR" >&2
+  echo "Ensure you're on the feature/extension-registry-prototype branch." >&2
   exit 1
 fi
 

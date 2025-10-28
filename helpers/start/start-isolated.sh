@@ -8,46 +8,26 @@ set -e
 echo "🏭 Starting AutoWRX Isolated Production Environment..."
 echo "===================================================="
 
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LOG_DIR="$REPO_ROOT/logs"
+BACKEND_DIR="$REPO_ROOT/backend"
+FRONTEND_DIR="$REPO_ROOT/frontend"
+STOP_AUTOWRX_SCRIPT="$REPO_ROOT/helpers/stop/stop-autowrx.sh"
+STOP_ISOLATED_SCRIPT="$REPO_ROOT/helpers/stop/stop-isolated.sh"
 
-print_status() {
-    echo -e "${BLUE}[AutoWRX-ISO]${NC} $1"
-}
+source "$REPO_ROOT/helpers/common.sh"
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Check if we're in the right directory
-if [ ! -f "PLUGIN_SYSTEM_IMPLEMENTATION.md" ]; then
-    print_error "Please run this script from the AutoWRX root directory"
-    exit 1
-fi
-
-# Create log directory
-mkdir -p logs
+mkdir -p "$LOG_DIR"
 
 print_status "Starting Isolated Backend Server..."
 echo "------------------------------------"
 
 # Stop any existing processes
 print_status "Stopping existing processes..."
-./stop-autowrx.sh 2>/dev/null || true
+"$STOP_AUTOWRX_SCRIPT" 2>/dev/null || true
 
-cd backend
+cd "$BACKEND_DIR"
 
 # Install backend dependencies if needed
 if [ ! -d "node_modules" ]; then
@@ -61,9 +41,9 @@ cp .env.isolated .env
 
 # Start isolated backend
 print_status "Starting isolated backend with local auth and in-memory database..."
-node start-isolated.js > ../logs/backend-isolated.log 2>&1 &
+node start-isolated.js > "$LOG_DIR/backend-isolated.log" 2>&1 &
 BACKEND_PID=$!
-echo $BACKEND_PID > ../logs/backend-isolated.pid
+echo $BACKEND_PID > "$LOG_DIR/backend-isolated.pid"
 
 # Wait for backend to start
 sleep 5
@@ -77,12 +57,12 @@ else
     exit 1
 fi
 
-cd ..
+cd "$REPO_ROOT"
 
 print_status "Starting Frontend Server..."
 echo "------------------------------------"
 
-cd frontend
+cd "$FRONTEND_DIR"
 
 # Install frontend dependencies if needed
 if [ ! -d "node_modules" ]; then
@@ -92,9 +72,9 @@ fi
 
 # Start frontend
 print_status "Starting frontend development server..."
-npm run dev > ../logs/frontend-isolated.log 2>&1 &
+npm run dev > "$LOG_DIR/frontend-isolated.log" 2>&1 &
 FRONTEND_PID=$!
-echo $FRONTEND_PID > ../logs/frontend-isolated.pid
+echo $FRONTEND_PID > "$LOG_DIR/frontend-isolated.pid"
 
 # Wait for frontend to start
 sleep 5
@@ -110,7 +90,7 @@ else
     exit 1
 fi
 
-cd ..
+cd "$REPO_ROOT"
 
 echo ""
 echo "🏭 AutoWRX Isolated Production Environment Started!"
@@ -158,7 +138,7 @@ echo "  • Vehicle Models:  http://localhost:3210/model"
 echo "  • Model Detail:    http://localhost:3210/model/bmw-x3-2024"
 echo "  • Plugin Demo:     http://localhost:3210/plugin-demo"
 echo ""
-print_warning "To stop the isolated environment, run: ./stop-isolated.sh"
+print_warning "To stop the isolated environment, run: $STOP_ISOLATED_SCRIPT"
 echo ""
 print_status "Logs available in:"
 echo "  • Backend:  logs/backend-isolated.log"
@@ -174,9 +154,10 @@ print_status "Press Ctrl+C to stop the isolated environment"
 echo ""
 
 # Keep script running and handle Ctrl+C
-trap 'echo ""; print_status "Stopping AutoWRX isolated environment..."; ./stop-isolated.sh; exit 0' INT
+trap 'echo ""; print_status "Stopping AutoWRX isolated environment..."; "$STOP_ISOLATED_SCRIPT"; exit 0' INT
 
 # Keep alive
 while true; do
     sleep 1
 done
+

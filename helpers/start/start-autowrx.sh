@@ -8,44 +8,21 @@ set -e
 echo "🚀 Starting AutoWRX Complete System..."
 echo "=================================="
 
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LOG_DIR="$REPO_ROOT/logs"
+BACKEND_DIR="$REPO_ROOT/backend"
+FRONTEND_DIR="$REPO_ROOT/frontend"
+STOP_AUTOWRX_SCRIPT="$REPO_ROOT/helpers/stop/stop-autowrx.sh"
 
-# Function to print colored output
-print_status() {
-    echo -e "${BLUE}[AutoWRX]${NC} $1"
-}
+source "$REPO_ROOT/helpers/common.sh"
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Check if we're in the right directory
-if [ ! -f "PLUGIN_SYSTEM_IMPLEMENTATION.md" ]; then
-    print_error "Please run this script from the AutoWRX root directory"
-    exit 1
-fi
-
-# Create log directory
-mkdir -p logs
+mkdir -p "$LOG_DIR"
 
 print_status "Starting Backend Server..."
 echo "------------------------------------"
 
-# Start backend in background
-cd backend
+cd "$BACKEND_DIR"
 if [ ! -f "start-dev.js" ]; then
     print_error "Backend development script not found!"
     exit 1
@@ -59,9 +36,9 @@ fi
 
 # Start backend
 print_status "Starting backend with in-memory MongoDB..."
-node start-dev.js > ../logs/backend.log 2>&1 &
+node start-dev.js > "$LOG_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
-echo $BACKEND_PID > ../logs/backend.pid
+echo $BACKEND_PID > "$LOG_DIR/backend.pid"
 
 # Wait a moment for backend to start
 sleep 3
@@ -75,13 +52,12 @@ else
     exit 1
 fi
 
-cd ..
+cd "$REPO_ROOT"
 
 print_status "Starting Frontend Server..."
 echo "------------------------------------"
 
-# Start frontend in background
-cd frontend
+cd "$FRONTEND_DIR"
 
 # Install frontend dependencies if needed
 if [ ! -d "node_modules" ]; then
@@ -91,9 +67,9 @@ fi
 
 # Start frontend
 print_status "Starting frontend development server..."
-npm run dev > ../logs/frontend.log 2>&1 &
+npm run dev > "$LOG_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
-echo $FRONTEND_PID > ../logs/frontend.pid
+echo $FRONTEND_PID > "$LOG_DIR/frontend.pid"
 
 # Wait a moment for frontend to start
 sleep 5
@@ -109,7 +85,7 @@ else
     exit 1
 fi
 
-cd ..
+cd "$REPO_ROOT"
 
 echo ""
 echo "🎉 AutoWRX System Started Successfully!"
@@ -131,7 +107,7 @@ echo "  📊 Real-time vehicle data access"
 echo "  💾 Persistent plugin storage"
 echo "  🎯 Interactive plugin API testing"
 echo ""
-print_warning "To stop the system, run: ./stop-autowrx.sh"
+print_warning "To stop the system, run: $STOP_AUTOWRX_SCRIPT"
 echo ""
 print_status "Logs available in:"
 echo "  • Backend:  logs/backend.log"
@@ -147,9 +123,10 @@ print_status "Press Ctrl+C to stop the system, or close this terminal"
 echo ""
 
 # Keep script running and handle Ctrl+C
-trap 'echo ""; print_status "Stopping AutoWRX system..."; ./stop-autowrx.sh; exit 0' INT
+trap 'echo ""; print_status "Stopping AutoWRX system..."; "$STOP_AUTOWRX_SCRIPT"; exit 0' INT
 
 # Keep alive
 while true; do
     sleep 1
 done
+
