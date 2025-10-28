@@ -6,12 +6,13 @@
 //
 // SPDX-License-Identifier: MIT
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { pluginManager } from '@/core/plugin-manager'
 import { tabManager } from '@/core/tab-manager'
 import { RegisteredTab } from '@/types/plugin.types'
 import PluginManagementPanel from '@/components/organisms/PluginManagementPanel'
+import useModelPluginStore from '@/stores/modelPluginStore'
 
 interface VehicleModel {
   id: string
@@ -30,6 +31,13 @@ const PageModelDetail: React.FC = () => {
   const [pluginTabs, setPluginTabs] = useState<RegisteredTab[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showManagement, setShowManagement] = useState(false)
+  const disabledPluginsByModel = useModelPluginStore((state) => state.disabledPlugins)
+  const modelScope = typeof model_id === 'string' ? model_id : 'global'
+  const disabledForModel = disabledPluginsByModel[modelScope] || []
+  const visiblePluginTabs = useMemo(
+    () => pluginTabs.filter((tab) => !disabledForModel.includes(tab.pluginId)),
+    [pluginTabs, disabledForModel]
+  )
 
   // Mock model data (in real app, this would come from API)
   const mockModels: Record<string, VehicleModel> = {
@@ -72,6 +80,21 @@ const PageModelDetail: React.FC = () => {
     const unsubscribe = tabManager.addListener(updateTabs)
     return unsubscribe
   }, [])
+
+  useEffect(() => {
+    if (activeTab.includes('.')) {
+      const stillVisible = visiblePluginTabs.some((tab) => tab.id === activeTab)
+      if (!stillVisible) {
+        if (visiblePluginTabs.length > 0) {
+          const nextTab = visiblePluginTabs[0]
+          setActiveTab(nextTab.id)
+          tabManager.setActiveTab(nextTab.id)
+        } else {
+          setActiveTab('sdv-code')
+        }
+      }
+    }
+  }, [activeTab, visiblePluginTabs])
 
   const initializeModelPage = async () => {
     try {
@@ -124,7 +147,7 @@ const PageModelDetail: React.FC = () => {
     setActiveTab(tabId)
 
     // If it's a plugin tab, activate it in the tab manager
-    const pluginTab = pluginTabs.find(tab => tab.id === tabId)
+    const pluginTab = visiblePluginTabs.find(tab => tab.id === tabId)
     if (pluginTab) {
       tabManager.setActiveTab(pluginTab.id)
     }
@@ -275,7 +298,7 @@ const PageModelDetail: React.FC = () => {
 
       default:
         // Check for plugin tabs
-        const pluginTab = pluginTabs.find(tab => tab.id === activeTab)
+        const pluginTab = visiblePluginTabs.find(tab => tab.id === activeTab)
         if (pluginTab) {
           return (
             <React.Suspense fallback={<div className="p-6">Loading plugin...</div>}>
@@ -333,10 +356,10 @@ const PageModelDetail: React.FC = () => {
           ))}
 
           {/* Plugin Tabs */}
-          {pluginTabs.length > 0 && (
+          {visiblePluginTabs.length > 0 && (
             <>
               <div className="w-px bg-gray-300 mx-2 my-2" />
-              {pluginTabs.map(tab => (
+              {visiblePluginTabs.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabClick(tab.id)}
@@ -361,7 +384,7 @@ const PageModelDetail: React.FC = () => {
           {/* Plugin Status */}
           <div className="ml-auto flex items-center gap-3 px-4 py-3">
             <div className="text-xs text-gray-500">
-              {pluginTabs.length} plugin{pluginTabs.length !== 1 ? 's' : ''} loaded
+              {visiblePluginTabs.length} plugin{visiblePluginTabs.length !== 1 ? 's' : ''} active for this model
             </div>
             <button
               className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
@@ -382,6 +405,7 @@ const PageModelDetail: React.FC = () => {
         open={showManagement}
         onClose={() => setShowManagement(false)}
         modelName={model?.name || 'Selected Model'}
+        modelId={modelScope}
       />
     </div>
   )

@@ -14,11 +14,13 @@ import {
 import { pluginManager } from '@/core/plugin-manager'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
+import useModelPluginStore from '@/stores/modelPluginStore'
 
 interface PluginManagementPanelProps {
   open: boolean
   onClose: () => void
   modelName: string
+  modelId: string
 }
 
 interface EditFormState {
@@ -53,7 +55,7 @@ const initialEditState = (plugin: InstalledPluginDescriptor | null): EditFormSta
   }
 }
 
-const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onClose, modelName }) => {
+const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onClose, modelName, modelId }) => {
   const [installed, setInstalled] = useState<InstalledPluginDescriptor[]>([])
   const [catalog, setCatalog] = useState<CatalogPluginDescriptor[]>([])
   const [loading, setLoading] = useState(false)
@@ -65,6 +67,11 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
   const [uploading, setUploading] = useState(false)
 
   const navigate = useNavigate()
+  const modelScope = modelId || 'global'
+  const isPluginEnabled = useModelPluginStore((state) => state.isEnabled)
+  const setPluginEnabled = useModelPluginStore((state) => state.setEnabled)
+  const resetForModel = useModelPluginStore((state) => state.resetForModel)
+  const disabledCount = useModelPluginStore((state) => state.disabledPlugins[modelScope]?.length ?? 0)
 
   useEffect(() => {
     if (open) {
@@ -208,30 +215,50 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
     onClose()
   }
 
+  const setModelPluginEnabled = (pluginId: string, enabled: boolean, label?: string) => {
+    setPluginEnabled(modelScope, pluginId, enabled)
+    toast.success(`${enabled ? 'Enabled' : 'Disabled'} ${label || pluginId} for ${modelName}`)
+  }
+
+  const handleResetPreferences = () => {
+    resetForModel(modelScope)
+    toast.info(`Reset plugin preferences for ${modelName}`)
+  }
+
   if (!open) {
     return null
   }
 
   return (
-    <div className='fixed inset-0 z-50 flex items-start justify-center bg-slate-900/70 backdrop-blur-sm p-6 overflow-y-auto'>
-      <div className='w-full max-w-6xl rounded-2xl border border-slate-700 bg-slate-900 shadow-xl'>
-        <div className='flex items-center justify-between border-b border-slate-700 px-6 py-4'>
+    <div className='fixed inset-0 z-50 flex'>
+      <div className='absolute inset-0 bg-slate-900/60 backdrop-blur-sm' onClick={onClose} />
+      <aside className='relative z-10 ml-auto flex h-full w-full max-w-5xl flex-col border-l border-slate-700 bg-slate-950 shadow-2xl'>
+        <div className='flex items-center justify-between border-b border-slate-800 px-6 py-4'>
           <div>
             <h2 className='text-xl font-semibold text-white flex items-center gap-3'>
               <span className='text-2xl'>🧩</span>
-              Manage Plugins
+              Plugin Workspace
             </h2>
-            <p className='text-sm text-slate-300 mt-1'>Organize extensions active for {modelName}. Install from catalog, upload bundles, or tweak existing tabs.</p>
+            <p className='text-sm text-slate-300 mt-1'>Manage extensions for <strong>{modelName}</strong>. Install packages, edit manifests, and control availability per model.</p>
           </div>
-          <button
-            className='rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-200 hover:bg-slate-800'
-            onClick={onClose}
-          >
-            Close
-          </button>
+          <div className='flex items-center gap-2'>
+            <button
+              className='rounded-md border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-60'
+              onClick={handleResetPreferences}
+              disabled={disabledCount === 0}
+            >
+              Reset Preferences
+            </button>
+            <button
+              className='rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-200 hover:bg-slate-800'
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
         </div>
 
-        <div className='px-6 py-5 space-y-6'>
+        <div className='flex-1 overflow-y-auto px-6 py-5 space-y-6'>
           <div className='flex flex-wrap items-center gap-3'>
             <button
               className='flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-400 disabled:opacity-60'
@@ -299,14 +326,27 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
               <div className='rounded-xl border border-slate-700 bg-slate-900/80 p-6 text-slate-300'>No plugins are active. Install from the catalog or upload a bundle to get started.</div>
             ) : (
               <div className='grid gap-4 md:grid-cols-2'>
-                {installed.map((plugin) => (
-                  <article key={plugin.id} className='rounded-xl border border-slate-700 bg-slate-900/80 p-5 space-y-4 shadow-sm'>
+                {installed.map((plugin) => {
+                  const pluginEnabled = isPluginEnabled(modelScope, plugin.id)
+                  return (
+                    <article key={plugin.id} className='rounded-xl border border-slate-800 bg-slate-900/80 p-5 space-y-4 shadow-sm'>
                     <header className='space-y-1'>
                       <h4 className='text-xl font-semibold text-white'>{plugin.manifest.name}</h4>
                       <div className='text-xs text-slate-400 uppercase tracking-wide flex items-center gap-3'>
                         <span>v{plugin.manifest.version}</span>
                         {plugin.installedAt && <span>Installed {new Date(plugin.installedAt).toLocaleString()}</span>}
                       </div>
+                      <button
+                        className={`mt-2 inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
+                          pluginEnabled
+                            ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
+                            : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
+                        }`}
+                        onClick={() => setModelPluginEnabled(plugin.id, !pluginEnabled, plugin.manifest.name)}
+                      >
+                        <span className='text-base'>{pluginEnabled ? '🟢' : '⚪'}</span>
+                        {pluginEnabled ? 'Enabled for this model' : 'Disabled for this model'}
+                      </button>
                     </header>
                     <p className='text-sm leading-relaxed text-slate-300 min-h-[60px]'>{plugin.manifest.description || 'No description provided.'}</p>
                     <div className='space-y-2'>
@@ -343,8 +383,9 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
                         Remove
                       </button>
                     </footer>
-                  </article>
-                ))}
+                    </article>
+                  )
+                })}
               </div>
             )}
           </section>
