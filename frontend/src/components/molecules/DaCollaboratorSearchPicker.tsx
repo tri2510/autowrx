@@ -7,11 +7,10 @@
 // SPDX-License-Identifier: MIT
 
 import { InvitedUser } from '@/types/user.type.ts'
-import DaText from '../atoms/DaText'
 import { useEffect, useMemo, useState } from 'react'
 import DaUserInviteItem from './DaUserInviteItem.tsx'
 import { debounce } from 'lodash'
-import DaLoader from '../atoms/DaLoader'
+import { Spinner } from '@/components/atoms/spinner'
 import useSearchUserByEmail from '@/hooks/useSearchUserByEmail.ts'
 import clsx from 'clsx'
 
@@ -91,15 +90,15 @@ const DaCollaboratorSearchPicker = ({
             matchedInvitedUsers.length === 0 && 'flex-1',
           )}
         >
-          <DaText variant="small">
+          <span className="text-sm">
             Type an email to search & invite user.
-          </DaText>
+          </span>
         </div>
       ) : (
         <>
-          <DaText variant="small-bold" className="mb-2 text-da-gray-dark">
+          <span className="text-sm font-semibold mb-2 text-foreground">
             Other people
-          </DaText>
+          </span>
 
           {matchedSelectedUsers.length > 0 && (
             <div className="-mx-5 w-[calc(100%+40px)]">
@@ -122,24 +121,24 @@ const DaCollaboratorSearchPicker = ({
             )}
           >
             {!isLoading && matchedSelectedUsers.length === 0 && (
-              <DaText
-                variant="small"
+              <span
+                
                 className="m-auto flex min-h-12 items-center"
               >
                 No users found. Keep typing an email to search & invite user.
-              </DaText>
+              </span>
             )}
 
-            {isLoading && <DaLoader className="m-auto" />}
+            {isLoading && <Spinner className="m-auto text-2xl" />}
           </div>
         </>
       )}
 
       {matchedInvitedUsers.length > 0 && (
         <div className="w-full">
-          <DaText variant="small-bold" className="my-2 block text-da-gray-dark">
+          <span className="text-sm font-semibold my-2 block text-foreground">
             People with access
-          </DaText>
+          </span>
 
           <div className="-mx-5">
             {matchedInvitedUsers.map((user) => (

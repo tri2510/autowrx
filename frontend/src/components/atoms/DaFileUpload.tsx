@@ -7,10 +7,9 @@
 // SPDX-License-Identifier: MIT
 
 import { useEffect, useRef, useState } from 'react'
-import DaText from './DaText'
 import { TbLoader, TbUpload, TbX } from 'react-icons/tb'
 import clsx from 'clsx'
-import { DaButton } from './DaButton'
+import { Button } from '@/components/atoms/button'
 import { uploadFileService } from '@/services/upload.service'
 import { toast } from 'react-toastify'
 import { createPortal } from 'react-dom'
@@ -149,7 +148,7 @@ const DaFileUpload = ({
     <div
       onClick={handleUploadClick}
       className={clsx(
-        'relative border border-da-gray-medium rounded-md h-fit overflow-hidden group',
+        'relative border border-muted-foreground rounded-md h-fit overflow-hidden group',
         !file && 'border-dashed hover:border-black cursor-pointer',
         !isImage && 'p-2',
         className,
@@ -163,16 +162,13 @@ const DaFileUpload = ({
           ref={dragAreaRef}
           onClick={(e) => e.stopPropagation()}
           className={clsx(
-            'z-[9999] bg-gradient-to-r from-da-gradient-from to-da-gradient-to transition flex fixed top-0 left-0 right-0 bottom-0',
+            'z-9999 bg-linear-to-r from-primary to-secondary transition flex fixed top-0 left-0 right-0 bottom-0',
             dragging ? 'opacity-90' : 'opacity-0 pointer-events-none',
           )}
         >
-          <DaText
-            className="m-auto pointer-events-none text-black tracking-wider"
-            variant="huge-bold"
-          >
+          <p className="text-2xl font-semibold m-auto pointer-events-none text-black tracking-wider">
             Drop file anywhere
-          </DaText>
+          </p>
         </div>,
         document.body,
       )}
@@ -196,17 +192,17 @@ const DaFileUpload = ({
       ) : (
         <>
           {file && (
-            <DaButton
+            <Button
               onClick={() => {
                 clearFile()
                 onFileUpload?.('')
               }}
-              className="group-hover:opacity-50 !h-7 !w-7 !p-0 !rounded-full hover:!opacity-100 group-hover:pointer-events-auto pointer-events-none opacity-0 right-1 top-1 absolute"
-              size="sm"
-              variant="outline-nocolor"
+              className="group-hover:opacity-50 h-7 w-7 p-0 rounded-full hover:opacity-100 group-hover:pointer-events-auto pointer-events-none opacity-0 right-1 top-1 absolute"
+              size="icon-sm"
+              variant="outline"
             >
               <TbX className="w-4 h-4" />
-            </DaButton>
+            </Button>
           )}
 
           {/* Image Preview */}
@@ -231,20 +227,17 @@ const DaFileUpload = ({
                 minHeight: MIN_HEIGHT,
               }}
             >
-              <DaText
-                variant="small-bold"
-                className="max-h-[40px] line-clamp-2 text-ellipsis break-all text-center"
-              >
+              <p className="text-sm font-semibold max-h-[40px] line-clamp-2 text-ellipsis break-all text-center">
                 {file.name}
-              </DaText>
+              </p>
               <div className="space-x-2">
-                <DaText variant="small">
+                <span className="text-sm">
                   {(
                     (file.size || 0) /
                     (sizeFormat === 'MB' ? 1024 * 1024 : 1024)
                   ).toFixed(2) + sizeFormat}
-                </DaText>
-                <DaText variant="small">{file.type}</DaText>
+                </span>
+                <span className="text-sm">{file.type}</span>
               </div>
             </div>
           )}
@@ -257,25 +250,22 @@ const DaFileUpload = ({
               className="w-full h-full flex flex-col gap-1 items-center justify-center"
             >
               <TbUpload className="mb-1" />
-              <DaText variant="small-bold">
+              <p className="text-sm font-semibold">
                 {label || 'Drag drop or click here'}
-              </DaText>
+              </p>
               {accept && (
-                <DaText variant="small">
+                <p className="text-sm">
                   Accept {accept.split(',').join(', ').toLowerCase()}
-                </DaText>
+                </p>
               )}
             </div>
           )}
 
           {!file && image && (
-            <div className="absolute top-0 flex left-0 hover:bg-opacity-50 bg-opacity-0 z-[1] w-full h-full bg-black transition">
-              <DaText
-                variant="small-bold"
-                className="text-white m-auto opacity-0 group-hover:opacity-100 transition"
-              >
+            <div className="absolute top-0 flex left-0 hover:bg-opacity-50 bg-opacity-0 z-1 w-full h-full bg-black transition">
+              <p className="text-sm font-semibold text-white m-auto opacity-0 group-hover:opacity-100 transition">
                 Change
-              </DaText>
+              </p>
             </div>
           )}
         </>

@@ -6,14 +6,13 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { DaButton } from '@/components/atoms/DaButton'
-import { DaInput } from '@/components/atoms/DaInput'
-import { DaText } from '@/components/atoms/DaText'
+import { Button } from '@/components/atoms/button'
+import { Input } from '@/components/atoms/input'
+import { Label } from '@/components/atoms/label'
 import { sendResetPasswordEmailService } from '@/services/auth.service'
 import { isAxiosError } from 'axios'
 import { useState } from 'react'
 import { TbCircleCheckFilled, TbLoader } from 'react-icons/tb'
-import { TbAt } from 'react-icons/tb'
 
 interface FormForgotPasswordProps {
   setAuthType: (type: 'sign-in' | 'register' | 'forgot') => void
@@ -52,67 +51,67 @@ const FormForgotPassword = ({ setAuthType }: FormForgotPasswordProps) => {
   return (
     <form
       onSubmit={sendResetEmail}
-      className="w-[30vw] lg:w-[25vw] min-w-[400px] max-w-[500px] h-fit max-h-[80vh] p-4 bg-da-white"
+      className="w-[30vw] lg:w-[25vw] min-w-[400px] max-w-[500px] h-fit max-h-[80vh] p-4 bg-white"
     >
       {/* Title */}
-      <DaText variant="title" className="text-da-primary-500">
+      <h2 className="text-xl font-semibold text-primary">
         Forgot Password
-      </DaText>
+      </h2>
 
       {sent ? (
         <>
-          <DaText className="block mt-4">
+          <span className="block mt-4">
             Reset password email sent! Please check your email and follow the
             instructions.
-          </DaText>
+          </span>
           <TbCircleCheckFilled className="text-8xl text-green-500 mx-auto mt-10" />
         </>
       ) : (
         <>
-          <DaText className="block mt-4">
+          <span className="block mt-4">
             Enter the email associated with your account. We will send you an
             email to reset your password.
-          </DaText>
+          </span>
 
           {/* Content */}
-          <DaInput
-            name="email"
-            placeholder="Email"
-            label="Email"
-            className="mt-4"
-            Icon={TbAt}
-            iconBefore
-            iconSize={18}
-          />
+          <div className="mt-4">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Email"
+              className="mt-1"
+            />
+          </div>
 
           {/* Error */}
           {error && (
-            <DaText variant="small" className="mt-2 block text-da-accent-500">
+            <span className="text-sm mt-2 block text-destructive">
               {error}
-            </DaText>
+            </span>
           )}
           {/* Action */}
-          <DaButton
+          <Button
             disabled={loading}
             type="submit"
-            variant="gradient"
             className="w-full mt-6"
           >
             {loading && <TbLoader className="animate-spin text-lg mr-2" />}
             Send Reset Email
-          </DaButton>
+          </Button>
 
           {/* More */}
           <div className="mt-4 flex items-center">
-            <DaText className="text-da-gray-dark">Remember password?</DaText>
-            <DaButton
+            <span className="text-foreground">Remember password?</span>
+            <Button
               type="button"
               onClick={() => setAuthType('sign-in')}
-              variant="text"
-              className="text-da-primary-500"
+              variant="ghost"
+              className="text-primary"
             >
               Sign In
-            </DaButton>
+            </Button>
           </div>
         </>
       )}

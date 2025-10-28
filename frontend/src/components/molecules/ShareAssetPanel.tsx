@@ -6,10 +6,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-import DaText from "@/components/atoms/DaText"
 import { useEffect, useState } from "react"
 import { useAssets } from '@/hooks/useAssets'
-import { DaButton } from "@/components/atoms/DaButton"
+import { Button } from "@/components/atoms/button"
 import AccessInvitation from "@/components/organisms/AccessInvitation.tsx"
 import { InvitedUser } from "@/types/user.type"
 import UserList from "@/components/molecules/UserList"
@@ -61,7 +60,7 @@ const ShareAssetPanel = ({ asset, onDone, onCancel }: iPropShareAssetPanel) => {
 
     return <div className="flex flex-col w-[480px] px-4">
         <div className="flex items-center">
-            <DaText variant="title">Share to</DaText>
+            <h2 className="text-xl font-semibold">Share to</h2>
             <div className="grow"></div>
             <IoClose size={24} className="hover:opacity-70 cursor-pointer"
                 onClick={() => {
@@ -70,16 +69,16 @@ const ShareAssetPanel = ({ asset, onDone, onCancel }: iPropShareAssetPanel) => {
         </div>
         
         <div className="mt-2 w-full min-h-[200px] overflow-auto">
-            <DaText className="my-2 flex items-center justity-between">
-                <DaButton
+            <span className="my-2 flex items-center justity-between">
+                <Button
                     size="sm"
-                    className="flex items-center text-da-primary-500"
-                    variant="outline-nocolor"
+                    className="flex items-center text-primary"
+                    variant="outline"
                     onClick={() => setShowInviteDialog(true)}
                 >
                     <TbUserPlus className="mr-2" /> Add user
-                </DaButton>
-            </DaText>
+                </Button>
+            </span>
             <div className="min-h-[200px] max-h-[400px] overflow-auto">
                 { (invitedUsers && invitedUsers.length) && <UserList users={invitedUsers as User[]} 
                     onRemoveUser={async (userId: string, userName?: string) => {

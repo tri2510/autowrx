@@ -1,20 +1,19 @@
 // Copyright (c) 2025 Eclipse Foundation.
-// 
+//
 // This program and the accompanying materials are made available under the
 // terms of the MIT License which is available at
 // https://opensource.org/licenses/MIT.
 //
 // SPDX-License-Identifier: MIT
 
-import { DaButton } from '@/components/atoms/DaButton'
-import { DaInput } from '@/components/atoms/DaInput'
-import { DaText } from '@/components/atoms/DaText'
+import { Button } from '@/components/atoms/button'
+import { Input } from '@/components/atoms/input'
+import { Label } from '@/components/atoms/label'
 import { loginService } from '@/services/auth.service'
 import { addLog } from '@/services/log.service'
 import { isAxiosError } from 'axios'
 import { useState } from 'react'
 import { TbLoader } from 'react-icons/tb'
-import { TbAt, TbLock } from 'react-icons/tb'
 // import SSOHandler from '../SSOHandler'
 import config from '@/configs/config'
 
@@ -55,85 +54,78 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
   }
 
   return (
-    <form
-      onSubmit={signIn}
-      className="flex flex-col w-[30vw] lg:w-[25vw] min-w-[400px] max-w-[500px] h-fit max-h-[80vh] p-4 bg-da-white"
-    >
+    <form onSubmit={signIn} className="flex flex-col p-4 bg-white">
       {config.disableEmailLogin ? (
         <div className="flex flex-col h-full mb-16">
-          <DaText variant="title" className="text-da-primary-500">
+          <h2 className="text-xl font-semibold text-primary">
             Sign in with SSO
-          </DaText>
-          <DaText variant="regular" className="mt-2 text-da-gray-medium">
+          </h2>
+          <p className="text-base mt-2 text-muted-foreground">
             Your organization uses single sign-on (SSO) with{' '}
             <span className="font-bold">{window.location.hostname}</span>.
             Please sign in using your SSO credentials.
-          </DaText>
+          </p>
         </div>
       ) : (
         <div className="flex flex-col">
-          <DaText variant="title" className="text-da-primary-500">
-            Sign In
-          </DaText>
+          <h2 className="text-xl font-semibold text-primary">Sign In</h2>
           <div className="mt-6"></div>
 
-          <DaInput
-            name="email"
-            placeholder="Email"
-            label="Email"
-            className="mt-4"
-            Icon={TbAt}
-            iconBefore
-            iconSize={18}
-          />
-          <DaInput
-            name="password"
-            placeholder="Password"
-            label="Password"
-            type="password"
-            className="mt-4"
-            Icon={TbLock}
-            iconBefore
-            iconSize={18}
-          />
+          <div className="mt-4">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Email"
+              className="mt-1"
+            />
+          </div>
+          <div className="mt-4">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Password"
+              className="mt-1"
+            />
+          </div>
           <div className="flex items-center justify-end mt-1">
-            <DaButton
+            <Button
               type="button"
               variant="link"
               onClick={() => setAuthType('forgot')}
             >
               Forget Password
-            </DaButton>
+            </Button>
           </div>
 
           {error && (
-            <DaText variant="small" className="mt-2 text-da-accent-500">
-              {error}
-            </DaText>
+            <span className="text-sm mt-2 text-destructive">{error}</span>
           )}
 
-          <DaButton
+          <Button
             disabled={loading || ssoLoading}
             type="submit"
-            variant="gradient"
             className="w-full mt-2"
           >
             {loading && <TbLoader className="animate-spin text-lg mr-2" />}
             Sign in
-          </DaButton>
+          </Button>
           {!config.strictAuth && (
             <div className="mt-4 flex w-full justify-center items-center">
-              <DaText className="text-da-gray-medium">
+              <span className="text-muted-foreground">
                 Don't have an account?
-              </DaText>
-              <DaButton
+              </span>
+              <Button
                 type="button"
                 onClick={() => setAuthType('register')}
-                variant="text"
-                className="text-da-primary-500 !da-label-small !px-1.5"
+                variant="link"
+                className="text-primary text-sm! px-1.5!"
               >
                 Register
-              </DaButton>
+              </Button>
             </div>
           )}
         </div>
@@ -145,13 +137,10 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
             <span className="w-full border-t"></span>
           </div>
           <div className="relative flex justify-center text-xs uppercase py-6">
-            <DaText
-              variant="small"
-              className="bg-white px-2 text-da-gray-medium"
-            >
+            <span className="bg-white px-2 text-muted-foreground">
               {' '}
               Or continue with{' '}
-            </DaText>
+            </span>
           </div>
         </div>
       )}
@@ -165,14 +154,14 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
           }}
         >
           {/* <SSOHandler setSSOLoading={setSSOLoading}>
-            <DaButton
-              variant="outline-nocolor"
+            <Button
+              variant="outline"
               className="w-full"
               disabled={loading || ssoLoading}
             >
               {ssoLoading && <TbLoader className="animate-spin text-lg mr-2" />}
               BOSCH SSO
-            </DaButton>
+            </Button>
           </SSOHandler> */}
         </div>
       )}

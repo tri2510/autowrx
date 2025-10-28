@@ -6,9 +6,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { DaButton } from '@/components/atoms/DaButton'
-import { DaInput } from '@/components/atoms/DaInput'
-import { DaText } from '@/components/atoms/DaText'
+import { Button } from '@/components/atoms/button'
+import { Input } from '@/components/atoms/input'
+import { Label } from '@/components/atoms/label'
 import { registerService } from '@/services/auth.service'
 import { isAxiosError } from 'axios'
 import { useState } from 'react'
@@ -86,49 +86,62 @@ const FormRegister = ({ setAuthType }: FormRegisterProps) => {
   return (
     <form
       onSubmit={register}
-      className="w-[30vw] lg:w-[25vw] min-w-[400px] max-w-[500px] h-fit max-h-[80vh] p-4 bg-da-white"
+      className="w-[30vw] lg:w-[25vw] min-w-[400px] max-w-[500px] h-fit max-h-[80vh] p-4 bg-white"
     >
       {/* Title */}
-      <DaText variant="title" className="text-da-primary-500">
+      <h2 className="text-xl font-semibold text-primary">
         Register
-      </DaText>
+      </h2>
 
       <div className="mt-6"></div>
       {/* Content */}
-      <DaInput
-        name="fullName"
-        placeholder="Name"
-        label="Name"
-        className="mt-4"
-      />
-      <DaInput
-        name="email"
-        placeholder="Email"
-        label="Email"
-        className="mt-4"
-      />
-      <DaInput
-        name="password"
-        placeholder="Password"
-        label="Password"
-        type="password"
-        className="mt-4"
-      />
-      <DaInput
-        name="confirmPassword"
-        placeholder="Confirm Password"
-        label="Confirm Password"
-        type="password"
-        className="mt-4"
-      />
+      <div className="mt-4">
+        <Label htmlFor="fullName">Name</Label>
+        <Input
+          id="fullName"
+          name="fullName"
+          placeholder="Name"
+          className="mt-1"
+        />
+      </div>
+      <div className="mt-4">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="Email"
+          className="mt-1"
+        />
+      </div>
+      <div className="mt-4">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Password"
+          className="mt-1"
+        />
+      </div>
+      <div className="mt-4">
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          placeholder="Confirm Password"
+          className="mt-1"
+        />
+      </div>
 
       {policy_url && (
-        <div className="my-2 da-label-small">
+        <div className="my-2 text-sm">
           By click on Register button below, I agree to
           <a
             href={policy_url}
             target="_blank"
-            className="ml-2 cursor-pointer hover:text-da-primary-500"
+            className="ml-2 cursor-pointer hover:text-primary"
           >
             <u>Privacy Policy</u>
           </a>
@@ -137,34 +150,33 @@ const FormRegister = ({ setAuthType }: FormRegisterProps) => {
 
       {/* Error */}
       {error && (
-        <DaText variant="small" className="mt-3 block text-da-accent-500">
+        <span className="text-sm mt-3 block text-destructive">
           {error}
-        </DaText>
+        </span>
       )}
 
       {/* Action */}
-      <DaButton
+      <Button
         disabled={loading}
         type="submit"
-        variant="gradient"
         className="w-full mt-6"
       >
         {loading && <TbLoader className="animate-spin text-lg mr-2" />}
         Register
-      </DaButton>
+      </Button>
       {/* More */}
       <div className="mt-4 flex items-center">
-        <DaText className="text-da-gray-medium">
+        <span className="text-muted-foreground">
           Already have an account?
-        </DaText>
-        <DaButton
+        </span>
+        <Button
           type="button"
           onClick={() => setAuthType('sign-in')}
-          variant="text"
-          className="text-da-primary-500"
+          variant="ghost"
+          className="text-primary"
         >
           Sign in
-        </DaButton>
+        </Button>
       </div>
     </form>
   )

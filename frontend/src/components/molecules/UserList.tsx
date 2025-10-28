@@ -9,8 +9,7 @@
 
 import { User } from "@/types/user.type"
 import { TbMinus } from 'react-icons/tb'
-import { DaAvatar } from "../atoms/DaAvatar"
-import DaText from "../atoms/DaText"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/atoms/avatar"
 import { maskEmail } from '@/lib/utils'
 
 interface UserListProps {
@@ -29,20 +28,21 @@ const UserListItem = ({ user, onRemoveUser }: UserListItemProps) => {
     }
   
     return (
-      <div className="my-1 flex cursor-pointer items-center justify-between rounded-lg border border-da-gray-light bg-da-gray-light/25 p-2">
+      <div className="my-1 flex cursor-pointer items-center justify-between rounded-lg border border-input bg-muted/25 p-2">
         <div className="flex items-center">
-          <DaAvatar
-            src={user.image_file}
-            alt="user"
-            className="mr-4 h-10 w-10 rounded-full"
-          />
+          <Avatar className="mr-4 h-10 w-10">
+            <AvatarImage src={user.image_file} alt="user" />
+            <AvatarFallback>
+              <img src="/imgs/profile.png" alt="profile" className="h-full w-full rounded-full object-cover" />
+            </AvatarFallback>
+          </Avatar>
           <div className="flex flex-col">
-            <DaText variant="regular" className="font-bold text-da-gray-dark">
+            <p className="text-base font-bold text-foreground">
               {user.name ?? 'Loading...'}
-            </DaText>
-            <DaText variant="small" className="text-da-gray-medium">
+            </p>
+            <span className="text-sm text-muted-foreground">
               {maskEmail(user?.email ?? '')}
-            </DaText>
+            </span>
           </div>
         </div>
         <div

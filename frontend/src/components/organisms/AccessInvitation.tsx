@@ -7,16 +7,15 @@
 // SPDX-License-Identifier: MIT
 
 import { useRef, useState } from 'react'
-import DaPopup from '@/components/atoms/DaPopup.tsx'
-import DaText from '@/components/atoms/DaText.tsx'
+import DaDialog from '@/components/molecules/DaDialog'
 import DaMultiUsersInput from '@/components/molecules/DaMultiUsersInput.tsx'
-import { DaButton } from '@/components/atoms/DaButton.tsx'
+import { Button } from '@/components/atoms/button'
 import { InvitedUser } from '@/types/user.type.ts'
 import DaCollaboratorSearchPicker from '@/components/molecules/DaCollaboratorSearchPicker.tsx'
 import { isAxiosError } from 'axios'
 import { toast } from 'react-toastify'
 import { useMutation } from '@tanstack/react-query'
-import DaLoader from '@/components/atoms/DaLoader.tsx'
+import { Spinner } from '@/components/atoms/spinner'
 
 export type AccessLevel = {
   value: string
@@ -106,46 +105,46 @@ const AccessInvitation = ({
   })
 
   return (
-    <DaPopup state={[open, onClose]} trigger={<></>}>
-      <div className="flex h-[500px] max-h-[calc(100vw-160px)] min-h-[400px] w-[560px] max-w-[calc(100vw-80px)] flex-col rounded">
-        <div className="mb-4">
-          <DaText variant="sub-title" className="text-da-primary-500">
-            {label}
-          </DaText>
-
-          <div className="mt-2 flex gap-4">
-            <DaMultiUsersInput
-              inputString={inputString}
-              onInputStringChange={setInputString}
-              selectedUsers={Array.from(selectedUsers.values())}
-              onRemoveUser={(user) => removeUser(user)}
-              inputRef={inputRef}
-              accessLevels={accessLevels}
-              accessLevelId={accessLevelId}
-              onAccessLevelIdChange={setAccessLevelId}
-              className="min-w-0 flex-1"
-            />
-            <DaButton
-              onClick={() => mutateInviting()}
-              className="flex-shrink-0"
-              disabled={isPending || selectedUsers.size === 0}
-            >
-              Invite {isPending && <DaLoader className="ml-2 text-white" />}
-            </DaButton>
-          </div>
-        </div>
-
-        <div className="-mx-5 flex flex-1 flex-col overflow-y-auto px-5">
-          <DaCollaboratorSearchPicker
+    <DaDialog
+      open={open}
+      onOpenChange={onClose}
+      dialogTitle={label}
+      className="flex h-[500px] max-h-[calc(100vw-160px)] min-h-[400px] w-[560px] max-w-[calc(100vw-80px)] flex-col rounded"
+      contentContainerClassName="flex flex-col h-full"
+    >
+      <div className="mb-4">
+        <div className="mt-2 flex gap-4">
+          <DaMultiUsersInput
             inputString={inputString}
-            invitedUsers={invitedUsers || []}
-            selectedUsers={selectedUsers}
-            onToggle={handleToggle}
-            onRemoveAccess={(user) => mutateRemovingUserAccess(user)}
+            onInputStringChange={setInputString}
+            selectedUsers={Array.from(selectedUsers.values())}
+            onRemoveUser={(user) => removeUser(user)}
+            inputRef={inputRef}
+            accessLevels={accessLevels}
+            accessLevelId={accessLevelId}
+            onAccessLevelIdChange={setAccessLevelId}
+            className="min-w-0 flex-1"
           />
+          <Button
+            onClick={() => mutateInviting()}
+            className="shrink-0"
+            disabled={isPending || selectedUsers.size === 0}
+          >
+            Invite {isPending && <Spinner className="ml-2 text-white" size={16} />}
+          </Button>
         </div>
       </div>
-    </DaPopup>
+
+      <div className="-mx-6 flex flex-1 flex-col overflow-y-auto px-6">
+        <DaCollaboratorSearchPicker
+          inputString={inputString}
+          invitedUsers={invitedUsers || []}
+          selectedUsers={selectedUsers}
+          onToggle={handleToggle}
+          onRemoveAccess={(user) => mutateRemovingUserAccess(user)}
+        />
+      </div>
+    </DaDialog>
   )
 }
 

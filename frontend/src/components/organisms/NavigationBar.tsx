@@ -7,8 +7,6 @@
 // SPDX-License-Identifier: MIT
 
 import { Link, useMatch } from 'react-router-dom'
-import { DaImage } from '../atoms/DaImage'
-import { DaButton } from '../atoms/DaButton'
 import DaMenu from '../atoms/DaMenu'
 import DaNavUser from '../molecules/DaNavUser'
 import { HiMenu } from 'react-icons/hi'
@@ -27,7 +25,6 @@ import useSelfProfileQuery from '@/hooks/useSelfProfile'
 // import useCurrentModel from '@/hooks/useCurrentModel'
 import { IoIosHelpBuoy } from 'react-icons/io'
 import config from '@/configs/config'
-import DaTooltip from '../atoms/DaTooltip'
 // import LearningIntegration from './LearningIntegration'
 
 import Switch from 'react-switch'
@@ -58,7 +55,7 @@ const NavigationBar = ({}) => {
   return (
     <header className="da-nav-bar">
       <Link to="/">
-        <DaImage src={useSiteConfig('SITE_LOGO_WIDE', '/imgs/logo-wide.png')} className="da-nav-bar-logo" />
+        <img src="/imgs/logo-wide.png" alt="Logo" className="da-nav-bar-logo" />
       </Link>
       
       {config && config.enableBranding && (
@@ -78,7 +75,7 @@ const NavigationBar = ({}) => {
 
       {/* {config && config.learning && config.learning.url && (
         <div className="mr-6 cursor-pointer flex items-center">
-          <span className="mr-1 da-txt-regular font-normal">Learning</span>{' '}
+          <span className="mr-1 text-base font-normal">Learning</span>{' '}
           <Switch
             onChange={(v) => {
               if (v) {
@@ -99,7 +96,7 @@ const NavigationBar = ({}) => {
 
       {/* {config && config.enableSupport && (
         <Link to="https://forms.office.com/e/P5gv3U3dzA">
-          <div className="h-full flex text-gray-500 font-medium da-txt-medium items-center text-skye-600 mr-4 hover:underline">
+          <div className="h-full flex text-gray-500 font-medium text-base items-center text-skye-600 mr-4 hover:underline">
             <IoIosHelpBuoy className="mr-1" size={22} />
             Support
           </div>
@@ -111,7 +108,7 @@ const NavigationBar = ({}) => {
           {/* <DaGlobalSearch>
             <DaButton
               variant="outline-nocolor"
-              className="w-[140px] flex items-center !justify-start !border-gray-300 shadow-lg"
+              className="w-[140px] flex items-center justify-start! border-gray-300! shadow-lg"
             >
               <TbZoom className="size-5 mr-2" />
               Search
@@ -120,7 +117,7 @@ const NavigationBar = ({}) => {
           {isAuthorized && (
             <DaMenu
               trigger={
-                <div className="cursor-pointer flex !h-10 items-center da-btn-sm text-da-gray-medium da-btn-plain ml-2">
+                <div className="cursor-pointer flex h-10! items-center da-btn-sm text-muted-foreground da-btn-plain ml-2">
                   <HiMenu size={22} />
                 </div>
               }
@@ -128,13 +125,13 @@ const NavigationBar = ({}) => {
               {/* Separate condition checking with component since MUI component does not accept Fragment as children */}
               <Link
                 to="/manage-users"
-                className="flex items-center px-4 py-2 gap-2 da-menu-item da-label-regular"
+                className="flex items-center px-4 py-2 gap-2 da-menu-item text-base"
               >
                 <TbUsers className="text-base" /> Manage Users
               </Link>
               <Link
                 to="/manage-features"
-                className="flex items-center px-4 py-2 gap-2 da-menu-item da-label-regular"
+                className="flex items-center px-4 py-2 gap-2 da-menu-item text-base"
               >
                 <TbStack2 className="text-base" /> Manage Features
               </Link>

@@ -7,16 +7,15 @@
 // SPDX-License-Identifier: MIT
 
 import React, { useEffect, useState } from 'react'
-import { DaButton } from '@/components/atoms/DaButton'
-import { DaInput } from '@/components/atoms/DaInput'
-import { DaText } from '@/components/atoms/DaText'
+import { Button } from '@/components/atoms/button'
+import { Input } from '@/components/atoms/input'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
-import { DaAvatar } from '@/components/atoms/DaAvatar'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/atoms/avatar'
 import DaImportFile from '@/components/atoms/DaImportFile'
 import { TbCircleFilled, TbPhotoEdit } from 'react-icons/tb'
 import { uploadFileService } from '@/services/upload.service.ts'
 import { partialUpdateUserService } from '@/services/user.service'
-import DaPopup from '@/components/atoms/DaPopup'
+import DaDialog from '@/components/molecules/DaDialog'
 
 const PageUserProfile = () => {
   const [isEditing, setIsEditing] = useState(false)
@@ -60,25 +59,25 @@ const PageUserProfile = () => {
         <div className="flex flex-col w-full max-w-[70vw] xl:max-w-[50vw] 2xl:max-w-[40vw]">
           <div className="flex flex-col items-center container mt-6 w-full">
             <div className="flex flex-col w-full">
-              <DaText
-                variant="huge-bold"
-                className="text-da-gray-dark font-semibold"
-              >
+              <h1 className="text-2xl font-semibold text-foreground">
                 Profile
-              </DaText>
-              <DaText variant="small" className="mt-1">
+              </h1>
+              <p className="text-sm mt-1">
                 You can edit your profile information and manage kits here.
-              </DaText>
+              </p>
             </div>
             <div className="flex flex-col w-full mt-8">
               <div className="flex items-center">
                 <div className="flex relative">
-                  <DaAvatar
-                    className="w-24 h-24 border"
-                    src={
-                      user?.image_file ? user.image_file : 'imgs/profile.png'
-                    }
-                  />
+                  <Avatar className="w-24 h-24 border">
+                    <AvatarImage
+                      src={user?.image_file ? user.image_file : 'imgs/profile.png'}
+                      alt={user?.name || 'Profile'}
+                    />
+                    <AvatarFallback>
+                      <img src="/imgs/profile.png" alt="profile" className="h-full w-full rounded-full object-cover" />
+                    </AvatarFallback>
+                  </Avatar>
                   <DaImportFile
                     onFileChange={handleAvatarChange}
                     accept=".png, .jpg, .jpeg"
@@ -91,64 +90,60 @@ const PageUserProfile = () => {
                 <div className="flex flex-col w-full ml-6 xl:ml-12">
                   <div className="flex w-full items-center justify-between">
                     {isEditing ? (
-                      <DaInput
+                      <Input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="h-8 w-full max-w-[350px]"
-                        inputClassName="h-6"
+                        className="h-6 w-full max-w-[350px]"
                       />
                     ) : (
                       <div className="truncate max-w-[350px]">
-                        <DaText
-                          variant="title"
-                          className="text-da-gray-dark truncate "
-                        >
+                        <h2 className="text-xl font-semibold text-foreground truncate">
                           {user?.name}
-                        </DaText>
+                        </h2>
                       </div>
                     )}
                     {isEditing ? (
                       <div>
-                        <DaButton
-                          variant="outline-nocolor"
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="mr-2"
                           onClick={() => setIsEditing(false)}
                         >
                           Cancel
-                        </DaButton>
-                        <DaButton size="sm" onClick={handleUpdateUser}>
+                        </Button>
+                        <Button size="sm" onClick={handleUpdateUser}>
                           Save
-                        </DaButton>
+                        </Button>
                       </div>
                     ) : (
-                      <DaButton
+                      <Button
                         size="sm"
-                        variant="outline-nocolor"
+                        variant="outline"
                         onClick={() => setIsEditing(true)}
                       >
                         Change name
-                      </DaButton>
+                      </Button>
                     )}
                   </div>
 
-                  <DaText variant="regular" className="mx-1 mt-1">
+                  <p className="text-base mx-1 mt-1">
                     {user?.email}
-                  </DaText>
+                  </p>
                 </div>
               </div>
               {/* <div className="flex flex-col mt-8">
-                <DaText variant="regular-bold" className="text-da-gray-dark">
+                <div className="text-base font-semibold text-foreground">
                   UID
-                </DaText>
-                <DaText variant="small" className="text-da-gray-medium">
+                </div>
+                <div className="text-sm text-muted-foreground">
                   {user?.id}
-                </DaText>
+                </div>
               </div> */}
               <div className="flex flex-col w-full mt-6">
-                <DaText variant="regular-bold" className="text-da-gray-dark">
+                <div className="text-base font-semibold text-foreground">
                   Password
-                </DaText>
+                </div>
                 <div className="flex w-full items-start justify-between">
                   <div className="flex space-x-1 mt-2">
                     {[...Array(8)].map((_, index) => (
@@ -159,22 +154,21 @@ const PageUserProfile = () => {
                     ))}
                   </div>
                   <div className="">
-                    <DaPopup
-                      state={[isOpenPopup, setIsOpenPopup]}
+                    <DaDialog
+                      open={isOpenPopup}
+                      onOpenChange={setIsOpenPopup}
                       trigger={
-                        <DaButton
-                          size="sm"
-                          variant="outline-nocolor"
-                          className=""
-                        >
+                        <Button size="sm" variant="outline">
                           Change password
-                        </DaButton>
+                        </Button>
                       }
                     >
                       <div className="p-4">
-                        <DaText variant="regular">Password change functionality is not available.</DaText>
+                        <p className="text-base">
+                          Password change functionality is not available.
+                        </p>
                       </div>
-                    </DaPopup>
+                    </DaDialog>
                   </div>
                 </div>
               </div>

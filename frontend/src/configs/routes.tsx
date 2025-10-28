@@ -13,6 +13,7 @@ import { RouteConfig } from '@/types/common.type.ts'
 import PageUserProfile from '@/pages/PageUserProfile.tsx'
 import PageMyAssets from '@/pages/PageMyAssets.tsx'
 import PageNotFound from '@/pages/PageNotFound.tsx'
+import PageTest from '@/pages/PageTest.tsx'
 import SiteConfigManagement from '@/pages/SiteConfigManagement.tsx'
 // import PageAuthSuccess from '@/pages/PageAuthSuccess.ts'
 // import { retry } from '@/lib/retry.ts'
@@ -102,10 +103,7 @@ const routesConfig: RouteConfig[] = [
             index: true,
             element: (
               <SuspenseProvider>
-                <div 
-                  className='text-2xl font-bold grid place-items-center 
-                    h-screen w-full bg-slate-400 text-white'>
-                    Home Page</div>
+                <PageTest />
               </SuspenseProvider>
             ),
             noBreadcrumbs: true,

@@ -1,5 +1,5 @@
 // Copyright (c) 2025 Eclipse Foundation.
-// 
+//
 // This program and the accompanying materials are made available under the
 // terms of the MIT License which is available at
 // https://opensource.org/licenses/MIT.
@@ -32,26 +32,26 @@ const DaBreadcrumbBar = () => {
   // const { data: model } = useCurrentModel()
   // const { data: prototype } = useCurrentPrototype()
   // const location = useLocation()
-  // const [breadcrumbs, setBreadcrumbs] = useState<JSX.Element[]>([])
+  const [breadcrumbs, setBreadcrumbs] = useState<JSX.Element[]>([])
 
-  // const generateBreadcrumbItem = (
-  //   path: string,
-  //   name: string,
-  //   isLast: boolean,
-  //   key: string,
-  // ) => (
-  //   <React.Fragment key={key}>
-  //     <DaBreadcrumbSeparator />
-  //     <DaBreadcrumbItem>
-  //       <Link
-  //         to={path}
-  //         className={cn('text-da-white hover:opacity-75', isLast && 'border-b')}
-  //       >
-  //         {name}
-  //       </Link>
-  //     </DaBreadcrumbItem>
-  //   </React.Fragment>
-  // )
+  const generateBreadcrumbItem = (
+    path: string,
+    name: string,
+    isLast: boolean,
+    key: string,
+  ) => (
+    <React.Fragment key={key}>
+      <DaBreadcrumbSeparator />
+      <DaBreadcrumbItem>
+        <Link
+          to={path}
+          className={cn('text-white hover:opacity-75', isLast && 'border-b')}
+        >
+          {name}
+        </Link>
+      </DaBreadcrumbItem>
+    </React.Fragment>
+  )
 
   // const pathnames = location.pathname.split('/').filter((x: string) => x)
 
@@ -195,12 +195,11 @@ const DaBreadcrumbBar = () => {
   // }, [location.pathname, model, prototype])
 
   return (
-    <div>DaBreadcrumbBar</div>
-    // <div className="flex h-[52px] w-full justify-between">
-    //   <DaBreadcrumb className="da-label-regular-bold flex text-da-white">
-    //     <DaBreadcrumbList>{breadcrumbs}</DaBreadcrumbList>
-    //   </DaBreadcrumb>
-    // </div>
+    <div className="flex h-[52px] w-full justify-between">
+      <DaBreadcrumb className="text-base font-semibold flex text-white">
+        <DaBreadcrumbList>{breadcrumbs}</DaBreadcrumbList>
+      </DaBreadcrumb>
+    </div>
   )
 }
 

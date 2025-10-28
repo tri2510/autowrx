@@ -7,10 +7,9 @@
 // SPDX-License-Identifier: MIT
 
 import clsx from 'clsx'
-import DaText from '../atoms/DaText'
 import { TbX } from 'react-icons/tb'
 import { InvitedUser } from '@/types/user.type'
-import { DaSelect, DaSelectItem } from '../atoms/DaSelect'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select'
 import { AccessLevel } from '../organisms/AccessInvitation'
 import { useEffect } from 'react'
 
@@ -46,7 +45,7 @@ const DaMultiUsersInput = ({
   return (
     <div
       className={clsx(
-        'flex max-h-[160px] min-h-10 w-full gap-2 overflow-y-auto rounded-md border border-da-black/30 px-2 pt-[6px] outline-[3px] outline-da-primary-100 focus-within:outline',
+        'flex max-h-[160px] min-h-10 w-full gap-2 overflow-y-auto rounded-md border border-input px-2 pt-[6px] outline-[3px] outline-primary/20 focus-within:outline-solid',
         className,
       )}
     >
@@ -56,11 +55,11 @@ const DaMultiUsersInput = ({
             {selectedUsers.map((user) => (
               <div
                 key={user.id}
-                className="flex cursor-default items-center rounded border border-da-gray-medium/50 px-1 py-0.5"
+                className="flex cursor-default items-center rounded border border-muted-foreground/50 px-1 py-0.5"
               >
-                <DaText variant="small" className="text-da-gray-dark">
+                <span className="text-sm text-foreground">
                   {user.name}
-                </DaText>
+                </span>
                 <button
                   className="-m-0.5 ml-1 p-0.5"
                   onClick={() => onRemoveUser(user)}
@@ -77,7 +76,7 @@ const DaMultiUsersInput = ({
           value={inputString}
           onChange={(e) => onInputStringChange(e.target.value)}
           autoFocus
-          className="block w-full bg-transparent text-da-gray-dark outline-none"
+          className="block w-full bg-transparent text-foreground outline-hidden"
           placeholder="Email of users"
         />
 
@@ -85,24 +84,29 @@ const DaMultiUsersInput = ({
       </div>
 
       {accessLevels && selectedUsers.length > 0 && (
-        <DaSelect
-          wrapperClassName="ml-auto sticky self-start -top-[5px] -mt-[5px] -mb-1 -mr-1"
-          className="h-7 border-none !shadow-none"
-          value={accessLevelId}
-          onValueChange={(value) => onAccessLevelIdChange(value)}
-        >
-          {accessLevels.map((accessLevel, index) => (
-            <DaSelectItem
-              helperText={accessLevel.helperText}
-              value={accessLevel.value}
-              key={index}
-            >
-              <DaText className="da-label-small text-da-gray-dark">
-                {accessLevel.label}
-              </DaText>
-            </DaSelectItem>
-          ))}
-        </DaSelect>
+        <div className="ml-auto sticky self-start -top-[5px] -mt-[5px] -mb-1 -mr-1">
+          <Select value={accessLevelId} onValueChange={(value) => onAccessLevelIdChange(value)}>
+            <SelectTrigger className="h-7 border-none shadow-none!">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {accessLevels.map((accessLevel, index) => (
+                <SelectItem value={accessLevel.value} key={index}>
+                  <div className="flex flex-col">
+                    <span className="text-sm text-foreground">
+                      {accessLevel.label}
+                    </span>
+                    {accessLevel.helperText && (
+                      <span className="text-sm text-muted-foreground">
+                        {accessLevel.helperText}
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
     </div>
   )

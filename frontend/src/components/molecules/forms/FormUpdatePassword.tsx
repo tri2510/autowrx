@@ -6,12 +6,12 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { DaButton } from '@/components/atoms/DaButton'
-import { DaInput } from '@/components/atoms/DaInput'
-import { DaText } from '@/components/atoms/DaText'
+import { Button } from '@/components/atoms/button'
+import { Input } from '@/components/atoms/input'
+import { Label } from '@/components/atoms/label'
 import { isAxiosError } from 'axios'
 import { useState } from 'react'
-import { TbCircleCheckFilled, TbLoader, TbLock } from 'react-icons/tb'
+import { TbCircleCheckFilled, TbLoader } from 'react-icons/tb'
 import { partialUpdateUserService } from '@/services/user.service'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
 
@@ -66,61 +66,60 @@ const FormUpdatePassword = ({}) => {
   return (
     <form
       onSubmit={resetPassword}
-      className="w-[30vw] lg:w-[25vw] max-h-[80vh] bg-da-white"
+      className="w-[30vw] lg:w-[25vw] max-h-[80vh] bg-white"
     >
       {/* Title */}
-      <DaText variant="title" className="text-da-primary-500">
+      <h2 className="text-xl font-semibold text-primary">
         Change Password
-      </DaText>
+      </h2>
 
       {changed ? (
         <>
-          <DaText className="block mt-4">
+          <span className="block mt-4">
             Reset password success! Please login with your new password.
-          </DaText>
+          </span>
           <TbCircleCheckFilled className="text-6xl text-green-500 mx-auto my-4" />
         </>
       ) : (
         <>
           {/* Content */}
-          <DaInput
-            name="password"
-            placeholder="Password"
-            label="Password"
-            className="mt-4"
-            Icon={TbLock}
-            iconBefore
-            type="password"
-            iconSize={18}
-          />
+          <div className="mt-4">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Password"
+              className="mt-1"
+            />
+          </div>
 
-          <DaInput
-            name="confirmPassword"
-            placeholder="Confirm password"
-            label="Confirm password"
-            className="mt-4"
-            Icon={TbLock}
-            iconBefore
-            type="password"
-            iconSize={18}
-          />
+          <div className="mt-4">
+            <Label htmlFor="confirmPassword">Confirm password</Label>
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              placeholder="Confirm password"
+              className="mt-1"
+            />
+          </div>
 
           {/* Error */}
           {error && (
-            <DaText variant="small" className="mt-2 block text-red-500">
+            <span className="text-sm mt-2 block text-red-500">
               {error}
-            </DaText>
+            </span>
           )}
           {/* Action */}
-          <DaButton
+          <Button
             disabled={loading}
             type="submit"
-            variant="solid"
             className="w-full mt-6"
           >
             {loading && <TbLoader className="animate-spin text-lg mr-2" />}
             Change Password
-          </DaButton>
+          </Button>
         </>
       )}
     </form>
