@@ -73,10 +73,17 @@ REGISTRY_PID=$!
 REGISTRY_STARTED=1
 echo $REGISTRY_PID > "$REGISTRY_PID_FILE"
 
-echo "Registry service PID: $REGISTRY_PID (logs: $REGISTRY_LOG_FILE)"
-
 sleep 1
 if ! ps -p "$REGISTRY_PID" >/dev/null 2>&1; then
+  REGISTRY_PID=$(pgrep -f "registry-service/src/app.js" | head -n 1 || true)
+  if [ -n "$REGISTRY_PID" ]; then
+    echo $REGISTRY_PID > "$REGISTRY_PID_FILE"
+  fi
+fi
+
+echo "Registry service PID: ${REGISTRY_PID:-unknown} (logs: $REGISTRY_LOG_FILE)"
+
+if [ -z "$REGISTRY_PID" ] || ! ps -p "$REGISTRY_PID" >/dev/null 2>&1; then
   echo "Registry service failed to start; see $REGISTRY_LOG_FILE" >&2
   tail -n 40 "$REGISTRY_LOG_FILE" >&2 || true
   exit 1
