@@ -20,13 +20,31 @@ if [ ! -d "$REGISTRY_DIR" ]; then
   exit 1
 fi
 
+kill_port() {
+  local port=$1
+  if command -v lsof >/dev/null 2>&1; then
+    local pids
+    pids=$(lsof -ti ":$port" 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+      echo "Port $port in use by PID(s): $pids — terminating."
+      for pid in $pids; do
+        kill "$pid" 2>/dev/null || true
+      done
+      sleep 1
+    fi
+  fi
+}
+
 if [ -f "$REGISTRY_PID_FILE" ]; then
   if ps -p "$(cat "$REGISTRY_PID_FILE")" >/dev/null 2>&1; then
     echo "Stopping existing registry-service (PID $(cat "$REGISTRY_PID_FILE"))"
     kill "$(cat "$REGISTRY_PID_FILE")"
     sleep 1
   fi
+  rm -f "$REGISTRY_PID_FILE"
 fi
+
+kill_port 4400
 
 if [ ! -d "$REGISTRY_DIR/node_modules" ]; then
   echo "Installing registry-service dependencies..."
@@ -57,6 +75,13 @@ echo $REGISTRY_PID > "$REGISTRY_PID_FILE"
 
 echo "Registry service PID: $REGISTRY_PID (logs: $REGISTRY_LOG_FILE)"
 
+sleep 1
+if ! ps -p "$REGISTRY_PID" >/dev/null 2>&1; then
+  echo "Registry service failed to start; see $REGISTRY_LOG_FILE" >&2
+  tail -n 40 "$REGISTRY_LOG_FILE" >&2 || true
+  exit 1
+fi
+
 export EXTENSION_REGISTRY_URL="${EXTENSION_REGISTRY_URL:-http://localhost:4400}"
 
 echo "EXTENSION_REGISTRY_URL set to $EXTENSION_REGISTRY_URL"
@@ -67,6 +92,8 @@ if [ ! -x "$SCRIPT_DIR/start-isolated.sh" ]; then
 fi
 
 echo "Launching AutoWRX isolated stack..."
+kill_port 3200
+kill_port 3210
 if ! EXTENSION_REGISTRY_URL="$EXTENSION_REGISTRY_URL" "$SCRIPT_DIR/start-isolated.sh"; then
   echo "AutoWRX isolated stack failed to start." >&2
   if [ -f "$SCRIPT_DIR/logs/backend-isolated.log" ]; then
