@@ -60,7 +60,9 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
   const [catalog, setCatalog] = useState<CatalogPluginDescriptor[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showCatalog, setShowCatalog] = useState(false)
+  const [activeSection, setActiveSection] = useState<'installed' | 'catalog'>('installed')
+  const [installedQuery, setInstalledQuery] = useState('')
+  const [catalogQuery, setCatalogQuery] = useState('')
   const [editingPlugin, setEditingPlugin] = useState<InstalledPluginDescriptor | null>(null)
   const [editForm, setEditForm] = useState<EditFormState>(initialEditState(null))
   const [savingEdit, setSavingEdit] = useState(false)
@@ -71,15 +73,48 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
   const isPluginEnabled = useModelPluginStore((state) => state.isEnabled)
   const setPluginEnabled = useModelPluginStore((state) => state.setEnabled)
   const resetForModel = useModelPluginStore((state) => state.resetForModel)
-  const disabledCount = useModelPluginStore((state) => state.disabledPlugins[modelScope]?.length ?? 0)
+  const disabledForModel = useModelPluginStore((state) => state.disabledPlugins[modelScope] || [])
+  const disabledCount = disabledForModel.length
 
   useEffect(() => {
     if (open) {
+      setActiveSection('installed')
+      setInstalledQuery('')
+      setCatalogQuery('')
       void loadData()
     }
   }, [open])
 
   const installedIds = useMemo(() => new Set(installed.map((plugin) => plugin.id)), [installed])
+  const filteredInstalled = useMemo(() => {
+    const query = installedQuery.trim().toLowerCase()
+    if (!query) return installed
+    return installed.filter((plugin) => {
+      const manifest = plugin.manifest
+      return (
+        manifest.name?.toLowerCase().includes(query) ||
+        manifest.description?.toLowerCase().includes(query) ||
+        manifest.summary?.toLowerCase().includes(query) ||
+        manifest.id.toLowerCase().includes(query)
+      )
+    })
+  }, [installed, installedQuery])
+
+  const filteredCatalog = useMemo(() => {
+    const query = catalogQuery.trim().toLowerCase()
+    if (!query) return catalog
+    return catalog.filter((plugin) =>
+      plugin.name.toLowerCase().includes(query) ||
+      plugin.description.toLowerCase().includes(query) ||
+      plugin.summary?.toLowerCase().includes(query) ||
+      plugin.id.toLowerCase().includes(query)
+    )
+  }, [catalog, catalogQuery])
+
+  const enabledInstalledCount = useMemo(
+    () => filteredInstalled.reduce((count, plugin) => count + (isPluginEnabled(modelScope, plugin.id) ? 1 : 0), 0),
+    [filteredInstalled, isPluginEnabled, modelScope]
+  )
 
   const loadData = async () => {
     try {
@@ -258,137 +293,192 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
           </div>
         </div>
 
-        <div className='flex-1 overflow-y-auto px-6 py-5 space-y-6'>
-          <div className='flex flex-wrap items-center gap-3'>
-            <button
-              className='flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-400 disabled:opacity-60'
-              onClick={() => setShowCatalog((prev) => !prev)}
-              disabled={loading}
-            >
-              {showCatalog ? 'Hide Catalog' : 'Install from Catalog'}
-            </button>
-            <label className='flex items-center gap-2 rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 cursor-pointer disabled:opacity-60'>
-              Upload Bundle
-              <input type='file' accept='.zip' className='hidden' onChange={handleUpload} disabled={uploading} />
-            </label>
-            <span className='text-xs text-slate-400'>Need a custom UI? Choose a plugin then "Develop GUI" to open the workbench.</span>
-          </div>
-
-          {error && (
-            <div className='rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-100'>
-              {error}
+        <div className='flex flex-1 overflow-hidden'>
+          <aside className='flex w-64 flex-col border-r border-slate-800 bg-slate-950/70'>
+            <div className='border-b border-slate-800 px-4 py-5 space-y-2'>
+              <div className='text-xs uppercase tracking-wide text-slate-500'>Model status</div>
+              <div className='text-sm font-semibold text-white'>{enabledInstalledCount}/{installed.length} plugins enabled</div>
+              <div className='text-xs text-slate-400'>{disabledCount} disabled for this model</div>
             </div>
-          )}
-
-          {showCatalog && (
-            <section className='rounded-xl border border-slate-700 bg-slate-900/70 p-5 space-y-4'>
-              <div className='flex items-center justify-between'>
-                <h3 className='text-lg font-semibold text-white'>Catalog</h3>
-                <span className='text-xs uppercase tracking-wide text-slate-400'>{catalog.length} available</span>
-              </div>
-              {catalog.length === 0 ? (
-                <div className='rounded-lg border border-slate-700 bg-slate-900/80 p-4 text-sm text-slate-300'>Catalog is empty. Upload a plugin bundle to add new entries.</div>
-              ) : (
-                <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
-                  {catalog.map((plugin) => {
-                    const alreadyInstalled = installedIds.has(plugin.id)
-                    return (
-                      <article key={plugin.id} className='rounded-lg border border-slate-700 bg-slate-900/80 p-4 space-y-3'>
-                        <header className='space-y-1'>
-                          <h4 className='text-lg font-semibold text-white'>{plugin.name}</h4>
-                          <div className='text-xs uppercase tracking-wide text-slate-400 flex items-center gap-2'>
-                            <span>v{plugin.version}</span>
-                            {plugin.status && <span className='rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-slate-200'>{plugin.status}</span>}
-                          </div>
-                        </header>
-                        <p className='text-sm text-slate-300 leading-relaxed min-h-[60px]'>{plugin.summary || plugin.description}</p>
-                        <button
-                          className='rounded-md border border-emerald-500/60 px-3 py-1 text-sm text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-60'
-                          onClick={() => handleInstall(plugin.id)}
-                          disabled={alreadyInstalled || loading}
-                        >
-                          {alreadyInstalled ? 'Installed' : 'Install'}
-                        </button>
-                      </article>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-          )}
-
-          <section className='space-y-4'>
-            <div className='flex items-center justify-between'>
-              <h3 className='text-lg font-semibold text-white'>Installed Plugins</h3>
-              {loading && <span className='text-xs uppercase tracking-wide text-slate-400 animate-pulse'>Syncing…</span>}
+            <nav className='flex-1 overflow-y-auto px-2 py-4 space-y-1'>
+              {[
+                { id: 'installed' as const, label: 'Installed', badge: installed.length },
+                { id: 'catalog' as const, label: 'Marketplace', badge: catalog.length }
+              ].map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${
+                    activeSection === section.id
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-300 hover:bg-slate-900'
+                  }`}
+                >
+                  <span>{section.label}</span>
+                  <span className='rounded-full bg-slate-900 px-2 py-0.5 text-xs text-slate-400'>{section.badge}</span>
+                </button>
+              ))}
+            </nav>
+            <div className='space-y-2 border-t border-slate-800 px-4 py-4'>
+              <label className='flex items-center justify-center gap-2 rounded-md border border-slate-700 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 cursor-pointer disabled:opacity-60'>
+                Upload Bundle
+                <input type='file' accept='.zip' className='hidden' onChange={handleUpload} disabled={uploading} />
+              </label>
+              <button
+                className='w-full rounded-md border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-200 hover:bg-blue-500/20'
+                onClick={() => setActiveSection('catalog')}
+              >
+                Browse Marketplace
+              </button>
             </div>
-            {installed.length === 0 ? (
-              <div className='rounded-xl border border-slate-700 bg-slate-900/80 p-6 text-slate-300'>No plugins are active. Install from the catalog or upload a bundle to get started.</div>
-            ) : (
-              <div className='grid gap-4 md:grid-cols-2'>
-                {installed.map((plugin) => {
-                  const pluginEnabled = isPluginEnabled(modelScope, plugin.id)
-                  return (
-                    <article key={plugin.id} className='rounded-xl border border-slate-800 bg-slate-900/80 p-5 space-y-4 shadow-sm'>
-                    <header className='space-y-1'>
-                      <h4 className='text-xl font-semibold text-white'>{plugin.manifest.name}</h4>
-                      <div className='text-xs text-slate-400 uppercase tracking-wide flex items-center gap-3'>
-                        <span>v{plugin.manifest.version}</span>
-                        {plugin.installedAt && <span>Installed {new Date(plugin.installedAt).toLocaleString()}</span>}
-                      </div>
-                      <button
-                        className={`mt-2 inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
-                          pluginEnabled
-                            ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
-                            : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
-                        }`}
-                        onClick={() => setModelPluginEnabled(plugin.id, !pluginEnabled, plugin.manifest.name)}
-                      >
-                        <span className='text-base'>{pluginEnabled ? '🟢' : '⚪'}</span>
-                        {pluginEnabled ? 'Enabled for this model' : 'Disabled for this model'}
-                      </button>
-                    </header>
-                    <p className='text-sm leading-relaxed text-slate-300 min-h-[60px]'>{plugin.manifest.description || 'No description provided.'}</p>
-                    <div className='space-y-2'>
-                      <div className='text-xs uppercase tracking-wide text-slate-400'>Tabs</div>
-                      <ul className='space-y-1 text-sm text-slate-200'>
-                        {(plugin.manifest.tabs || []).map((tab) => (
-                          <li key={tab.id} className='flex items-center justify-between rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2'>
-                            <span className='flex items-center gap-2'>
-                              {tab.icon && <span>{tab.icon}</span>}
-                              <span>{tab.label}</span>
-                            </span>
-                            <span className='text-xs text-slate-500'>#{tab.id}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <footer className='flex flex-wrap gap-2'>
-                      <button
-                        className='rounded-md border border-blue-500/60 px-3 py-1 text-sm text-blue-200 hover:bg-blue-500/10'
-                        onClick={() => handlePreview(plugin.id)}
-                      >
-                        Develop GUI
-                      </button>
-                      <button
-                        className='rounded-md border border-slate-600 px-3 py-1 text-sm text-slate-200 hover:bg-slate-800'
-                        onClick={() => handleOpenEdit(plugin)}
-                      >
-                        Edit Metadata
-                      </button>
-                      <button
-                        className='rounded-md border border-red-500/60 px-3 py-1 text-sm text-red-200 hover:bg-red-500/10'
-                        onClick={() => handleRemove(plugin.id)}
-                      >
-                        Remove
-                      </button>
-                    </footer>
-                    </article>
-                  )
-                })}
+          </aside>
+
+          <div className='flex-1 overflow-y-auto px-6 py-6 space-y-6'>
+            {error && (
+              <div className='rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-100'>
+                {error}
               </div>
             )}
-          </section>
+
+            {activeSection === 'installed' ? (
+              <section className='space-y-4'>
+                <div className='flex flex-wrap items-center justify-between gap-3'>
+                  <div>
+                    <h3 className='text-lg font-semibold text-white'>Installed Plugins</h3>
+                    <p className='text-xs text-slate-400'>Toggle availability per model or open the workbench for deeper edits.</p>
+                  </div>
+                  <div className='relative w-full max-w-xs'>
+                    <input
+                      type='search'
+                      className='w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      placeholder='Search installed plugins'
+                      value={installedQuery}
+                      onChange={(event) => setInstalledQuery(event.target.value)}
+                    />
+                  </div>
+                </div>
+                {filteredInstalled.length === 0 ? (
+                  <div className='rounded-xl border border-slate-700 bg-slate-900/80 p-6 text-slate-300'>No plugins match your search. Try a different keyword or install from the marketplace.</div>
+                ) : (
+                  <div className='grid gap-4 md:grid-cols-2'>
+                    {filteredInstalled.map((plugin) => {
+                      const pluginEnabled = isPluginEnabled(modelScope, plugin.id)
+                      return (
+                        <article key={plugin.id} className='rounded-xl border border-slate-800 bg-slate-900/80 p-5 space-y-4 shadow-sm'>
+                          <header className='space-y-1'>
+                            <h4 className='text-xl font-semibold text-white'>{plugin.manifest.name}</h4>
+                            <div className='text-xs text-slate-400 uppercase tracking-wide flex items-center gap-3'>
+                              <span>v{plugin.manifest.version}</span>
+                              {plugin.installedAt && <span>Installed {new Date(plugin.installedAt).toLocaleString()}</span>}
+                            </div>
+                            <button
+                              className={`mt-2 inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
+                                pluginEnabled
+                                  ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
+                                  : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
+                              }`}
+                              onClick={() => setModelPluginEnabled(plugin.id, !pluginEnabled, plugin.manifest.name)}
+                            >
+                              <span className='text-base'>{pluginEnabled ? '🟢' : '⚪'}</span>
+                              {pluginEnabled ? 'Enabled for this model' : 'Disabled for this model'}
+                            </button>
+                          </header>
+                          <p className='text-sm leading-relaxed text-slate-300 min-h-[60px]'>{plugin.manifest.description || 'No description provided.'}</p>
+                          <div className='space-y-2'>
+                            <div className='text-xs uppercase tracking-wide text-slate-400'>Tabs</div>
+                            <ul className='space-y-1 text-sm text-slate-200'>
+                              {(plugin.manifest.tabs || []).map((tab) => (
+                                <li key={tab.id} className='flex items-center justify-between rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2'>
+                                  <span className='flex items-center gap-2'>
+                                    {tab.icon && <span>{tab.icon}</span>}
+                                    <span>{tab.label}</span>
+                                  </span>
+                                  <span className='text-xs text-slate-500'>#{tab.id}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <footer className='flex flex-wrap gap-2'>
+                            <button
+                              className='rounded-md border border-blue-500/60 px-3 py-1 text-sm text-blue-200 hover:bg-blue-500/10'
+                              onClick={() => handlePreview(plugin.id)}
+                            >
+                              Develop GUI
+                            </button>
+                            <button
+                              className='rounded-md border border-slate-600 px-3 py-1 text-sm text-slate-200 hover:bg-slate-800'
+                              onClick={() => handleOpenEdit(plugin)}
+                            >
+                              Edit Metadata
+                            </button>
+                            <button
+                              className='rounded-md border border-red-500/60 px-3 py-1 text-sm text-red-200 hover:bg-red-500/10'
+                              onClick={() => handleRemove(plugin.id)}
+                            >
+                              Remove
+                            </button>
+                          </footer>
+                        </article>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+            ) : (
+              <section className='space-y-4'>
+                <div className='flex flex-wrap items-center justify-between gap-3'>
+                  <div>
+                    <h3 className='text-lg font-semibold text-white'>Marketplace</h3>
+                    <p className='text-xs text-slate-400'>Discover new extensions and install them into your workspace.</p>
+                  </div>
+                  <div className='relative w-full max-w-xs'>
+                    <input
+                      type='search'
+                      className='w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      placeholder='Search marketplace'
+                      value={catalogQuery}
+                      onChange={(event) => setCatalogQuery(event.target.value)}
+                    />
+                  </div>
+                </div>
+                {filteredCatalog.length === 0 ? (
+                  <div className='rounded-xl border border-slate-700 bg-slate-900/80 p-6 text-slate-300'>No marketplace entries match your search. Try uploading a bundle or clearing the filter.</div>
+                ) : (
+                  <div className='grid gap-4 lg:grid-cols-2'>
+                    {filteredCatalog.map((plugin) => {
+                      const alreadyInstalled = installedIds.has(plugin.id)
+                      return (
+                        <article key={plugin.id} className='rounded-xl border border-slate-700 bg-slate-900/80 p-4 space-y-3'>
+                          <header className='space-y-1'>
+                            <h4 className='text-lg font-semibold text-white'>{plugin.name}</h4>
+                            <div className='text-xs uppercase tracking-wide text-slate-400 flex items-center gap-2'>
+                              <span>v{plugin.version}</span>
+                              {plugin.status && <span className='rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-slate-200'>{plugin.status}</span>}
+                            </div>
+                          </header>
+                          <p className='text-sm text-slate-300 leading-relaxed min-h-[60px]'>{plugin.summary || plugin.description}</p>
+                          <div className='flex flex-wrap items-center gap-3 text-xs text-slate-400'>
+                            {plugin.tags?.map((tag) => (
+                              <span key={tag} className='rounded-full border border-slate-700 px-2 py-0.5'>#{tag}</span>
+                            ))}
+                          </div>
+                          <div className='flex items-center gap-3'>
+                            <button
+                              className='rounded-md border border-emerald-500/60 px-3 py-1 text-sm text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-60'
+                              onClick={() => handleInstall(plugin.id)}
+                              disabled={alreadyInstalled || loading}
+                            >
+                              {alreadyInstalled ? 'Installed' : 'Install'}
+                            </button>
+                          </div>
+                        </article>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
         </div>
       </aside>
 
