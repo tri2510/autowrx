@@ -26,6 +26,8 @@ export interface ExtensionVersionInfo {
   integrity?: string
   permissions?: string[]
   engine?: Record<string, string>
+  channel?: string
+  changelog?: string
   manifest?: PluginManifest
 }
 

@@ -89,6 +89,20 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
     }
   }, [open])
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<{ pluginId: string; message: string }>
+      if (custom.detail?.message) {
+        toast.error(`Extension error: ${custom.detail.message}`)
+      }
+    }
+
+    window.addEventListener('autowrx-registry-plugin-error', handler)
+    return () => {
+      window.removeEventListener('autowrx-registry-plugin-error', handler)
+    }
+  }, [])
+
   const installedIds = useMemo(() => new Set(installed.map((plugin) => plugin.id)), [installed])
   const filteredInstalled = useMemo(() => {
     const query = installedQuery.trim().toLowerCase()

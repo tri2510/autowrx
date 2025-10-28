@@ -45,6 +45,8 @@ This document tracks implementation notes for Phase 2 of the AutoWRX plugin plat
   "integrity": "sha256-PLACEHOLDER",
   "permissions": ["vehicle:read", "dom:read"],
   "engine": { "autowrx": "^2.0.0" },
+  "channel": "stable",
+  "changelog": "Improved forecast accuracy",
   "manifest": { "id": "weather-insights", "main": "main.js", "activationEvents": ["onStartup"], "tabs": [...] }
 }
 ```
@@ -62,6 +64,7 @@ A `.env.example` file is provided. Copy it to `.env` to customize the port or en
 - Backend/frontend consumers can start replacing local catalog reads with requests to this service.
 - Remaining tasks include response signing, asset storage integration, and authentication middleware.
 - During migration, support dual-mode loaders (registry first, fallback to local filesystem).
+- Frontend validates bundle integrity (when hashes are provided) and prompts users when extensions request additional permissions.
 
 ## Roadmap Alignment
 This service fulfills the Phase 2 requirements to:

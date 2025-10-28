@@ -24,6 +24,7 @@ const extensions = [
         integrity: undefined,
         permissions: ['vehicle:read', 'dom:read'],
         channel: 'stable',
+        changelog: 'Improved forecast accuracy and added precipitation alerts.',
         engine: { autowrx: '^2.0.0' },
         manifest: {
           id: 'weather-insights',
@@ -54,6 +55,7 @@ const extensions = [
         integrity: undefined,
         permissions: ['vehicle:read'],
         channel: 'legacy',
+        changelog: 'Initial release.',
         engine: { autowrx: '^1.9.0' }
       }
     ]

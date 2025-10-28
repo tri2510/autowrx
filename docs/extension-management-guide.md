@@ -21,7 +21,7 @@ Use this guide to exercise the new extension tooling shipped on `252-research-ex
 6. **Remove**: click **Remove** to uninstall; the tab manager unloads the plugin and cleans up manifest storage.
 
 ## Working in the Plugin Workbench
-1. From the management panel, click **Develop GUI** (or navigate directly to `/plugin-workbench/<pluginId>`).
+1. From the management panel, click **Develop GUI** (or navigate directly to `/plugin-workbench/<pluginId>`). Registry plugins are restored automatically between sessions when integrity checks succeed.
 2. Use the **Live Preview** select to switch between tab components defined in `manifest.json`.
 3. Press **Reload Plugin** after editing source files; this calls `pluginManager.reloadPlugin()` and reinitializes the runtime bundle.
 4. Use **View Manifest** for quick inspection of the active manifest, or **Manage Plugins** to jump back to the modal.

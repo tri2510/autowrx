@@ -450,22 +450,40 @@ class PluginManager {
       throw new Error(`Registry plugin ${record.id} missing bundle URL`)
     }
 
-    const bundleResponse = await fetch(record.bundleUrl)
-    if (!bundleResponse.ok) {
-      throw new Error(`Failed to download bundle for ${record.id}: ${bundleResponse.statusText}`)
-    }
-    const bundleCode = await bundleResponse.text()
-    await verifyBundleIntegrity(bundleCode, record.integrity)
+    try {
+      const bundleResponse = await fetch(record.bundleUrl)
+      if (!bundleResponse.ok) {
+        throw new Error(`Failed to download bundle for ${record.id}: ${bundleResponse.statusText}`)
+      }
+      const bundleCode = await bundleResponse.text()
+      await verifyBundleIntegrity(bundleCode, record.integrity)
 
-    await this.activatePlugin(record.manifest, () => pluginLoader.loadPluginFromBundle(record.manifest, bundleCode, {
-      baseUrl: record.baseUrl,
-      source: 'registry',
-      bundleUrl: record.bundleUrl
+      await this.activatePlugin(record.manifest, () => pluginLoader.loadPluginFromBundle(record.manifest, bundleCode, {
+        baseUrl: record.baseUrl,
+        source: 'registry',
+        bundleUrl: record.bundleUrl
+      }))
+
+      if (!options.skipPersist) {
+        this.persistDynamicInstalls()
+      }
+    } catch (error) {
+      this.notifyRegistryError(record.id, error)
+      throw error
+    }
+  }
+
+  private notifyRegistryError(pluginId: string, error: unknown): void {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const message = error instanceof Error ? error.message : 'Unknown registry plugin error'
+    window.dispatchEvent(new CustomEvent('autowrx-registry-plugin-error', {
+      detail: {
+        pluginId,
+        message
+      }
     }))
-
-    if (!options.skipPersist) {
-      this.persistDynamicInstalls()
-    }
   }
 
   private async syncInstalledPlugins(installed: InstalledPluginRecord[]): Promise<void> {
