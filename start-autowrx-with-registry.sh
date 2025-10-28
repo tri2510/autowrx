@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_DIR="$SCRIPT_DIR/logs"
+REGISTRY_DIR="$SCRIPT_DIR/registry-service"
+REGISTRY_PID_FILE="$LOG_DIR/registry-service.pid"
+REGISTRY_LOG_FILE="$LOG_DIR/registry-service.log"
+
+mkdir -p "$LOG_DIR"
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "npm not found. Install Node.js/npm before running the stack." >&2
+  exit 1
+fi
+
+if [ ! -d "$REGISTRY_DIR" ]; then
+  echo "registry-service directory not found. Ensure the repository is on the feature branch." >&2
+  exit 1
+fi
+
+if [ -f "$REGISTRY_PID_FILE" ]; then
+  if ps -p "$(cat "$REGISTRY_PID_FILE")" >/dev/null 2>&1; then
+    echo "Stopping existing registry-service (PID $(cat "$REGISTRY_PID_FILE"))"
+    kill "$(cat "$REGISTRY_PID_FILE")"
+    sleep 1
+  fi
+fi
+
+if [ ! -d "$REGISTRY_DIR/node_modules" ]; then
+  echo "Installing registry-service dependencies..."
+  (cd "$REGISTRY_DIR" && npm install)
+fi
+
+echo "Starting registry-service on http://localhost:4400"
+(cd "$REGISTRY_DIR" && npm run dev >"$REGISTRY_LOG_FILE" 2>&1 &)
+REGISTRY_PID=$!
+echo $REGISTRY_PID > "$REGISTRY_PID_FILE"
+
+echo "Registry service PID: $REGISTRY_PID (logs: $REGISTRY_LOG_FILE)"
+
+export EXTENSION_REGISTRY_URL="${EXTENSION_REGISTRY_URL:-http://localhost:4400}"
+
+echo "EXTENSION_REGISTRY_URL set to $EXTENSION_REGISTRY_URL"
+
+if [ ! -x "$SCRIPT_DIR/start-isolated.sh" ]; then
+  echo "start-isolated.sh not found or not executable. Please launch backend/frontend manually." >&2
+  exit 0
+fi
+
+echo "Launching AutoWRX isolated stack..."
+EXTENSION_REGISTRY_URL="$EXTENSION_REGISTRY_URL" "$SCRIPT_DIR/start-isolated.sh"
