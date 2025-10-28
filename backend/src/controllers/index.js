@@ -19,4 +19,6 @@ module.exports.assetController = require('./asset.controller');
 module.exports.changeLogController = require('./changeLog.controller');
 module.exports.fileController = require('./file.controller');
 module.exports.siteConfigController = require('./siteConfig.controller');
+module.exports.pluginController = require('./plugin.controller');
+module.exports.modelTemplateController = require('./modelTemplate.controller');
 // Inventory controllers removed

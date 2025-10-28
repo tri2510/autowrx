@@ -25,4 +25,6 @@ module.exports.fileService = require('./file.service');
 module.exports.logService = require('./log.service');
 module.exports.changeLogService = require('./changeLog.service');
 module.exports.siteConfigService = require('./siteConfig.service');
+module.exports.pluginService = require('./plugin.service');
+module.exports.modelTemplateService = require('./modelTemplate.service');
 // Inventory services removed

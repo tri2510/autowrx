@@ -1,0 +1,103 @@
+{
+  "info": {
+    "name": "Plugins",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "c3b1a1a0-0000-4000-8000-plugins-collection"
+  },
+  "item": [
+    {
+      "name": "List Plugins",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/v2/system/plugin",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "system", "plugin"]
+        }
+      }
+    },
+    {
+      "name": "Get Plugin by ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/v2/system/plugin/id/{{pluginId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "system", "plugin", "id", "{{pluginId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Plugin by Slug",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/v2/system/plugin/slug/{{slug}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "system", "plugin", "slug", "{{slug}}"]
+        }
+      }
+    },
+    {
+      "name": "Create Plugin (Admin)",
+      "request": {
+        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ] },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My Plugin\",\n  \"slug\": \"my-plugin\",\n  \"is_internal\": false,\n  \"image\": \"/imgs/default.png\",\n  \"description\": \"Description\",\n  \"url\": \"https://example.com/path/to/it/index.js\",\n  \"config\": { \"enabled\": true }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/system/plugin",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "system", "plugin"]
+        }
+      }
+    },
+    {
+      "name": "Update Plugin (Admin)",
+      "request": {
+        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ] },
+        "method": "PUT",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Name\",\n  \"description\": \"Updated\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/system/plugin/{{pluginId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "system", "plugin", "{{pluginId}}"]
+        }
+      }
+    },
+    {
+      "name": "Upload Internal Plugin ZIP (Admin)",
+      "request": {
+        "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ] },
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "multipart/form-data" } ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": "/path/to/plugin.zip" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/system/plugin/upload/{{slug}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["v2", "system", "plugin", "upload", "{{slug}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3200" },
+    { "key": "accessToken", "value": "" },
+    { "key": "pluginId", "value": "" },
+    { "key": "slug", "value": "my-plugin" }
+  ]
+}
+
+
