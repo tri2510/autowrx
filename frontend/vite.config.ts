@@ -39,6 +39,11 @@ export default defineConfig({
         target: 'http://localhost:3200',
         changeOrigin: true,
         secure: false,
+      },
+      '/plugin': {
+        target: 'http://localhost:3200',
+        changeOrigin: true,
+        secure: false,
       }
     },
   },

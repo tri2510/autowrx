@@ -11,6 +11,8 @@ const searchRoute = require('./search.route');
 const changeLogRoute = require('./changeLog.route');
 const fileRoute = require('./file.route');
 const siteManagementRoute = require('./site-management.route');
+const pluginRoute = require('./plugin.route');
+const modelTemplateRoute = require('./modelTemplate.route');
 
 const router = express.Router();
 
@@ -19,5 +21,10 @@ router.use('/search', searchRoute);
 router.use('/change-logs', changeLogRoute);
 router.use('/file', fileRoute);
 router.use('/site-config', siteManagementRoute);
+router.use('/plugin', pluginRoute);
+router.use('/model-template', modelTemplateRoute);
+// Backward/compat path to match docs and frontend
+router.use('/system/plugin', pluginRoute);
+router.use('/system/model-template', modelTemplateRoute);
 
 module.exports = router;

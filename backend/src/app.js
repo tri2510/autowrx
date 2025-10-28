@@ -105,6 +105,8 @@ passport.use('jwt', jwtStrategy);
 app.use('/v2', routesV2);
 app.use('/static', express.static(path.join(__dirname, '../static')));
 app.use('/images', express.static(path.join(__dirname, '../static/images')));
+app.use('/static/plugin', express.static(path.join(__dirname, '../static/plugin')));
+app.use('/plugin', express.static(path.join(__dirname, '../static/plugin')));
 // Serve uploaded files with date-based directory structure
 app.use('/d', express.static(path.join(__dirname, '../static/uploads'), {
   setHeaders: (res, path) => {
@@ -134,6 +136,7 @@ if (config.env === 'development') {
     // Skip if it's an API route or backend static file
     if (req.path.startsWith('/v2') || 
         req.path.startsWith('/static') || 
+        req.path.startsWith('/plugin') ||
         req.path.startsWith('/images') || 
         req.path.startsWith('/d') ||
         req.path.startsWith('/api')) {
@@ -152,6 +155,7 @@ if (config.env === 'development') {
     // Skip if it's an API route or backend static file
     if (req.path.startsWith('/v2') ||
         req.path.startsWith('/static') ||
+        req.path.startsWith('/plugin') ||
         req.path.startsWith('/images') ||
         req.path.startsWith('/d') ||
         req.path.startsWith('/api')) {

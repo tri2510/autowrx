@@ -21,4 +21,6 @@ module.exports.searchValidation = require('./search.validation');
 module.exports.assetValidation = require('./asset.validation');
 module.exports.fileValidation = require('./file.validation');
 module.exports.siteConfigValidation = require('./siteConfig.validation');
+module.exports.pluginValidation = require('./plugin.validation');
+module.exports.modelTemplateValidation = require('./modelTemplate.validation');
 // Inventory validations removed

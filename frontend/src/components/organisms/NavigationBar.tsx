@@ -136,10 +136,22 @@ const NavigationBar = ({}) => {
                 <TbStack2 className="text-base" /> Manage Features
               </Link>
               <Link
-                to="/site-config"
+                to="/admin/site-config"
                 className="flex items-center px-4 py-2 gap-2 da-menu-item da-label-regular"
               >
                 <TbSettings className="text-base" /> Site Config
+              </Link>
+              <Link
+                to="/admin/plugins"
+                className="flex items-center px-4 py-2 gap-2 da-menu-item da-label-regular"
+              >
+                <TbStack2 className="text-base" /> Plugins
+              </Link>
+              <Link
+                to="/admin/templates"
+                className="flex items-center px-4 py-2 gap-2 da-menu-item da-label-regular"
+              >
+                <TbStack2 className="text-base" /> Templates
               </Link>
             </DaMenu>
           )}

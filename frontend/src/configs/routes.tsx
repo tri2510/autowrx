@@ -15,12 +15,18 @@ import PageMyAssets from '@/pages/PageMyAssets.tsx'
 import PageNotFound from '@/pages/PageNotFound.tsx'
 import PageTest from '@/pages/PageTest.tsx'
 import SiteConfigManagement from '@/pages/SiteConfigManagement.tsx'
+import PluginList from '@/pages/PluginList.tsx'
+import TemplateManager from '@/pages/TemplateManager.tsx'
 // import PageAuthSuccess from '@/pages/PageAuthSuccess.ts'
 // import { retry } from '@/lib/retry.ts'
 
 // const PageHome = lazy(() => retry(() => import('@/pages/PageHome')))
 // const PageAbout = lazy(() => retry(() => import('@/pages/PageAbout')))
+
+import PageTestPlugin from '@/pages/PageTestPlugin.tsx'
 // const PageModelList = lazy(() => retry(() => import('@/pages/PageModelList')))
+
+
 // const ModelDetailLayout = lazy(() =>
 //   retry(() => import('@/layouts/ModelDetailLayout')),
 // )
@@ -135,16 +141,61 @@ const routesConfig: RouteConfig[] = [
             ],
           },
           {
-            path: '/site-config',
+            path: '/admin',
+            children: [
+              {
+                path: 'site-config',
+                children: [
+                  {
+                    index: true,
+                    element: (
+                      <SuspenseProvider>
+                        <SiteConfigManagement />
+                      </SuspenseProvider>
+                    ),
+                  },
+                ],
+              },
+              {
+                path: 'plugins',
+                children: [
+                  {
+                    index: true,
+                    element: (
+                      <SuspenseProvider>
+                        <PluginList />
+                      </SuspenseProvider>
+                    ),
+                  },
+                ],
+              },
+              {
+                path: 'templates',
+                children: [
+                  {
+                    index: true,
+                    element: (
+                      <SuspenseProvider>
+                        <TemplateManager />
+                      </SuspenseProvider>
+                    ),
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            path: '/plugins',
             children: [
               {
                 index: true,
                 element: (
                   <SuspenseProvider>
-                    <SiteConfigManagement />
+                    <PluginList />
                   </SuspenseProvider>
                 ),
               },
+              // popup form replaces dedicated create/edit routes
             ],
           },
           // {
@@ -180,17 +231,26 @@ const routesConfig: RouteConfig[] = [
       //     },
       //   ],
       // },
-      // {
-      //   path: '/model',
-      //   children: [
-      //     {
-      //       index: true,
-      //       element: (
-      //         <SuspenseProvider>
-      //           <PageModelList />
-      //         </SuspenseProvider>
-      //       ),
-      //     },
+      {
+        path: 'test-plugin',
+        element: (
+          <SuspenseProvider>
+            <PageTestPlugin />
+          </SuspenseProvider>
+        ),
+        noBreadcrumbs: true,
+      },
+      {
+        path: '/model',
+        children: [
+          {
+            index: true,
+            element: (
+              <SuspenseProvider>
+                {/* <PageModelList /> */}
+              </SuspenseProvider>
+            ),
+          },
       //     {
       //       path: ':model_id',
       //       element: (
@@ -274,8 +334,8 @@ const routesConfig: RouteConfig[] = [
       //         </SuspenseProvider>
       //       ),
       //     },
-      //   ],
-      // },
+        ],
+      },
       // {
       //   path: '/genai-wizard',
       //   children: [
