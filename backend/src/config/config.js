@@ -62,6 +62,7 @@ const envVarsSchema = Joi.object()
     LOGS_MAX_SIZE: Joi.number().default(100).description('Max size of change logs in megabytes'),
     // File upload settings
     MAX_IMAGE_DIMENSION: Joi.number().default(1024).description('Maximum image dimension in pixels'),
+    EXTENSION_REGISTRY_URL: Joi.string().allow('').description('Extension registry base URL'),
   })
   .unknown();
 
@@ -163,6 +164,11 @@ const config = {
     },
     log: {
       url: envVars.LOG_URL,
+    },
+  },
+  integrations: {
+    extensionRegistry: {
+      baseUrl: envVars.EXTENSION_REGISTRY_URL || '',
     },
   },
   openai: {

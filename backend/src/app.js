@@ -19,6 +19,7 @@ const morgan = require('./config/morgan');
 const { jwtStrategy } = require('./config/passport');
 const routesV2 = require('./routes/v2');
 const pluginRegistryRoutes = require('./routes/api/plugins.route');
+const extensionRegistryRoutes = require('./routes/api/extensions.route');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
 const { setupProxy } = require('./config/proxyHandler');
@@ -112,6 +113,7 @@ passport.use('jwt', jwtStrategy);
 
 app.use('/v2', routesV2);
 app.use('/api/plugins', pluginRegistryRoutes);
+app.use('/api/extensions', extensionRegistryRoutes);
 app.use('/static', express.static(path.join(__dirname, '../static')));
 app.use('/images', express.static(path.join(__dirname, '../static/images')));
 app.use('/plugins-runtime', express.static(pluginRegistryService.getInstalledStaticPath()));
