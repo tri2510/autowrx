@@ -8,8 +8,8 @@ set -e
 echo "🏭 Starting AutoWRX Isolated Production Environment..."
 echo "===================================================="
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SELF_DIR/../.." && pwd)"
 LOG_DIR="$REPO_ROOT/logs"
 BACKEND_DIR="$REPO_ROOT/backend"
 FRONTEND_DIR="$REPO_ROOT/frontend"
@@ -18,14 +18,23 @@ STOP_ISOLATED_SCRIPT="$REPO_ROOT/helpers/stop/stop-isolated.sh"
 
 source "$REPO_ROOT/helpers/common.sh"
 
+cd "$REPO_ROOT"
+
+print_status "Preparing isolated environment..."
+if [ -x "$STOP_ISOLATED_SCRIPT" ]; then
+    "$STOP_ISOLATED_SCRIPT" 2>/dev/null || true
+fi
+if [ -x "$STOP_AUTOWRX_SCRIPT" ]; then
+    "$STOP_AUTOWRX_SCRIPT" 2>/dev/null || true
+fi
+kill_port 3200
+kill_port 3210
+print_status "Cleanup complete. Launching isolated stack..."
+
 mkdir -p "$LOG_DIR"
 
 print_status "Starting Isolated Backend Server..."
 echo "------------------------------------"
-
-# Stop any existing processes
-print_status "Stopping existing processes..."
-"$STOP_AUTOWRX_SCRIPT" 2>/dev/null || true
 
 cd "$BACKEND_DIR"
 
