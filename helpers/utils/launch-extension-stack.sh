@@ -3,6 +3,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+START_SCRIPT="$REPO_ROOT/helpers/start/start-autowrx-with-registry.sh"
 STACK_LOG_DIR="$SCRIPT_DIR/logs"
 STACK_PID_FILE="$STACK_LOG_DIR/extension-stack.pid"
 
@@ -22,9 +24,10 @@ cleanup() {
 
 trap cleanup EXIT
 
-if [ ! -x "$SCRIPT_DIR/start-autowrx-with-registry.sh" ]; then
+if [ ! -x "$START_SCRIPT" ]; then
   echo "start-autowrx-with-registry.sh not found or not executable." >&2
-  echo "Please run this script from the repository root on the feature branch." >&2
+  echo "Expected location: $START_SCRIPT" >&2
+  echo "Please ensure you're on the feature/extension-registry-prototype branch." >&2
   exit 1
 fi
 
@@ -38,7 +41,7 @@ if [ -f "$STACK_PID_FILE" ]; then
 fi
 
 echo "Launching registry + AutoWRX stack..."
-"$SCRIPT_DIR/start-autowrx-with-registry.sh" &
+"$START_SCRIPT" &
 STACK_PID=$!
 echo $STACK_PID > "$STACK_PID_FILE"
 

@@ -3,8 +3,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_DIR="$SCRIPT_DIR/logs"
-REGISTRY_DIR="$SCRIPT_DIR/registry-service"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LOG_DIR="$REPO_ROOT/logs"
+REGISTRY_DIR="$REPO_ROOT/registry-service"
 REGISTRY_PID_FILE="$LOG_DIR/registry-service.pid"
 REGISTRY_LOG_FILE="$LOG_DIR/registry-service.log"
 
@@ -16,7 +17,8 @@ if ! command -v npm >/dev/null 2>&1; then
 fi
 
 if [ ! -d "$REGISTRY_DIR" ]; then
-  echo "registry-service directory not found. Ensure the repository is on the feature branch." >&2
+  echo "registry-service directory not found at: $REGISTRY_DIR" >&2
+  echo "Ensure the repository is on the feature/extension-registry-prototype branch." >&2
   exit 1
 fi
 
@@ -118,9 +120,9 @@ kill_port 3200
 kill_port 3210
 if ! EXTENSION_REGISTRY_URL="$EXTENSION_REGISTRY_URL" "$SCRIPT_DIR/start-isolated.sh"; then
   echo "AutoWRX isolated stack failed to start." >&2
-  if [ -f "$SCRIPT_DIR/logs/backend-isolated.log" ]; then
+  if [ -f "$LOG_DIR/backend-isolated.log" ]; then
     echo "---- backend-isolated.log (tail) ----" >&2
-    tail -n 40 "$SCRIPT_DIR/logs/backend-isolated.log" >&2
+    tail -n 40 "$LOG_DIR/backend-isolated.log" >&2
     echo "-------------------------------------" >&2
   fi
   exit 1
