@@ -19,7 +19,7 @@ const extensions = [
         version: '1.1.0',
         state: 'released',
         releasedAt: now,
-        bundleUrl: 'https://cdn.autowrx.dev/extensions/weather-insights/1.1.0/main.js',
+        bundleUrl: 'http://localhost:3200/plugins-runtime/weather-insights/index.js',
         integrity: 'sha256-PLACEHOLDER',
         permissions: ['vehicle:read', 'dom:read'],
         engine: { autowrx: '^2.0.0' },
@@ -48,7 +48,7 @@ const extensions = [
         version: '1.0.0',
         state: 'deprecated',
         releasedAt: now,
-        bundleUrl: 'https://cdn.autowrx.dev/extensions/weather-insights/1.0.0/main.js',
+        bundleUrl: 'http://localhost:3200/plugins-runtime/weather-insights/index.js',
         integrity: 'sha256-PLACEHOLDER-OLD',
         permissions: ['vehicle:read'],
         engine: { autowrx: '^1.9.0' }

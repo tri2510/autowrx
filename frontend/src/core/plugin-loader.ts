@@ -8,6 +8,12 @@
 
 import { PluginLoader, LoadedPlugin, PluginManifest, PluginInstance } from '@/types/plugin.types'
 
+interface BundleOptions {
+  baseUrl: string
+  source?: 'local' | 'registry'
+  bundleUrl?: string
+}
+
 class AutoWRXPluginLoader implements PluginLoader {
   private plugins: Map<string, LoadedPlugin> = new Map()
   private hotReloadWatchers: Map<string, () => void> = new Map()
@@ -19,33 +25,39 @@ class AutoWRXPluginLoader implements PluginLoader {
 
       const moduleResponse = await fetch(`${pluginPath}/${manifest.main}`)
       const moduleCode = await moduleResponse.text()
-      
-      const moduleFunction = new Function('exports', 'require', 'module', moduleCode)
-      const moduleExports: any = {}
-      const mockModule = { exports: moduleExports }
 
-      moduleFunction.call(moduleExports, moduleExports, this.createMockRequire(), mockModule)
+      return this.loadPluginFromBundle(manifest, moduleCode, {
+        baseUrl: pluginPath,
+        source: 'local'
+      })
+    } catch (error) {
+      console.error(`Failed to load plugin from ${pluginPath}:`, error)
+      throw error
+    }
+  }
 
-      // Get the exported class from module.exports (set by plugin code)
-      const PluginClass = mockModule.exports.default || mockModule.exports
-      const instance: PluginInstance = new PluginClass()
-
+  async loadPluginFromBundle(manifest: PluginManifest, bundleCode: string, options: BundleOptions): Promise<LoadedPlugin> {
+    const pluginId = manifest.id
+    try {
+      const instance = this.instantiatePlugin(bundleCode)
       const loadedPlugin: LoadedPlugin = {
         manifest,
         instance,
         status: 'loaded',
         tabs: [],
-        baseUrl: pluginPath
+        baseUrl: options.baseUrl,
+        source: options.source,
+        bundleUrl: options.bundleUrl
       }
 
-      this.plugins.set(manifest.id, loadedPlugin)
-      
+      this.plugins.set(pluginId, loadedPlugin)
+
       await instance.activate()
       loadedPlugin.status = 'active'
 
       return loadedPlugin
     } catch (error) {
-      console.error(`Failed to load plugin from ${pluginPath}:`, error)
+      console.error(`Failed to load plugin bundle for ${pluginId}:`, error)
       throw error
     }
   }
@@ -77,8 +89,24 @@ class AutoWRXPluginLoader implements PluginLoader {
     }
 
     const pluginPath = plugin.baseUrl
+    const source = plugin.source || 'local'
+
     await this.unloadPlugin(pluginId)
-    await this.loadPlugin(pluginPath)
+
+    if (source === 'local') {
+      await this.loadPlugin(pluginPath)
+    } else {
+      if (!plugin.bundleUrl) {
+        throw new Error(`Cannot reload registry plugin ${pluginId}: missing bundle URL`)
+      }
+      const bundleResponse = await fetch(plugin.bundleUrl)
+      const bundleCode = await bundleResponse.text()
+      await this.loadPluginFromBundle(plugin.manifest, bundleCode, {
+        baseUrl: pluginPath,
+        source: 'registry',
+        bundleUrl: plugin.bundleUrl
+      })
+    }
   }
 
   listPlugins(): LoadedPlugin[] {
@@ -124,6 +152,17 @@ class AutoWRXPluginLoader implements PluginLoader {
       
       throw new Error(`Module ${moduleId} not available in plugin context`)
     }
+  }
+
+  private instantiatePlugin(bundleCode: string): PluginInstance {
+    const moduleFunction = new Function('exports', 'require', 'module', bundleCode)
+    const moduleExports: any = {}
+    const mockModule = { exports: moduleExports }
+
+    moduleFunction.call(moduleExports, moduleExports, this.createMockRequire(), mockModule)
+
+    const PluginClass = mockModule.exports.default || mockModule.exports
+    return new PluginClass()
   }
 }
 

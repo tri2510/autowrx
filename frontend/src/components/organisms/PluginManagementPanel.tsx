@@ -1,17 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  CatalogPluginDescriptor,
-  InstalledPluginDescriptor,
   PluginTabUpdate,
   PluginUpdateRequest,
   fetchCatalog,
-  fetchInstalled,
   installFromCatalog,
   uninstall,
   uploadPlugin,
   updatePlugin
 } from '@/services/pluginMarketplace.service'
-import { pluginManager } from '@/core/plugin-manager'
+import { fetchRegistryCatalog, ExtensionSummary } from '@/services/extensionRegistry.service'
+import { pluginManager, InstalledPluginRecord } from '@/core/plugin-manager'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import useModelPluginStore from '@/stores/modelPluginStore'
@@ -23,6 +21,11 @@ interface PluginManagementPanelProps {
   modelId: string
 }
 
+interface MarketplaceEntry extends ExtensionSummary {
+  source: 'registry' | 'local'
+  version?: string
+}
+
 interface EditFormState {
   name: string
   description: string
@@ -30,7 +33,7 @@ interface EditFormState {
   tabs: PluginTabUpdate[]
 }
 
-const initialEditState = (plugin: InstalledPluginDescriptor | null): EditFormState => {
+const initialEditState = (plugin: InstalledPluginRecord | null): EditFormState => {
   if (!plugin) {
     return {
       name: '',
@@ -56,14 +59,14 @@ const initialEditState = (plugin: InstalledPluginDescriptor | null): EditFormSta
 }
 
 const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onClose, modelName, modelId }) => {
-  const [installed, setInstalled] = useState<InstalledPluginDescriptor[]>([])
-  const [catalog, setCatalog] = useState<CatalogPluginDescriptor[]>([])
+  const [installed, setInstalled] = useState<InstalledPluginRecord[]>([])
+  const [catalog, setCatalog] = useState<MarketplaceEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState<'installed' | 'catalog'>('installed')
   const [installedQuery, setInstalledQuery] = useState('')
   const [catalogQuery, setCatalogQuery] = useState('')
-  const [editingPlugin, setEditingPlugin] = useState<InstalledPluginDescriptor | null>(null)
+  const [editingPlugin, setEditingPlugin] = useState<InstalledPluginRecord | null>(null)
   const [editForm, setEditForm] = useState<EditFormState>(initialEditState(null))
   const [savingEdit, setSavingEdit] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -105,7 +108,7 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
     if (!query) return catalog
     return catalog.filter((plugin) =>
       plugin.name.toLowerCase().includes(query) ||
-      plugin.description.toLowerCase().includes(query) ||
+      plugin.description?.toLowerCase().includes(query) ||
       plugin.summary?.toLowerCase().includes(query) ||
       plugin.id.toLowerCase().includes(query)
     )
@@ -121,9 +124,39 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
       setLoading(true)
       setError(null)
       await pluginManager.refreshInstalledPlugins()
-      const [installedData, catalogData] = await Promise.all([fetchInstalled(), fetchCatalog()])
-      setInstalled(installedData)
-      setCatalog(catalogData)
+      setInstalled(pluginManager.getInstalledPlugins())
+
+      let registryCatalog: MarketplaceEntry[] = []
+      try {
+        const items = await fetchRegistryCatalog()
+        registryCatalog = items.map((item) => ({
+          ...item,
+          source: 'registry',
+          version: item.latestVersion
+        }))
+      } catch (registryError) {
+        console.warn('Registry catalog fetch failed, falling back to local catalog', registryError)
+        try {
+          const localCatalog = await fetchCatalog()
+          registryCatalog = localCatalog.map((plugin) => ({
+            id: plugin.id,
+            providerId: 'local-catalog',
+            name: plugin.name,
+            summary: plugin.summary,
+            description: plugin.description,
+            tags: plugin.tags,
+            latestVersion: plugin.version,
+            version: plugin.version,
+            source: 'local'
+          }))
+        } catch (localError) {
+          console.error('Failed to load fallback catalog:', localError)
+          registryCatalog = []
+          setError(localError instanceof Error ? localError.message : 'Failed to load plugin catalog')
+        }
+      }
+
+      setCatalog(registryCatalog)
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'Failed to load plugin data')
@@ -132,7 +165,7 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
     }
   }
 
-  const handleInstall = async (pluginId: string) => {
+  const handleLocalInstall = async (pluginId: string) => {
     try {
       setLoading(true)
       await installFromCatalog(pluginId)
@@ -145,12 +178,31 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
     }
   }
 
+  const handleRegistryInstall = async (extensionId: string, version?: string) => {
+    try {
+      setLoading(true)
+      await pluginManager.installFromRegistry(extensionId, version)
+      await pluginManager.refreshInstalledPlugins()
+      toast.success('Extension installed from registry')
+      await loadData()
+    } catch (err) {
+      console.error(err)
+      toast.error(err instanceof Error ? err.message : 'Failed to install extension')
+    }
+  }
+
   const handleRemove = async (pluginId: string) => {
     try {
       setLoading(true)
-      await uninstall(pluginId)
+      const record = installed.find((item) => item.id === pluginId)
+      if (record?.source === 'registry') {
+        await pluginManager.uninstallRegistryPlugin(pluginId)
+        toast.success('Extension disabled for this environment')
+      } else {
+        await uninstall(pluginId)
+        toast.success('Plugin removed')
+      }
       await pluginManager.refreshInstalledPlugins()
-      toast.success('Plugin removed')
       await loadData()
     } catch (err) {
       console.error(err)
@@ -179,7 +231,7 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
     }
   }
 
-  const handleOpenEdit = (plugin: InstalledPluginDescriptor) => {
+  const handleOpenEdit = (plugin: InstalledPluginRecord) => {
     setEditingPlugin(plugin)
     setEditForm(initialEditState(plugin))
   }
@@ -365,16 +417,17 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
                       const pluginEnabled = isPluginEnabled(modelScope, plugin.id)
                       return (
                         <article key={plugin.id} className='rounded-xl border border-slate-800 bg-slate-900/80 p-5 space-y-4 shadow-sm'>
-                          <header className='space-y-1'>
-                            <h4 className='text-xl font-semibold text-white'>{plugin.manifest.name}</h4>
-                            <div className='text-xs text-slate-400 uppercase tracking-wide flex items-center gap-3'>
-                              <span>v{plugin.manifest.version}</span>
-                              {plugin.installedAt && <span>Installed {new Date(plugin.installedAt).toLocaleString()}</span>}
-                            </div>
-                            <button
-                              className={`mt-2 inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
-                                pluginEnabled
-                                  ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
+                      <header className='space-y-1'>
+                        <h4 className='text-xl font-semibold text-white'>{plugin.manifest.name}</h4>
+                        <div className='text-xs text-slate-400 uppercase tracking-wide flex items-center gap-3'>
+                          <span>v{plugin.manifest.version}</span>
+                          {plugin.source === 'registry' && <span className='rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-emerald-200'>Registry</span>}
+                          {plugin.installedAt && <span>Installed {new Date(plugin.installedAt).toLocaleString()}</span>}
+                        </div>
+                        <button
+                          className={`mt-2 inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
+                            pluginEnabled
+                              ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
                                   : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
                               }`}
                               onClick={() => setModelPluginEnabled(plugin.id, !pluginEnabled, plugin.manifest.name)}
@@ -399,25 +452,35 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
                             </ul>
                           </div>
                           <footer className='flex flex-wrap gap-2'>
-                            <button
-                              className='rounded-md border border-blue-500/60 px-3 py-1 text-sm text-blue-200 hover:bg-blue-500/10'
-                              onClick={() => handlePreview(plugin.id)}
-                            >
-                              Develop GUI
-                            </button>
-                            <button
-                              className='rounded-md border border-slate-600 px-3 py-1 text-sm text-slate-200 hover:bg-slate-800'
-                              onClick={() => handleOpenEdit(plugin)}
-                            >
-                              Edit Metadata
-                            </button>
-                            <button
-                              className='rounded-md border border-red-500/60 px-3 py-1 text-sm text-red-200 hover:bg-red-500/10'
-                              onClick={() => handleRemove(plugin.id)}
-                            >
-                              Remove
-                            </button>
-                          </footer>
+                          <button
+                            className='rounded-md border border-blue-500/60 px-3 py-1 text-sm text-blue-200 hover:bg-blue-500/10'
+                            onClick={() => handlePreview(plugin.id)}
+                          >
+                            Develop GUI
+                          </button>
+                          <button
+                            className={`rounded-md border px-3 py-1 text-sm ${
+                              plugin.source === 'registry'
+                                ? 'border-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+                                : 'border-slate-600 text-slate-200 hover:bg-slate-800'
+                            }`}
+                            onClick={() => {
+                              if (plugin.source === 'registry') {
+                                return
+                              }
+                              handleOpenEdit(plugin)
+                            }}
+                            disabled={plugin.source === 'registry'}
+                          >
+                            Edit Metadata
+                          </button>
+                          <button
+                            className='rounded-md border border-red-500/60 px-3 py-1 text-sm text-red-200 hover:bg-red-500/10'
+                            onClick={() => handleRemove(plugin.id)}
+                          >
+                            {plugin.source === 'registry' ? 'Disable' : 'Remove'}
+                          </button>
+                        </footer>
                         </article>
                       )
                     })}
@@ -450,13 +513,15 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
                       return (
                         <article key={plugin.id} className='rounded-xl border border-slate-700 bg-slate-900/80 p-4 space-y-3'>
                           <header className='space-y-1'>
-                            <h4 className='text-lg font-semibold text-white'>{plugin.name}</h4>
-                            <div className='text-xs uppercase tracking-wide text-slate-400 flex items-center gap-2'>
-                              <span>v{plugin.version}</span>
-                              {plugin.status && <span className='rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-slate-200'>{plugin.status}</span>}
+                            <h4 className='text-lg font-semibold text-white flex items-center justify-between'>
+                              <span>{plugin.name}</span>
+                              {plugin.version && <span className='text-xs uppercase tracking-wide text-slate-400'>v{plugin.version}</span>}
+                            </h4>
+                            <div className='text-xs uppercase tracking-wide text-slate-500'>
+                              Provider: {plugin.providerId || 'unknown'}
                             </div>
                           </header>
-                          <p className='text-sm text-slate-300 leading-relaxed min-h-[60px]'>{plugin.summary || plugin.description}</p>
+                          <p className='text-sm text-slate-300 leading-relaxed min-h-[60px]'>{plugin.summary || plugin.description || 'No description provided.'}</p>
                           <div className='flex flex-wrap items-center gap-3 text-xs text-slate-400'>
                             {plugin.tags?.map((tag) => (
                               <span key={tag} className='rounded-full border border-slate-700 px-2 py-0.5'>#{tag}</span>
@@ -465,10 +530,10 @@ const PluginManagementPanel: React.FC<PluginManagementPanelProps> = ({ open, onC
                           <div className='flex items-center gap-3'>
                             <button
                               className='rounded-md border border-emerald-500/60 px-3 py-1 text-sm text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-60'
-                              onClick={() => handleInstall(plugin.id)}
+                              onClick={() => plugin.source === 'registry' ? handleRegistryInstall(plugin.id, plugin.version) : handleLocalInstall(plugin.id)}
                               disabled={alreadyInstalled || loading}
                             >
-                              {alreadyInstalled ? 'Installed' : 'Install'}
+                              {alreadyInstalled ? 'Installed' : plugin.source === 'registry' ? 'Install' : 'Install (local)'}
                             </button>
                           </div>
                         </article>

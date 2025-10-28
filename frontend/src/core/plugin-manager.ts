@@ -16,12 +16,40 @@ export type InstalledPluginRecord = {
   id: string
   manifest: PluginManifest
   baseUrl: string
+  source?: 'local' | 'registry'
+  version?: string
+  bundleUrl?: string
+  integrity?: string
+  installedAt?: string | null
 }
+
+const DYNAMIC_INSTALL_STORAGE_KEY = 'autowrx-registry-installs'
 
 class PluginManager {
   private initialized = false
   private initializationPromise: Promise<void> | null = null
   private installedCache: Map<string, InstalledPluginRecord> = new Map()
+
+  private async activatePlugin(manifest: PluginManifest, loadAction: () => Promise<LoadedPlugin>): Promise<LoadedPlugin> {
+    pluginAPI.setCurrentPlugin(manifest.id)
+    try {
+      const loaded = await loadAction()
+
+      if (manifest.tabs) {
+        for (const tab of manifest.tabs) {
+          tabManager.registerTab(manifest.id, tab)
+        }
+      }
+
+      if (process.env.NODE_ENV === 'development' && loaded.source !== 'registry') {
+        pluginLoader.enableHotReload(manifest.id)
+      }
+
+      return loaded
+    } finally {
+      pluginAPI.setCurrentPlugin('')
+    }
+  }
 
   async initialize(): Promise<void> {
     // If already initialized, return immediately
@@ -165,9 +193,15 @@ class PluginManager {
     if (!record) {
       throw new Error(`Plugin ${pluginId} is not installed`)
     }
+    const source = record.source || 'local'
 
     await this.unloadPlugin(pluginId)
-    await this.loadPlugin(record.baseUrl)
+
+    if (source === 'registry') {
+      await this.loadRegistryPlugin(record)
+    } else {
+      await this.loadPlugin(record.baseUrl)
+    }
   }
 
   async installPlugin(pluginData: File | string): Promise<void> {
@@ -217,8 +251,14 @@ class PluginManager {
       throw new Error('Invalid install response: missing baseUrl')
     }
 
-    this.installedCache.set(plugin.id, plugin)
-    await this.loadPlugin(plugin.baseUrl)
+    const record: InstalledPluginRecord = {
+      ...plugin,
+      source: 'local',
+      installedAt: plugin.installedAt || new Date().toISOString()
+    }
+
+    this.installedCache.set(record.id, record)
+    await this.loadPlugin(record.baseUrl)
   }
 
   async uninstallInstalledPlugin(pluginId: string): Promise<void> {
@@ -232,10 +272,66 @@ class PluginManager {
     }
 
     this.installedCache.delete(pluginId)
+    this.persistDynamicInstalls()
     try {
       await this.unloadPlugin(pluginId)
     } catch (error) {
       console.warn('Failed to unload plugin after uninstall:', error)
+    }
+  }
+
+  async installFromRegistry(extensionId: string, version: string = 'latest'): Promise<void> {
+    const response = await fetch(`/api/extensions/${extensionId}/versions/${version}`, {
+      method: 'GET',
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to install extension ${extensionId}: ${response.statusText}`)
+    }
+
+    const payload = await response.json()
+    if (!payload?.bundleUrl || !payload?.manifest) {
+      throw new Error('Registry response missing bundle or manifest')
+    }
+
+    const manifest: PluginManifest = payload.manifest
+    const bundleResponse = await fetch(payload.bundleUrl)
+    if (!bundleResponse.ok) {
+      throw new Error(`Failed to download bundle: ${bundleResponse.statusText}`)
+    }
+
+    const bundleCode = await bundleResponse.text()
+    const baseUrl = `registry://${manifest.id}@${payload.version || 'latest'}`
+
+    await this.activatePlugin(manifest, () => pluginLoader.loadPluginFromBundle(manifest, bundleCode, {
+      baseUrl,
+      source: 'registry',
+      bundleUrl: payload.bundleUrl
+    }))
+
+    const record: InstalledPluginRecord = {
+      id: manifest.id,
+      manifest,
+      baseUrl,
+      source: 'registry',
+      version: payload.version,
+      bundleUrl: payload.bundleUrl,
+      integrity: payload.integrity,
+      installedAt: new Date().toISOString()
+    }
+
+    this.installedCache.set(record.id, record)
+    this.persistDynamicInstalls()
+  }
+
+  async uninstallRegistryPlugin(pluginId: string): Promise<void> {
+    this.installedCache.delete(pluginId)
+    this.persistDynamicInstalls()
+    try {
+      await this.unloadPlugin(pluginId)
+    } catch (error) {
+      console.warn('Failed to unload registry plugin:', error)
     }
   }
 
@@ -244,6 +340,7 @@ class PluginManager {
     this.installedCache.clear()
     installed.forEach((plugin) => this.installedCache.set(plugin.id, plugin))
     await this.syncInstalledPlugins(installed)
+    await this.restoreDynamicInstalls()
   }
 
   private async fetchInstalledPlugins(): Promise<InstalledPluginRecord[]> {
@@ -261,7 +358,76 @@ class PluginManager {
       return []
     }
 
-    return payload.plugins as InstalledPluginRecord[]
+    return (payload.plugins as InstalledPluginRecord[]).map((plugin) => ({
+      ...plugin,
+      source: 'local'
+    }))
+  }
+
+  private getDynamicInstalls(): InstalledPluginRecord[] {
+    return Array.from(this.installedCache.values()).filter((plugin) => plugin.source === 'registry')
+  }
+
+  private persistDynamicInstalls(): void {
+    if (typeof window === 'undefined') {
+      return
+    }
+    try {
+      const dynamic = this.getDynamicInstalls()
+      window.localStorage.setItem(DYNAMIC_INSTALL_STORAGE_KEY, JSON.stringify(dynamic))
+    } catch (error) {
+      console.warn('Failed to persist dynamic installs:', error)
+    }
+  }
+
+  private async restoreDynamicInstalls(): Promise<void> {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const stored = window.localStorage.getItem(DYNAMIC_INSTALL_STORAGE_KEY)
+    if (!stored) {
+      return
+    }
+
+    try {
+      const dynamicInstalls: InstalledPluginRecord[] = JSON.parse(stored)
+      for (const record of dynamicInstalls) {
+        if (!record || !record.id || !record.bundleUrl || !record.manifest) {
+          continue
+        }
+        this.installedCache.set(record.id, record)
+        try {
+          await this.loadRegistryPlugin(record, { skipPersist: true })
+        } catch (error) {
+          console.error('Failed to restore registry plugin:', error)
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to parse dynamic installs:', error)
+    }
+  }
+
+  private async loadRegistryPlugin(record: InstalledPluginRecord, options: { skipPersist?: boolean } = {}): Promise<void> {
+    if (!record.bundleUrl) {
+      throw new Error(`Registry plugin ${record.id} missing bundle URL`)
+    }
+
+    const bundleResponse = await fetch(record.bundleUrl)
+    if (!bundleResponse.ok) {
+      throw new Error(`Failed to download bundle for ${record.id}: ${bundleResponse.statusText}`)
+    }
+    const bundleCode = await bundleResponse.text()
+
+    await this.activatePlugin(record.manifest, () => pluginLoader.loadPluginFromBundle(record.manifest, bundleCode, {
+      baseUrl: record.baseUrl,
+      source: 'registry',
+      bundleUrl: record.bundleUrl
+    }))
+
+    if (!options.skipPersist) {
+      this.persistDynamicInstalls()
+    }
   }
 
   private async syncInstalledPlugins(installed: InstalledPluginRecord[]): Promise<void> {

@@ -48,6 +48,8 @@ export interface LoadedPlugin {
   status: 'loaded' | 'active' | 'error' | 'disabled'
   tabs: RegisteredTab[]
   baseUrl: string
+  source?: 'local' | 'registry'
+  bundleUrl?: string
 }
 
 export interface PluginInstance {
