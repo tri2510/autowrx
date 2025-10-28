@@ -19,20 +19,17 @@ cat << 'EOF'
 📋 RECOMMENDED OPTIONS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  1) 🚀 Full Stack with Extension Registry (Complete System)
+  1) 🚀 Full Stack + Registry (Complete System)
      ────────────────────────────────────────────────────────
      Starts: Backend (3200) + Frontend (3210) + Registry (4400)
-     Best for: Testing complete plugin/extension system
-     Features: Plugin marketplace, extension installation, full features
-     Use when: You need to test plugin installation from registry
+     Use when: You need the extension marketplace or to install plugins end-to-end
+     Docs: QUICK_START.md ("Full Stack with Registry")
 
   2) ⚡ Isolated Development Environment (Fastest - RECOMMENDED)
      ────────────────────────────────────────────────────────
-     Starts: Backend (3200) + Frontend (3210)
-     Best for: Daily development work, quick testing
-     Features: In-memory DB, local auth, no external dependencies
-     Use when: Developing features, testing without external services
-     Login: admin@autowrx.local / AutoWRX2025!
+     Starts: Backend (3200) + Frontend (3210) with in-memory services
+     Use when: You want a quick dev loop without the registry or external deps
+     Docs: QUICK_START.md ("Isolated Mode")
 
   3) 🔧 Basic AutoWRX (Standard Stack)
      ────────────────────────────────────────────────────────
