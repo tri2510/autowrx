@@ -20,6 +20,29 @@ export interface InstalledPluginDescriptor {
   installedAt?: string | null
 }
 
+export interface PluginTabUpdate {
+  id: string
+  label?: string
+  icon?: string
+  path?: string
+  component?: string
+  position?: number
+  permissions?: string[]
+  create?: boolean
+}
+
+export interface PluginUpdateRequest {
+  name?: string
+  description?: string
+  summary?: string
+  version?: string
+  author?: string
+  tags?: string[]
+  permissions?: string[]
+  activationEvents?: string[]
+  tabs?: PluginTabUpdate[]
+}
+
 export async function fetchCatalog(): Promise<CatalogPluginDescriptor[]> {
   const response = await fetch('/api/plugins/catalog', {
     credentials: 'include'
@@ -64,4 +87,26 @@ export async function uninstall(pluginId: string): Promise<void> {
 
 export async function uploadPlugin(file: File): Promise<void> {
   await pluginManager.installPlugin(file)
+}
+
+export async function updatePlugin(pluginId: string, updates: PluginUpdateRequest): Promise<InstalledPluginDescriptor> {
+  const response = await fetch(`/api/plugins/${pluginId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify(updates)
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to update plugin: ${response.statusText}`)
+  }
+
+  const payload = await response.json()
+  if (!payload || !payload.plugin) {
+    throw new Error('Invalid plugin update response')
+  }
+
+  return payload.plugin as InstalledPluginDescriptor
 }

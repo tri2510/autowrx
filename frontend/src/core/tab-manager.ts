@@ -8,6 +8,7 @@
 
 import { TabManager, RegisteredTab, TabDefinition } from '@/types/plugin.types'
 import { ComponentType } from 'react'
+import { pluginLoader } from './plugin-loader'
 
 class AutoWRXTabManager implements TabManager {
   private tabs: Map<string, RegisteredTab> = new Map()
@@ -94,7 +95,6 @@ class AutoWRXTabManager implements TabManager {
         ])
       }
 
-      const { pluginLoader } = require('./plugin-loader')
       const plugins = pluginLoader.listPlugins()
       const plugin = plugins.find((p: any) => p.manifest.id === pluginId)
       

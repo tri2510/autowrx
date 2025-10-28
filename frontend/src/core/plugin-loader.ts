@@ -34,7 +34,8 @@ class AutoWRXPluginLoader implements PluginLoader {
         manifest,
         instance,
         status: 'loaded',
-        tabs: []
+        tabs: [],
+        baseUrl: pluginPath
       }
 
       this.plugins.set(manifest.id, loadedPlugin)
@@ -75,7 +76,7 @@ class AutoWRXPluginLoader implements PluginLoader {
       throw new Error(`Plugin ${pluginId} not found`)
     }
 
-    const pluginPath = `/plugins/${pluginId}`
+    const pluginPath = plugin.baseUrl
     await this.unloadPlugin(pluginId)
     await this.loadPlugin(pluginPath)
   }

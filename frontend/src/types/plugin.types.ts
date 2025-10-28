@@ -14,6 +14,8 @@ export interface PluginManifest {
   description: string
   author: string
   id: string
+  summary?: string
+  tags?: string[]
   
   tabs: TabDefinition[]
   activationEvents: string[]
@@ -45,6 +47,7 @@ export interface LoadedPlugin {
   instance: PluginInstance
   status: 'loaded' | 'active' | 'error' | 'disabled'
   tabs: RegisteredTab[]
+  baseUrl: string
 }
 
 export interface PluginInstance {

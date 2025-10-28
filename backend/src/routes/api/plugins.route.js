@@ -20,6 +20,7 @@ router.get('/catalog', pluginRegistryController.getCatalog);
 router.get('/installed', pluginRegistryController.getInstalled);
 router.post('/install', pluginRegistryController.installFromCatalog);
 router.post('/upload', upload.single('plugin'), pluginRegistryController.uploadPlugin);
+router.patch('/:pluginId', pluginRegistryController.updatePlugin);
 router.delete('/:pluginId', pluginRegistryController.uninstallPlugin);
 
 module.exports = router;

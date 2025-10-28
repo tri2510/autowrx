@@ -41,3 +41,13 @@ exports.uninstallPlugin = catchAsync(async (req, res) => {
   await pluginRegistryService.uninstallPlugin(pluginId);
   res.status(httpStatus.NO_CONTENT).send();
 });
+
+exports.updatePlugin = catchAsync(async (req, res) => {
+  const { pluginId } = req.params;
+  if (!pluginId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'pluginId is required');
+  }
+
+  const plugin = await pluginRegistryService.updateInstalledPlugin(pluginId, req.body || {});
+  res.status(httpStatus.OK).json({ plugin });
+});

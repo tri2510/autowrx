@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: MIT
 
 import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { tabManager } from '@/core/tab-manager'
 import { RegisteredTab } from '@/types/plugin.types'
 import DaTabItem from '@/components/atoms/DaTabItem'
@@ -16,6 +17,7 @@ interface PluginTabSystemProps {
 }
 
 const PluginTabSystem: React.FC<PluginTabSystemProps> = ({ className = '' }) => {
+  const location = useLocation()
   const [tabs, setTabs] = useState<RegisteredTab[]>([])
   const [activeTab, setActiveTab] = useState<RegisteredTab | null>(null)
 
@@ -38,6 +40,10 @@ const PluginTabSystem: React.FC<PluginTabSystemProps> = ({ className = '' }) => 
   // Debug info
   console.log('PluginTabSystem render - tabs:', tabs.length, tabs)
 
+  if (location.pathname.startsWith('/model/')) {
+    return null
+  }
+
   if (tabs.length === 0) {
     return (
       <div className={`plugin-tab-system ${className} bg-gray-100 p-2`}>
@@ -53,17 +59,18 @@ const PluginTabSystem: React.FC<PluginTabSystemProps> = ({ className = '' }) => 
       <div className="tab-navigation border-b border-gray-200">
         <nav className="flex space-x-8" aria-label="Plugin Tabs">
           {tabs.map((tab) => (
-            <DaTabItem
-              key={tab.id}
-              isActive={tab.isActive}
-              onClick={() => handleTabClick(tab)}
-              className="py-2 px-1 border-b-2 font-medium text-sm"
-            >
-              {tab.definition.icon && (
-                <span className="mr-2">{tab.definition.icon}</span>
-              )}
-              {tab.definition.label}
-            </DaTabItem>
+            <div key={tab.id} className="px-1">
+              <DaTabItem
+                active={tab.isActive}
+                onClick={() => handleTabClick(tab)}
+                dataId={tab.id}
+              >
+                {tab.definition.icon && (
+                  <span className="mr-2">{tab.definition.icon}</span>
+                )}
+                {tab.definition.label}
+              </DaTabItem>
+            </div>
           ))}
         </nav>
       </div>

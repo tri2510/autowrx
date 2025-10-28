@@ -21,6 +21,7 @@ import { retry } from '@/lib/retry.ts'
 // Real AutoWRX Pages
 const PageModelList = lazy(() => retry(() => import('@/pages/PageModelList')))
 const PageModelDetail = lazy(() => retry(() => import('@/pages/PageModelDetail')))
+const PluginWorkbench = lazy(() => retry(() => import('@/pages/PluginWorkbench')))
 // const PageModelArchitecture = lazy(
 //   () => import('@/pages/PageModelArchitecture'),
 // )
@@ -188,6 +189,19 @@ const routesConfig: RouteConfig[] = [
                 element: (
                   <SuspenseProvider>
                     <ExtensionCenter />
+                  </SuspenseProvider>
+                ),
+              },
+            ],
+          },
+          {
+            path: '/plugin-workbench/:pluginId',
+            children: [
+              {
+                index: true,
+                element: (
+                  <SuspenseProvider>
+                    <PluginWorkbench />
                   </SuspenseProvider>
                 ),
               },

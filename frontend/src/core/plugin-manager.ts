@@ -12,7 +12,7 @@ import { tabManager } from './tab-manager'
 import { pluginAPI } from './plugin-api'
 import { LoadedPlugin, PluginManifest } from '@/types/plugin.types'
 
-type InstalledPluginRecord = {
+export type InstalledPluginRecord = {
   id: string
   manifest: PluginManifest
   baseUrl: string
@@ -154,6 +154,20 @@ class PluginManager {
 
   getLoadedPlugins(): LoadedPlugin[] {
     return pluginLoader.listPlugins()
+  }
+
+  getInstalledPlugins(): InstalledPluginRecord[] {
+    return Array.from(this.installedCache.values())
+  }
+
+  async reloadPlugin(pluginId: string): Promise<void> {
+    const record = this.installedCache.get(pluginId)
+    if (!record) {
+      throw new Error(`Plugin ${pluginId} is not installed`)
+    }
+
+    await this.unloadPlugin(pluginId)
+    await this.loadPlugin(record.baseUrl)
   }
 
   async installPlugin(pluginData: File | string): Promise<void> {

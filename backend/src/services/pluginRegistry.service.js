@@ -136,6 +136,95 @@ async function uninstallPlugin(pluginId) {
   await fsExtra.remove(destination);
 }
 
+async function updateInstalledPlugin(pluginId, updates = {}) {
+  await ensureInitialized();
+  const pluginPath = path.join(installedDir, pluginId);
+  if (!(await fsExtra.pathExists(pluginPath))) {
+    throw new Error(`Plugin ${pluginId} is not installed`);
+  }
+
+  const manifestPath = path.join(pluginPath, 'manifest.json');
+  if (!(await fsExtra.pathExists(manifestPath))) {
+    throw new Error(` manifest.json missing for plugin ${pluginId}`);
+  }
+
+  const manifest = await readManifest(pluginPath);
+
+  const simpleFields = ['name', 'description', 'summary', 'author', 'version'];
+  simpleFields.forEach((field) => {
+    if (typeof updates[field] !== 'undefined') {
+      manifest[field] = updates[field];
+    }
+  });
+
+  if (Array.isArray(updates.tags)) {
+    manifest.tags = updates.tags;
+  }
+
+  if (Array.isArray(updates.permissions)) {
+    manifest.permissions = updates.permissions;
+  }
+
+  if (Array.isArray(updates.activationEvents)) {
+    manifest.activationEvents = updates.activationEvents;
+  }
+
+  if (Array.isArray(updates.tabs)) {
+    manifest.tabs = manifest.tabs || [];
+    updates.tabs.forEach((tabUpdate) => {
+      if (!tabUpdate || !tabUpdate.id) {
+        return;
+      }
+      const existingTab = manifest.tabs.find((tab) => tab.id === tabUpdate.id);
+      if (existingTab) {
+        ['label', 'icon', 'path', 'component'].forEach((key) => {
+          if (typeof tabUpdate[key] !== 'undefined') {
+            existingTab[key] = tabUpdate[key];
+          }
+        });
+        if (typeof tabUpdate.position !== 'undefined') {
+          const positionNumber = Number(tabUpdate.position);
+          if (!Number.isNaN(positionNumber)) {
+            existingTab.position = positionNumber;
+          }
+        }
+      } else if (tabUpdate.create === true) {
+        const requiredFields = ['label', 'path', 'component'];
+        const hasAllFields = requiredFields.every((field) => typeof tabUpdate[field] !== 'undefined');
+        if (hasAllFields) {
+          manifest.tabs.push({
+            id: tabUpdate.id,
+            label: tabUpdate.label,
+            icon: tabUpdate.icon,
+            path: tabUpdate.path,
+            component: tabUpdate.component,
+            position: typeof tabUpdate.position !== 'undefined' ? Number(tabUpdate.position) : undefined,
+            permissions: tabUpdate.permissions || []
+          });
+        }
+      }
+    });
+  }
+
+  await fsExtra.writeJson(manifestPath, manifest, { spaces: 2 });
+  await touchInstalledMetadata(pluginPath);
+
+  const catalog = await readCatalog();
+  const existingEntry = catalog.plugins.find((plugin) => plugin.id === pluginId);
+  const overrides = existingEntry?.distribution
+    ? { distribution: existingEntry.distribution }
+    : {};
+
+  await addOrUpdateCatalogEntry(manifest, overrides);
+
+  return {
+    id: manifest.id,
+    manifest,
+    baseUrl: `/plugins-runtime/${manifest.id}`,
+    installedAt: await getInstalledTimestamp(pluginPath)
+  };
+}
+
 async function registerUploadedPlugin(filePath, originalName) {
   await ensureInitialized();
   const extractionRoot = path.join(uploadsDir, `${Date.now()}-${Math.random().toString(16).slice(2)}`);
@@ -313,6 +402,7 @@ module.exports = {
   listInstalledPlugins,
   installFromCatalog,
   uninstallPlugin,
+  updateInstalledPlugin,
   registerUploadedPlugin,
   getInstalledStaticPath: () => installedDir
 };

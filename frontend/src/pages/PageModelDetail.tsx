@@ -11,6 +11,7 @@ import { useParams } from 'react-router-dom'
 import { pluginManager } from '@/core/plugin-manager'
 import { tabManager } from '@/core/tab-manager'
 import { RegisteredTab } from '@/types/plugin.types'
+import PluginManagementPanel from '@/components/organisms/PluginManagementPanel'
 
 interface VehicleModel {
   id: string
@@ -28,6 +29,7 @@ const PageModelDetail: React.FC = () => {
   const [activeTab, setActiveTab] = useState('sdv-code')
   const [pluginTabs, setPluginTabs] = useState<RegisteredTab[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [showManagement, setShowManagement] = useState(false)
 
   // Mock model data (in real app, this would come from API)
   const mockModels: Record<string, VehicleModel> = {
@@ -60,6 +62,16 @@ const PageModelDetail: React.FC = () => {
   useEffect(() => {
     initializeModelPage()
   }, [model_id])
+
+  useEffect(() => {
+    const updateTabs = () => {
+      setPluginTabs(tabManager.getActiveTabs())
+    }
+
+    updateTabs()
+    const unsubscribe = tabManager.addListener(updateTabs)
+    return unsubscribe
+  }, [])
 
   const initializeModelPage = async () => {
     try {
@@ -110,9 +122,9 @@ const PageModelDetail: React.FC = () => {
 
   const handleTabClick = (tabId: string) => {
     setActiveTab(tabId)
-    
+
     // If it's a plugin tab, activate it in the tab manager
-    const pluginTab = pluginTabs.find(tab => tab.id.includes(tabId))
+    const pluginTab = pluginTabs.find(tab => tab.id === tabId)
     if (pluginTab) {
       tabManager.setActiveTab(pluginTab.id)
     }
@@ -263,10 +275,7 @@ const PageModelDetail: React.FC = () => {
 
       default:
         // Check for plugin tabs
-        const pluginTab = pluginTabs.find(tab => 
-          activeTab.includes(tab.definition.label.toLowerCase()) || 
-          tab.definition.id === activeTab
-        )
+        const pluginTab = pluginTabs.find(tab => tab.id === activeTab)
         if (pluginTab) {
           return (
             <React.Suspense fallback={<div className="p-6">Loading plugin...</div>}>
@@ -330,9 +339,9 @@ const PageModelDetail: React.FC = () => {
               {pluginTabs.map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => handleTabClick(tab.definition.id)}
+                  onClick={() => handleTabClick(tab.id)}
                   className={`px-4 py-3 border-b-2 font-medium text-sm ${
-                    activeTab === tab.definition.id || activeTab.includes(tab.definition.label.toLowerCase())
+                    activeTab === tab.id
                       ? 'border-green-500 text-green-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
@@ -350,8 +359,16 @@ const PageModelDetail: React.FC = () => {
           )}
 
           {/* Plugin Status */}
-          <div className="ml-auto flex items-center text-xs text-gray-500 px-4 py-3">
-            {pluginTabs.length} plugin{pluginTabs.length !== 1 ? 's' : ''} loaded
+          <div className="ml-auto flex items-center gap-3 px-4 py-3">
+            <div className="text-xs text-gray-500">
+              {pluginTabs.length} plugin{pluginTabs.length !== 1 ? 's' : ''} loaded
+            </div>
+            <button
+              className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+              onClick={() => setShowManagement(true)}
+            >
+              Manage Plugins
+            </button>
           </div>
         </nav>
       </div>
@@ -360,6 +377,12 @@ const PageModelDetail: React.FC = () => {
       <div className="flex-1 overflow-auto">
         {renderTabContent()}
       </div>
+
+      <PluginManagementPanel
+        open={showManagement}
+        onClose={() => setShowManagement(false)}
+        modelName={model?.name || 'Selected Model'}
+      />
     </div>
   )
 }

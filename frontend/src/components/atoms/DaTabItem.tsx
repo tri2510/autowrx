@@ -27,25 +27,33 @@ const DaTabItem: FC<DaTabItemProps> = ({
   onClick,
   dataId
 }) => {
+  const content = (
+    <div
+      onClick={onClick}
+      data-id={dataId}
+      className={cn(
+        `flex h-full da-label-small-bold items-center justify-center min-w-20 cursor-pointer hover:opacity-80 border-b-2 border-transparent `,
+        small ? 'py-0.5 px-2' : 'py-1 px-4',
+        active
+          ? 'text-da-primary-500 border-b-2 border-da-primary-500'
+          : 'text-da-gray-medium ',
+      )}
+    >
+      {children}
+    </div>
+  )
+
+  if (!to) {
+    return content
+  }
+
   return (
     <Link
-      to={to || ''}
-      target={to && to.startsWith('http') ? '_blank' : '_self'}
+      to={to}
+      target={to.startsWith('http') ? '_blank' : '_self'}
       rel="noopener noreferrer"
     >
-      <div
-        onClick={onClick}
-        data-id={dataId}
-        className={cn(
-          `flex h-full da-label-small-bold items-center justify-center min-w-20 cursor-pointer hover:opacity-80 border-b-2 border-transparent `,
-          small ? 'py-0.5 px-2' : 'py-1 px-4',
-          active
-            ? 'text-da-primary-500 border-b-2 border-da-primary-500'
-            : 'text-da-gray-medium ',
-        )}
-      >
-        {children}
-      </div>
+      {content}
     </Link>
   )
 }
