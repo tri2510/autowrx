@@ -10,10 +10,17 @@ import React from 'react'
 import { pluginLoader } from './plugin-loader'
 import { tabManager } from './tab-manager'
 import { pluginAPI } from './plugin-api'
-import { LoadedPlugin } from '@/types/plugin.types'
+import { LoadedPlugin, PluginManifest } from '@/types/plugin.types'
+
+type InstalledPluginRecord = {
+  id: string
+  manifest: PluginManifest
+  baseUrl: string
+}
 
 class PluginManager {
   private initialized = false
+  private installedCache: Map<string, InstalledPluginRecord> = new Map()
 
   async initialize(): Promise<void> {
     if (this.initialized) return
@@ -42,37 +49,13 @@ class PluginManager {
   }
 
   private async loadUserPlugins(): Promise<void> {
-    const userPlugins = [
-      '/plugins/demo-plugin',
-      '/plugins/vehicle-monitor', 
-      '/plugins/my-first-plugin'
-    ]
-
-    console.log(`🔍 Starting to load ${userPlugins.length} user plugins...`)
-    let loadedCount = 0
-    let errorCount = 0
-
-    for (const pluginPath of userPlugins) {
-      try {
-        console.log(`📦 Loading user plugin: ${pluginPath}`)
-        await this.loadPlugin(pluginPath)
-        loadedCount++
-        console.log(`✅ User plugin loaded: ${pluginPath}`)
-      } catch (error) {
-        errorCount++
-        console.error(`❌ Failed to load user plugin ${pluginPath}:`, error)
-        if (error instanceof Error) {
-          console.error(`   Error details: ${error.message}`)
-          console.error(`   Stack trace:`, error.stack)
-        }
-      }
-    }
-
-    console.log(`📊 Plugin loading summary: ${loadedCount} loaded, ${errorCount} failed`)
-    
-    // Store plugin count for debugging
-    if (typeof window !== 'undefined') {
-      (window as any).pluginLoadStatus = { loaded: loadedCount, failed: errorCount, total: userPlugins.length }
+    try {
+      const installed = await this.fetchInstalledPlugins()
+      this.installedCache.clear()
+      installed.forEach((plugin) => this.installedCache.set(plugin.id, plugin))
+      await this.syncInstalledPlugins(installed)
+    } catch (error) {
+      console.error('Failed to load installed plugins:', error)
     }
   }
 
@@ -81,17 +64,21 @@ class PluginManager {
     
     pluginAPI.setCurrentPlugin(plugin.manifest.id)
     
-    if (plugin.manifest.tabs) {
-      for (const tab of plugin.manifest.tabs) {
-        tabManager.registerTab(plugin.manifest.id, tab)
+    try {
+      if (plugin.manifest.tabs) {
+        for (const tab of plugin.manifest.tabs) {
+          tabManager.registerTab(plugin.manifest.id, tab)
+        }
       }
-    }
 
-    if (process.env.NODE_ENV === 'development') {
-      pluginLoader.enableHotReload(plugin.manifest.id)
-    }
+      if (process.env.NODE_ENV === 'development') {
+        pluginLoader.enableHotReload(plugin.manifest.id)
+      }
 
-    return plugin
+      return plugin
+    } finally {
+      pluginAPI.setCurrentPlugin('')
+    }
   }
 
   async unloadPlugin(pluginId: string): Promise<void> {
@@ -111,32 +98,115 @@ class PluginManager {
 
   async installPlugin(pluginData: File | string): Promise<void> {
     try {
-      let response: Response
-
       if (typeof pluginData === 'string') {
-        response = await fetch('/api/plugins/install', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: pluginData })
-        })
-      } else {
-        const formData = new FormData()
-        formData.append('plugin', pluginData)
-        response = await fetch('/api/plugins/install', {
-          method: 'POST',
-          body: formData
-        })
+        await this.installFromCatalog(pluginData)
+        return
       }
+
+      const formData = new FormData()
+      formData.append('plugin', pluginData)
+      const response = await fetch('/api/plugins/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      })
 
       if (!response.ok) {
-        throw new Error(`Installation failed: ${response.statusText}`)
+        throw new Error(`Plugin upload failed: ${response.statusText}`)
       }
 
-      const result = await response.json()
-      await this.loadPlugin(result.path)
+      const payload = await response.json()
+      if (payload?.plugin?.manifest?.id) {
+        await this.installFromCatalog(payload.plugin.manifest.id)
+      }
     } catch (error) {
       console.error('Plugin installation failed:', error)
       throw error
+    }
+  }
+
+  async installFromCatalog(pluginId: string): Promise<void> {
+    const response = await fetch('/api/plugins/install', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: pluginId }),
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      throw new Error(`Installation failed: ${response.statusText}`)
+    }
+
+    const payload = await response.json()
+    const plugin = payload?.plugin
+    if (!plugin?.baseUrl) {
+      throw new Error('Invalid install response: missing baseUrl')
+    }
+
+    this.installedCache.set(plugin.id, plugin)
+    await this.loadPlugin(plugin.baseUrl)
+  }
+
+  async uninstallInstalledPlugin(pluginId: string): Promise<void> {
+    const response = await fetch(`/api/plugins/${pluginId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`Failed to uninstall plugin: ${response.statusText}`)
+    }
+
+    this.installedCache.delete(pluginId)
+    try {
+      await this.unloadPlugin(pluginId)
+    } catch (error) {
+      console.warn('Failed to unload plugin after uninstall:', error)
+    }
+  }
+
+  async refreshInstalledPlugins(): Promise<void> {
+    const installed = await this.fetchInstalledPlugins()
+    this.installedCache.clear()
+    installed.forEach((plugin) => this.installedCache.set(plugin.id, plugin))
+    await this.syncInstalledPlugins(installed)
+  }
+
+  private async fetchInstalledPlugins(): Promise<InstalledPluginRecord[]> {
+    const response = await fetch('/api/plugins/installed', {
+      method: 'GET',
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch installed plugins: ${response.statusText}`)
+    }
+
+    const payload = await response.json()
+    if (!payload || !Array.isArray(payload.plugins)) {
+      return []
+    }
+
+    return payload.plugins as InstalledPluginRecord[]
+  }
+
+  private async syncInstalledPlugins(installed: InstalledPluginRecord[]): Promise<void> {
+    const installedIds = new Set(installed.map((plugin) => plugin.id))
+    const currentlyLoaded = pluginLoader.listPlugins()
+
+    for (const loaded of currentlyLoaded) {
+      if (!installedIds.has(loaded.manifest.id)) {
+        await this.unloadPlugin(loaded.manifest.id)
+      }
+    }
+
+    const updatedLoaded = pluginLoader.listPlugins()
+
+    for (const plugin of installed) {
+      const alreadyLoaded = updatedLoaded.find((loaded) => loaded.manifest.id === plugin.id)
+      if (!alreadyLoaded) {
+        await this.loadPlugin(plugin.baseUrl)
+      }
     }
   }
 }

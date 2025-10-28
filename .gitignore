@@ -83,6 +83,11 @@ storybook-static/
 tmp/
 temp/
 .turbo/
+runtime/plugin-registry/installed/*
+!runtime/plugin-registry/installed/.gitkeep
+runtime/plugin-registry/packages/*
+!runtime/plugin-registry/packages/.gitkeep
+runtime/plugin-registry/tmp
 
 ### Test artifacts
 **/cookies*.txt

@@ -1,0 +1,22 @@
+{
+  "updatedAt": "2025-10-28T00:00:00.000Z",
+  "plugins": [
+    {
+      "id": "weather-insights",
+      "name": "Weather Insights",
+      "version": "1.0.0",
+      "description": "Visualize driving recommendations based on live weather data.",
+      "author": "AutoWRX Labs",
+      "summary": "Demo plugin showcasing dynamic tab registration with live data stubs.",
+      "tags": ["official", "demo"],
+      "status": "approved",
+      "homepage": "https://digital.auto",
+      "distribution": {
+        "type": "local-directory",
+        "path": "plugins/marketplace/weather-insights"
+      },
+      "createdAt": "2025-10-28T00:00:00.000Z",
+      "updatedAt": "2025-10-28T00:00:00.000Z"
+    }
+  ]
+}

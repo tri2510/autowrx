@@ -15,6 +15,7 @@ import PageMyAssets from '@/pages/PageMyAssets.tsx'
 import PageNotFound from '@/pages/PageNotFound.tsx'
 import SiteConfigManagement from '@/pages/SiteConfigManagement.tsx'
 import PluginDemo from '@/pages/PluginDemo.tsx'
+import ExtensionCenter from '@/pages/ExtensionCenter'
 import { retry } from '@/lib/retry.ts'
 
 // Real AutoWRX Pages
@@ -112,6 +113,12 @@ const routesConfig: RouteConfig[] = [
                     >
                       🔌 Plugin System Demo
                     </a>
+                    <a
+                      href='/extensions'
+                      className='block bg-slate-900/60 border border-slate-700 text-white px-6 py-2 rounded-lg hover:bg-slate-900 transition-colors'
+                    >
+                      🧩 Extension Center
+                    </a>
                     <div className='text-center text-blue-100 text-sm'>
                       Full plugin system integrated with vehicle models
                     </div>
@@ -168,6 +175,19 @@ const routesConfig: RouteConfig[] = [
                 element: (
                   <SuspenseProvider>
                     <PluginDemo />
+                  </SuspenseProvider>
+                ),
+              },
+            ],
+          },
+          {
+            path: '/extensions',
+            children: [
+              {
+                index: true,
+                element: (
+                  <SuspenseProvider>
+                    <ExtensionCenter />
                   </SuspenseProvider>
                 ),
               },

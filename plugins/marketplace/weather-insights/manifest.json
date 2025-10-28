@@ -1,0 +1,21 @@
+{
+  "name": "Weather Insights",
+  "version": "1.0.0",
+  "description": "Visualize weather-aware driving recommendations inside AutoWRX.",
+  "summary": "Adds a Weather Insights tab showcasing the plugin extension center pipeline.",
+  "author": "AutoWRX Labs",
+  "id": "weather-insights",
+  "tabs": [
+    {
+      "id": "weather-dashboard",
+      "label": "Weather Insights",
+      "icon": "☀️",
+      "component": "WeatherDashboard",
+      "path": "/plugin/weather-insights",
+      "position": 190
+    }
+  ],
+  "activationEvents": ["onStartup"],
+  "permissions": [],
+  "main": "index.js"
+}

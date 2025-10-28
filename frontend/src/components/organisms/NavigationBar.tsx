@@ -146,6 +146,11 @@ const NavigationBar = ({}) => {
               </Link>
             </DaMenu>
           )}
+          <Link to='/extensions'>
+            <DaButton variant="plain">
+              Extensions
+            </DaButton>
+          </Link>
           {/* {model ? (
             <Link to={`/model/${model.id}`}>
               <DaButton variant="plain">
