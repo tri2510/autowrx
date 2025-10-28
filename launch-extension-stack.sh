@@ -49,7 +49,9 @@ wait_for_url() {
   local timeout=${2:-120}
   local start=$(date +%s)
   while true; do
-    if curl -fsS "$url" >/dev/null 2>&1; then
+    local status
+    status=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+    if [ "$status" != "000" ]; then
       return 0
     fi
     local now=$(date +%s)
