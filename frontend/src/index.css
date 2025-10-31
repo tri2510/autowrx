@@ -57,8 +57,8 @@
 }
 
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 *::-webkit-scrollbar-thumb {
@@ -73,18 +73,7 @@
 
 .scroll::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb {
-  border-radius: 10px;
-}
-
-.scroll-gray::-webkit-scrollbar-thumb {
-  border: 2px solid rgba(0, 0, 0, 0);
-  background-clip: padding-box;
-}
-
-.scroll-gray-small::-webkit-scrollbar-thumb {
-  border: 2px solid rgba(0, 0, 0, 0);
-  background-clip: padding-box;
-  background-color: #aaaaaa;
+  border-radius: 7px;
 }
 
 /* Grid utilities for layout */
@@ -266,7 +255,7 @@ select[aria-hidden='true'][tabindex='-1'] {
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.208 0.042 265.755);
+  --foreground: oklch(0.4199 0.0374 257.28);
   --primary: oklch(0.35 0.08 230);
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.7626 0.1532 115.73);
@@ -281,7 +270,7 @@ select[aria-hidden='true'][tabindex='-1'] {
 
 .dark {
   --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.929 0.013 255.508);
+  --foreground: oklch(0.4199 0.0374 257.28);
   --primary: oklch(0.45 0.1 230);
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.7626 0.1532 115.73);
@@ -303,7 +292,16 @@ select[aria-hidden='true'][tabindex='-1'] {
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-muted-foreground;
     font-family: 'Manrope', sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply text-primary;
   }
 }

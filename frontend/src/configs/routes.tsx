@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-// import { lazy } from 'react'
+import { lazy } from 'react'
 import RootLayout from '@/layouts/RootLayout'
 import SuspenseProvider from '@/providers/SuspenseProvider'
 import { RouteConfig } from '@/types/common.type.ts'
@@ -17,22 +17,16 @@ import PageTest from '@/pages/PageTest.tsx'
 import SiteConfigManagement from '@/pages/SiteConfigManagement.tsx'
 import PluginList from '@/pages/PluginList.tsx'
 import TemplateManager from '@/pages/TemplateManager.tsx'
+import PageTestPlugin from '@/pages/PageTestPlugin.tsx'
+import PageModelList from '@/pages/PageModelList.tsx'
+import ModelDetailLayout from '@/layouts/ModelDetailLayout.tsx'
+import PageModelDetail from '@/pages/PageModelDetail.tsx'
+import PageHome from '@/pages/PageHome.tsx'
+import PagePrototypeLibrary from '@/pages/PagePrototypeLibrary.tsx'
+import PagePrototypeDetail from '@/pages/PagePrototypeDetail.tsx'
 // import PageAuthSuccess from '@/pages/PageAuthSuccess.ts'
 // import { retry } from '@/lib/retry.ts'
-
-// const PageHome = lazy(() => retry(() => import('@/pages/PageHome')))
 // const PageAbout = lazy(() => retry(() => import('@/pages/PageAbout')))
-
-import PageTestPlugin from '@/pages/PageTestPlugin.tsx'
-// const PageModelList = lazy(() => retry(() => import('@/pages/PageModelList')))
-
-
-// const ModelDetailLayout = lazy(() =>
-//   retry(() => import('@/layouts/ModelDetailLayout')),
-// )
-// const PageModelDetail = lazy(() =>
-//   retry(() => import('@/pages/PageModelDetail')),
-// )
 // const PageModelArchitecture = lazy(
 //   () => import('@/pages/PageModelArchitecture'),
 // )
@@ -109,7 +103,7 @@ const routesConfig: RouteConfig[] = [
             index: true,
             element: (
               <SuspenseProvider>
-                <PageTest />
+                <PageHome />
               </SuspenseProvider>
             ),
             noBreadcrumbs: true,
@@ -247,93 +241,117 @@ const routesConfig: RouteConfig[] = [
             index: true,
             element: (
               <SuspenseProvider>
-                {/* <PageModelList /> */}
+                <PageModelList />
               </SuspenseProvider>
             ),
           },
-      //     {
-      //       path: ':model_id',
-      //       element: (
-      //         <SuspenseProvider>
-      //           <ModelDetailLayout />
-      //         </SuspenseProvider>
-      //       ),
-      //       children: [
-      //         {
-      //           index: true,
-      //           element: (
-      //             <SuspenseProvider>
-      //               <PageModelDetail />
-      //             </SuspenseProvider>
-      //           ),
-      //         },
-      //         {
-      //           path: 'api',
-      //           element: (
-      //             <SuspenseProvider>
-      //               <PageVehicleApi />
-      //             </SuspenseProvider>
-      //           ),
-      //         },
-      //         {
-      //           path: 'api/:api',
-      //           element: (
-      //             <SuspenseProvider>
-      //               <PageVehicleApi />
-      //             </SuspenseProvider>
-      //           ),
-      //         },
-      //         {
-      //           path: 'library',
-      //           element: (
-      //             <SuspenseProvider>
-      //               <PagePrototypeLibrary />
-      //             </SuspenseProvider>
-      //           ),
-      //         },
-      //         {
-      //           path: 'library/:tab',
-      //           element: (
-      //             <SuspenseProvider>
-      //               <PagePrototypeLibrary />
-      //             </SuspenseProvider>
-      //           ),
-      //         },
-      //         {
-      //           path: 'library/:tab/:prototype_id',
-      //           element: (
-      //             <SuspenseProvider>
-      //               <PagePrototypeLibrary />
-      //             </SuspenseProvider>
-      //           ),
-      //         },
-
-      //         {
-      //           path: 'architecture',
-      //           element: (
-      //             <SuspenseProvider>
-      //               <PageModelArchitecture />
-      //             </SuspenseProvider>
-      //           ),
-      //         },
-      //       ],
-      //     },
-      //     {
-      //       path: ':model_id/library/prototype/:prototype_id',
-      //       element: (
-      //         <SuspenseProvider>
-      //           <PagePrototypeDetail />
-      //         </SuspenseProvider>
-      //       ),
-      //     },
-      //     {
-      //       path: ':model_id/library/prototype/:prototype_id/:tab',
-      //       element: (
-      //         <SuspenseProvider>
-      //           <PagePrototypeDetail />
-      //         </SuspenseProvider>
-      //       ),
-      //     },
+          {
+            path: ':model_id',
+            element: (
+              <SuspenseProvider>
+                <ModelDetailLayout />
+              </SuspenseProvider>
+            ),
+            children: [
+              {
+                index: true,
+                element: (
+                  <SuspenseProvider>
+                    <PageModelDetail />
+                  </SuspenseProvider>
+                ),
+              },
+              {
+                path: 'library',
+                element: (
+                  <SuspenseProvider>
+                    <PagePrototypeLibrary />
+                  </SuspenseProvider>
+                ),
+              },
+              {
+                path: 'library/:tab',
+                element: (
+                  <SuspenseProvider>
+                    <PagePrototypeLibrary />
+                  </SuspenseProvider>
+                ),
+              },
+              {
+                path: 'library/:tab/:prototype_id',
+                element: (
+                  <SuspenseProvider>
+                    <PagePrototypeLibrary />
+                  </SuspenseProvider>
+                ),
+              },
+              // TODO: Uncomment these routes after migrating PageVehicleApi, PageModelArchitecture
+              // {
+              //   path: 'api',
+              //   element: (
+              //     <SuspenseProvider>
+              //       <PageVehicleApi />
+              //     </SuspenseProvider>
+              //   ),
+              // },
+              // {
+              //   path: 'api/:api',
+              //   element: (
+              //     <SuspenseProvider>
+              //       <PageVehicleApi />
+              //     </SuspenseProvider>
+              //   ),
+              // },
+              // {
+              //   path: 'library',
+              //   element: (
+              //     <SuspenseProvider>
+              //       <PagePrototypeLibrary />
+              //     </SuspenseProvider>
+              //   ),
+              // },
+              // {
+              //   path: 'library/:tab',
+              //   element: (
+              //     <SuspenseProvider>
+              //       <PagePrototypeLibrary />
+              //     </SuspenseProvider>
+              //   ),
+              // },
+              // {
+              //   path: 'library/:tab/:prototype_id',
+              //   element: (
+              //     <SuspenseProvider>
+              //       <PagePrototypeLibrary />
+              //     </SuspenseProvider>
+              //   ),
+              // },
+              // {
+              //   path: 'architecture',
+              //   element: (
+              //     <SuspenseProvider>
+              //       <PageModelArchitecture />
+              //     </SuspenseProvider>
+              //           ),
+              // },
+            ],
+          },
+          {
+            path: ':model_id/library/prototype/:prototype_id',
+            element: (
+              <SuspenseProvider>
+                <PagePrototypeDetail />
+              </SuspenseProvider>
+            ),
+          },
+          {
+            path: ':model_id/library/prototype/:prototype_id/:tab',
+            element: (
+              <SuspenseProvider>
+                <PagePrototypeDetail />
+              </SuspenseProvider>
+            ),
+          },
         ],
       },
       // {

@@ -57,7 +57,7 @@ const DaBreadcrumbLink = React.forwardRef<
   return (
     <Comp
       ref={ref}
-      className={cn('transition-colors hover:text-foreground', className)}
+      className={cn('transition-colors hover:text-primary', className)}
       {...props}
     />
   )
@@ -73,7 +73,7 @@ const DaBreadcrumbPage = React.forwardRef<
     role="link"
     aria-disabled="true"
     aria-current="page"
-    className={cn('font-normal text-foreground', className)}
+    className={cn('font-normal text-muted-foreground', className)}
     {...props}
   />
 ))
