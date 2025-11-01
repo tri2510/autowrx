@@ -47,6 +47,7 @@ const NavigationBar = ({}) => {
   const [isAuthorized] = usePermissionHook([PERMISSIONS.MANAGE_USERS])
   const [learningMode, setIsLearningMode] = useState(false)
   const siteTitle = useSiteConfig('SITE_TITLE', 'AutoWRX')
+  const logoUrl = useSiteConfig('SITE_LOGO_WIDE', '/imgs/logo-wide.png')
 
   useEffect(() => {
     if (siteTitle) {
@@ -57,13 +58,13 @@ const NavigationBar = ({}) => {
   // const { lastAccessedModel } = useLastAccessedModel()
 
   return (
-    <header className="flex items-center flex-nowrap w-full py-1 px-3">
-      <Link to="/" className="">
-        <img src="/imgs/logo-wide.png" alt="Logo" className="h-7" />
+    <header className="flex items-center w-full py-1 px-3 border-2">
+      <Link to="/" className="shrink-0">
+        <img src={logoUrl} alt="Logo" className="h-7" />
       </Link>
 
       {config && config.enableBranding && (
-        <div className="ml-4 text-sm text-white/90">
+        <div className="ml-4 text-sm text-white/90 shrink-0">
           <a
             href="https://digital.auto"
             target="_blank"
@@ -75,7 +76,7 @@ const NavigationBar = ({}) => {
         </div>
       )}
 
-      <div className="grow"></div>
+      <div className="flex-1 min-w-0"></div>
 
       {/* {config && config.learning && config.learning.url && (
         <div className="mr-6 cursor-pointer flex items-center">
@@ -108,7 +109,7 @@ const NavigationBar = ({}) => {
       )} */}
 
       {user && (
-        <div className="flex items-center">
+        <div className="flex items-center shrink-0">
           {/* <DaGlobalSearch>
             <DaButton
               variant="outline-nocolor"
@@ -198,7 +199,7 @@ const NavigationBar = ({}) => {
       )}
 
       {/* {learningMode && <LearningIntegration requestClose={() => setIsLearningMode(false)} />} */}
-      {!user && <DaNavUser />}
+      {!user && <div className="shrink-0"><DaNavUser /></div>}
     </header>
   )
 }
