@@ -44,7 +44,17 @@ export default defineConfig({
         target: 'http://localhost:3200',
         changeOrigin: true,
         secure: false,
-      }
+      },
+        '/images': {
+          target: 'http://localhost:3200',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/builtin-widgets': {
+          target: 'http://localhost:3200',
+          changeOrigin: true,
+          secure: false,
+        }
     },
   },
 })

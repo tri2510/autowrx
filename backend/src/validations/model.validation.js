@@ -21,7 +21,7 @@ const createModel = {
     main_api: Joi.string().required().max(255),
     model_home_image_file: Joi.string()
       .allow('')
-      .default('/imgs/default-model-image.png'),
+      .default('/images/default-model-image.png'),
     detail_image_file: Joi.string().allow(''),
     model_files: Joi.object(),
     name: Joi.string().required().max(255),
@@ -38,6 +38,8 @@ const createModel = {
       })
     ),
     state: Joi.string().max(255).default('draft'),
+    model_template_id: Joi.string().custom(objectId).allow(null),
+    custom_template: Joi.any(),
   }),
 };
 
@@ -87,6 +89,8 @@ const updateModel = {
         })
       ),
       state: Joi.string().max(255),
+      model_template_id: Joi.string().custom(objectId).allow(null),
+      custom_template: Joi.any(),
     })
     .min(1),
   params: Joi.object().keys({
