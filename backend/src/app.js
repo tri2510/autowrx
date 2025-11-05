@@ -27,6 +27,10 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 
+// Trust proxy when running behind Nginx or other reverse proxy
+// This is essential for correct handling of X-Forwarded-* headers
+app.set('trust proxy', true);
+
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
@@ -61,14 +65,16 @@ if (config.env === 'development') {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+        scriptSrcElem: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:", "https://cdn.jsdelivr.net"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'", "https:", "data:"],
+        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
+        fontSrc: ["'self'", "https:", "data:", "https://cdn.jsdelivr.net"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
         frameSrc: ["'self'"],
+        workerSrc: ["'self'", "blob:", "https://cdn.jsdelivr.net"],
       },
     },
   }));

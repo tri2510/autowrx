@@ -11,11 +11,11 @@ import { url } from 'inspector'
 const config: any = {
   instance: 'autowrx',
   serverBaseUrl:
-    import.meta.env.VITE_SERVER_BASE_URL || 'http://localhost:3200',
+    import.meta.env.VITE_SERVER_BASE_URL,
   serverVersion: import.meta.env.VITE_SERVER_VERSION || 'v2',
   logBaseUrl: '',
   // cacheBaseUrl: '',
-  uploadFileUrl: import.meta.env.VITE_SERVER_BASE_URL + '/v2/file',
+  uploadFileUrl: import.meta.env.VITE_SERVER_BASE_URL + '/file',
   showPrivacyPolicy: false,
   github: {
     clientId: '',

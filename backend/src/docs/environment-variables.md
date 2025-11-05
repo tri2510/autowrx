@@ -8,8 +8,18 @@
 | `ENV`          | Environment name for container naming (dev, prod)               | -                                             |
 | `PORT`         | Application port                                                | `8080`                                        |
 | `MONGODB_URL`  | MongoDB connection URL                                          | `mongodb://playground-db:27017/playground-be` |
-| `CORS_ORIGINS` | Allowed CORS origins (comma-separated regex patterns)           | `localhost:\\d+,127\\.0\\.0\\.1:\\d+`         |
+| `CORS_ORIGINS` | Allowed CORS origins (comma-separated regex patterns). See [CORS Configuration Guide](../../../CORS_CONFIGURATION.md) for details | `localhost:\\d+,127\\.0\\.0\\.1:\\d+`         |
 | `STRICT_AUTH`  | Enable strict authentication. This enforces auth on every route | `false`                                       |
+
+### CORS_ORIGINS Examples
+
+The `CORS_ORIGINS` variable accepts comma-separated regex patterns. The system automatically adds `http://` and `https://` prefixes.
+
+- **Development + Production IP**: `localhost:\\d+,127\\.0\\.0\\.1:\\d+,139\\.59\\.98\\.13:\\d+`
+- **With Domain**: `localhost:\\d+,127\\.0\\.0\\.1:\\d+,yourdomain\\.com,.*\\.yourdomain\\.com`
+- **Production Only**: `yourdomain\\.com,.*\\.yourdomain\\.com`
+
+**Important**: Remember to escape dots with `\\.` and use `\\d+` for any port number. See the [CORS Configuration Guide](../../../CORS_CONFIGURATION.md) for complete documentation.
 
 ## Authentication & Security
 

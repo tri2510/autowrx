@@ -117,13 +117,19 @@ const config = {
         return callback(null, true);
       }
       
-      // Allow requests from localhost and 127.0.0.1 with any port
-      const allowedOrigins = [
-        /^http:\/\/localhost:\d+$/,
-        /^https:\/\/localhost:\d+$/,
-        /^http:\/\/127\.0\.0\.1:\d+$/,
-        /^https:\/\/127\.0\.0\.1:\d+$/
-      ];
+      // Parse CORS_ORIGINS from environment variable (comma-separated regex patterns)
+      const corsOriginsPatterns = envVars.CORS_ORIGINS.split(',').map(pattern => pattern.trim()).filter(Boolean);
+      
+      // Build allowed origins list with both http and https for each pattern
+      const allowedOrigins = [];
+      corsOriginsPatterns.forEach(pattern => {
+        try {
+          allowedOrigins.push(new RegExp(`^http://${pattern}$`));
+          allowedOrigins.push(new RegExp(`^https://${pattern}$`));
+        } catch (e) {
+          console.error(`Invalid CORS origin pattern: ${pattern}`, e);
+        }
+      });
       
       // Check if origin matches any of the allowed patterns
       const isAllowed = allowedOrigins.some(pattern => pattern.test(origin));
