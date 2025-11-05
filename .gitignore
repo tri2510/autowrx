@@ -4,6 +4,8 @@ node_modules/
 **/uploads/
 **/frontend-dist/
 
+data/
+
 ### Logs
 logs
 *.log
@@ -93,3 +95,6 @@ temp/
 .env.stack.local
 .env.stack.secrets
 !.env.stack.example
+
+# Binary model files (to avoid line ending issues)
+backend/static/builtin-widgets/3d-car/models/acme_lite.glb
