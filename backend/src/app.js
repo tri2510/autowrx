@@ -151,15 +151,23 @@ if (config.env === 'development') {
 } else {
   // Serve frontend-dist directory as the root route
   // Explicitly set Content-Type headers to ensure correct MIME types in Docker/production
-  app.use('/', express.static(path.join(__dirname, '../static/frontend-dist'), {
+  const frontendDistPath = path.join(__dirname, '../static/frontend-dist');
+  app.use('/', express.static(frontendDistPath, {
     setHeaders: (res, filePath) => {
-      // Explicitly set Content-Type to prevent JSON responses for CSS/JS files
-      // This is necessary because Express static may not always set correct MIME types
-      // in certain Docker/production environments
-      if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css; charset=utf-8');
-      } else if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      try {
+        // Explicitly set Content-Type to prevent JSON responses for CSS/JS files
+        // This is necessary because Express static may not always set correct MIME types
+        // in certain Docker/production environments
+        if (filePath && typeof filePath === 'string') {
+          if (filePath.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css; charset=utf-8');
+          } else if (filePath.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+          }
+        }
+      } catch (err) {
+        // Silently fail if setting headers fails - Express will use default
+        console.error('Error setting headers for static file:', err.message);
       }
     }
   }));
@@ -178,6 +186,12 @@ if (config.env === 'development') {
         req.path.startsWith('/assets/')) {
       // If it's an assets request that reached here, the file doesn't exist
       if (req.path.startsWith('/assets/')) {
+        // Return proper content type based on file extension
+        if (req.path.endsWith('.css')) {
+          return res.status(404).type('text/css').send('/* File not found */');
+        } else if (req.path.endsWith('.js')) {
+          return res.status(404).type('application/javascript').send('// File not found');
+        }
         return res.status(404).type('text/plain').send('File not found');
       }
       return next();

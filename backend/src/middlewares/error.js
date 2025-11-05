@@ -33,6 +33,18 @@ const errorHandler = (err, req, res, next) => {
 
   res.locals.errorMessage = err.message;
 
+  // Check if this is a static file request (assets, css, js, etc.)
+  // Return appropriate content type instead of JSON to prevent MIME type errors
+  if (req.path.startsWith('/assets/') || req.path.endsWith('.css') || req.path.endsWith('.js')) {
+    if (req.path.endsWith('.css')) {
+      return res.status(statusCode).type('text/css').send(`/* Error: ${message} */`);
+    } else if (req.path.endsWith('.js')) {
+      return res.status(statusCode).type('application/javascript').send(`// Error: ${message}`);
+    }
+    // For other asset types, return plain text
+    return res.status(statusCode).type('text/plain').send(`Error: ${message}`);
+  }
+
   const response = {
     code: statusCode,
     message,
