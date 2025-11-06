@@ -1,3 +1,45 @@
-# Convert text file line endings to lf
-* text eol=lf
+# Convert text file line endings to lf for text files only
+* text=auto eol=lf
+
+# Explicitly mark source code as text
 *.js text
+*.ts text
+*.jsx text
+*.tsx text
+*.json text
+*.css text
+*.scss text
+*.html text
+*.md text
+*.yml text
+*.yaml text
+*.xml text
+*.txt text
+
+# Explicitly mark binary files as binary (prevents corruption)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.webp binary
+*.bmp binary
+*.tiff binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.rar binary
+*.7z binary
+*.mp4 binary
+*.mp3 binary
+*.wav binary
+*.avi binary
+*.mov binary
+*.hdr binary
