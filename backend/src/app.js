@@ -64,17 +64,17 @@ if (config.env === 'development') {
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
-        scriptSrcElem: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https:", "https://cdn.jsdelivr.net"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
-        fontSrc: ["'self'", "https:", "data:", "https://cdn.jsdelivr.net"],
+        defaultSrc: ["*"],
+        scriptSrc: ["'unsafe-inline'", "'unsafe-eval'", "*"],
+        scriptSrcElem: ["'unsafe-inline'", "'unsafe-eval'", "*"],
+        styleSrc: ["'unsafe-inline'", "*"],
+        imgSrc: ["*", "data:", "blob:"],
+        connectSrc: ["*"],
+        fontSrc: ["*", "data:"],
         objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'self'"],
-        workerSrc: ["'self'", "blob:", "https://cdn.jsdelivr.net"],
+        mediaSrc: ["*"],
+        frameSrc: ["*"],
+        workerSrc: ["'self'", "blob:", "*"],
       },
     },
   }));

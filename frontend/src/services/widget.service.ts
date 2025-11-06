@@ -7,13 +7,21 @@
 // SPDX-License-Identifier: MIT
 
 import axios from 'axios'
-import config from '@/configs/config'
+import { getConfig } from '@/utils/siteConfig'
 
 export const loadMarketWidgets = async () => {
   // Not handle case have more than 50 widgets yet
   try {
+    // Get marketplace URL from site config
+    const marketplaceUrl = await getConfig(
+      'DEFAULT_MARKETPLACE_URL',
+      'site',
+      undefined,
+      'https://store-be.digitalauto.tech'
+    )
+    
     let res = await axios.get(
-      `${config.widgetMarketPlaceBe}/package?category=widget&limit=50&page=1`,
+      `${marketplaceUrl}/package?category=widget&limit=50&page=1`,
     )
     if (
       res.status == 200 &&
@@ -56,8 +64,16 @@ export const loadMarketWidgets = async () => {
 
 export const searchWidget = async (widgetId: any) => {
   try {
+    // Get marketplace URL from site config
+    const marketplaceUrl = await getConfig(
+      'DEFAULT_MARKETPLACE_URL',
+      'site',
+      undefined,
+      'https://marketplace.digitalauto.tech'
+    )
+    
     let res = await axios.get(
-      `${config.widgetMarketPlaceBe}/package/${widgetId}`,
+      `${marketplaceUrl}/package/${widgetId}`,
     )
     if (res.status === 200 && res.data) {
       // Assuming the API returns the widget details directly
@@ -98,8 +114,16 @@ export const searchWidget = async (widgetId: any) => {
 
 export const loadWidgetReviews = async (widgetId: any) => {
   try {
+    // Get marketplace URL from site config
+    const marketplaceUrl = await getConfig(
+      'DEFAULT_MARKETPLACE_URL',
+      'site',
+      undefined,
+      'https://marketplace.digitalauto.tech'
+    )
+    
     let res = await axios.get(
-      `${config.widgetMarketPlaceBe}/review?packageId=${widgetId}&limit=20&offset=0`,
+      `${marketplaceUrl}/review?packageId=${widgetId}&limit=20&offset=0`,
     )
     if (res.status === 200 && res.data && res.data.data) {
       return res.data.data.map((review: any) => {

@@ -1,0 +1,98 @@
+# Convert text file line endings to lf for text files only
+* text=auto eol=lf
+
+# Explicitly mark source code as text
+*.js text
+*.ts text
+*.jsx text
+*.tsx text
+*.json text
+*.css text
+*.scss text
+*.sass text
+*.less text
+*.html text
+*.htm text
+*.xml text
+*.md text
+*.markdown text
+*.yml text
+*.yaml text
+*.toml text
+*.ini text
+*.txt text
+*.sh text
+*.bash text
+*.zsh text
+*.fish text
+*.py text
+*.rb text
+*.java text
+*.c text
+*.cpp text
+*.h text
+*.hpp text
+
+# Explicitly mark binary files as binary (prevents corruption)
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.webp binary
+*.bmp binary
+*.tiff binary
+*.tif binary
+*.psd binary
+*.ai binary
+
+# Fonts
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.tgz binary
+*.rar binary
+*.7z binary
+*.bz2 binary
+
+# Media
+*.mp4 binary
+*.mp3 binary
+*.wav binary
+*.flac binary
+*.ogg binary
+*.avi binary
+*.mov binary
+*.mkv binary
+*.webm binary
+
+# Documents
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# Other binary formats
+*.hdr binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.class binary
+*.jar binary
+*.war binary
+*.ear binary
+*.node binary
+
