@@ -17,6 +17,7 @@ import routesConfig from '@/configs/routes'
 import { RouteConfig } from '@/types/common.type.ts'
 import { retry } from '@/lib/retry.ts'
 import useGlobalStore from '@/stores/globalStore.ts'
+import ActiveObjectManagement from '@/components/organisms/ActiveObjectManagement.tsx'
 
 // const ActiveObjectManagement = lazy(() =>
 //   retry(() => import('@/components/organisms/ActiveObjectManagement')),
@@ -68,9 +69,9 @@ const RootLayout = () => {
   return <>
 
     <div className={`flex h-screen flex-col ${isChatShowed && 'pr-[430px]'}`}>
-      {/* <Suspense>
+      <Suspense>
         <ActiveObjectManagement />
-      </Suspense> */}
+      </Suspense>
       <Suspense>
         <NavigationBar />
         {!pathsWithoutBreadcrumb.has(location.pathname) && (

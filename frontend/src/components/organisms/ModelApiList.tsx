@@ -59,6 +59,12 @@ const ModelApiList = ({
   const currentModel = model || modelFromStore
   const [isAuthorized] = usePermissionHook([PERMISSIONS.WRITE_MODEL, model_id])
 
+  // Check if data is ready: both model and APIs should be loaded
+  // In readOnly mode, we might not have a model from the route, so we check the store
+  const isDataReady = readOnly 
+    ? (activeModelApis && activeModelApis.length > 0)
+    : (currentModel && activeModelApis && activeModelApis.length > 0)
+
   useEffect(() => {
     const querys = new URLSearchParams(location.search) // set search term from query params
     const searchQuery = querys.get('search')
@@ -188,24 +194,22 @@ const ModelApiList = ({
         )}
       </div>
       <div className="flex h-full w-full flex-col overflow-y-auto">
-        {filteredApiList ? (
-          filteredApiList.length > 0 ? (
-            <DaApiList
-              apis={filteredApiList}
-              onApiClick={onApiClick}
-              selectedApi={selectedApi}
-            />
-          ) : (
-            <div className="flex w-full h-full items-center justify-center mb-24">
-              <div className="text-sm font-medium flex justify-center mt-6">
-                No signal found
-              </div>
-            </div>
-          )
-        ) : (
+        {!isDataReady ? (
           <div className="flex items-center justify-center h-[200px]">
             <Spinner className="mr-2" />
             <span className="text-sm font-medium text-muted-foreground">Loading API List...</span>
+          </div>
+        ) : filteredApiList && filteredApiList.length > 0 ? (
+          <DaApiList
+            apis={filteredApiList}
+            onApiClick={onApiClick}
+            selectedApi={selectedApi}
+          />
+        ) : (
+          <div className="flex w-full h-full items-center justify-center mb-24">
+            <div className="text-sm font-medium flex justify-center mt-6">
+              No signal found
+            </div>
           </div>
         )}
       </div>
