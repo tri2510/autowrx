@@ -4,6 +4,8 @@ node_modules/
 **/uploads/
 **/frontend-dist/
 
+**/stats.html
+
 data/
 
 ### Logs

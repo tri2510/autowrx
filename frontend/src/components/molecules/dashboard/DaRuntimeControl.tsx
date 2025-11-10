@@ -22,7 +22,7 @@ import useCurrentModel from '@/hooks/useCurrentModel'
 import usePermissionHook from '@/hooks/usePermissionHook'
 import { PERMISSIONS } from '@/data/permission'
 import DaRuntimeConnector from '../DaRuntimeConnector'
-import config from '@/configs/config'
+import { useSiteConfig } from '@/utils/siteConfig'
 import DaApisWatch from './DaApisWatch'
 import {
   DropdownMenu,
@@ -33,6 +33,11 @@ import {
 import { getComputedAPIs } from '@/services/model.service'
 import RuntimeAssetManager from '@/components/organisms/RuntimeAssetManager'
 import DaDialog from '@/components/molecules/DaDialog'
+import { countCodeExecution } from '@/services/prototype.service'
+import { GoDotFill } from 'react-icons/go'
+import DaMockManager from './DaMockManager'
+import PrototypeVarsWatch from './PrototypeVarsWatch'
+import DaRemoteCompileRust from '../remote-compiler/DaRemoteCompileRust'
 
 const DEFAULT_KIT_SERVER = 'https://kit.digitalauto.tech'
 
@@ -55,6 +60,7 @@ const DaRuntimeControl: FC = () => {
   )
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.READ_MODEL, model?.id])
+  const runtimeServerUrl = useSiteConfig('RUNTIME_SERVER_URL', DEFAULT_KIT_SERVER)
   
   const [isExpand, setIsExpand] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
@@ -79,6 +85,10 @@ const DaRuntimeControl: FC = () => {
   const [requestContent, setRequestContent] = useState<string>('')
   const [requestMode, setRequestMode] = useState<string>('')
   const [showRtDialog, setShowRtDialog] = useState<boolean>(false)
+  const [runningAppsOnRt, setRunningAppsOnRt] = useState<any[]>([])
+  const [listenerOnRt, setListenerOnRt] = useState<any[]>([])
+  const [isAdvantageMode, setIsAdvantageMode] = useState<number>(-5)
+  const rustCompilerRef = useRef<any>()
 
   useEffect(() => {
     localStorage.setItem('customKitServer', customKitServer.trim())
@@ -86,7 +96,26 @@ const DaRuntimeControl: FC = () => {
 
   useEffect(() => {
     setCurRuntimeInfo(null)
+    setListenerOnRt([])
+    setRunningAppsOnRt([])
   }, [activeRtId])
+
+  useEffect(() => {
+    if (!curRuntimeInfo) {
+      setRunningAppsOnRt([])
+      setListenerOnRt([])
+    }
+    if (curRuntimeInfo && curRuntimeInfo.lsOfRunner) {
+      setRunningAppsOnRt(curRuntimeInfo.lsOfRunner || [])
+    }
+    if (curRuntimeInfo && curRuntimeInfo.lsOfApiSubscriber) {
+      let lsOfListener = []
+      for (let [key, value] of Object.entries(curRuntimeInfo.lsOfApiSubscriber)) {
+        lsOfListener.push(value)
+      }
+      setListenerOnRt(lsOfListener)
+    }
+  }, [curRuntimeInfo])
 
   useEffect(() => {
     if (prototype) {
@@ -121,13 +150,25 @@ const DaRuntimeControl: FC = () => {
     setIsRunning(true)
     setActiveTab('output')
     setLog('')
-    
-    if (runTimeRef.current) {
-      runTimeRef.current?.runApp(code || '', prototype?.name || 'App name')
+
+    switch (prototype?.language) {
+      case 'rust':
+        if (rustCompilerRef.current) {
+          rustCompilerRef.current?.requestCompile(code || '')
+        }
+        break
+      default:
+        if (runTimeRef.current) {
+          runTimeRef.current?.runApp(code || '', prototype?.name || 'App name')
+        }
+        if (runTimeRef1.current) {
+          runTimeRef1.current?.runApp(code || '', prototype?.name || 'App name')
+        }
     }
-    if (runTimeRef1.current) {
-      runTimeRef1.current?.runApp(code || '', prototype?.name || 'App name')
-    }
+
+    notifyWidgetIframes({
+      action: 'run-app',
+    })
 
     const userId = currentUser?.id || 'Anonymous'
     if (prototype) {
@@ -137,17 +178,26 @@ const DaRuntimeControl: FC = () => {
         type: 'run-prototype',
         create_by: userId,
       })
+      countCodeExecution(prototype.id)
     }
   }
 
   const handleStop = () => {
     setIsRunning(false)
-    if (runTimeRef.current) {
-      runTimeRef.current?.stopApp()
+    switch (prototype?.language) {
+      case 'rust':
+      default:
+        if (runTimeRef.current) {
+          runTimeRef.current?.stopApp()
+        }
+        if (runTimeRef1.current) {
+          runTimeRef1.current?.stopApp()
+        }
+        break
     }
-    if (runTimeRef1.current) {
-      runTimeRef1.current?.stopApp()
-    }
+    notifyWidgetIframes({
+      action: 'stop-app',
+    })
   }
 
   const appendLog = (content: string) => {
@@ -177,6 +227,55 @@ const DaRuntimeControl: FC = () => {
     if (runTimeRef1.current) {
       runTimeRef1.current?.writeVarsValue(obj)
     }
+  }
+
+  const notifyWidgetIframes = (data: any) => {
+    const iframes = document.querySelectorAll('iframe')
+    iframes.forEach((iframe) => {
+      iframe.contentWindow?.postMessage(JSON.stringify(data), '*')
+    })
+  }
+
+  const handleMessageListener = (e: any) => {
+    if (!e.data) return
+    try {
+      let payload = JSON.parse(e.data)
+      if (payload.cmd === 'set-api-value' && payload.api) {
+        let obj = {} as any
+        obj[`${payload.api}`] = payload.value
+        writeSignalValue(obj)
+        writeVarsValue(obj)
+      }
+    } catch (err) {
+      // Silent fail for invalid JSON
+    }
+  }
+
+  useEffect(() => {
+    window.addEventListener('message', handleMessageListener)
+    return () => {
+      window.removeEventListener('message', handleMessageListener)
+    }
+  }, [])
+
+  const getTimeSpanAsString = (from: number) => {
+    const now = Date.now()
+    const diff = now - from * 1000
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+    const weeks = Math.floor(days / 7)
+    const months = Math.floor(weeks / 4)
+    const years = Math.floor(months / 12)
+    if (years > 0) return `${years} years ago`
+    if (months > 0) return `${months} months ago`
+    if (weeks > 0) return `${weeks} weeks ago`
+    if (days > 0) return `${days} days ago`
+    if (hours > 0) return `${hours} hours ago`
+    if (minutes > 0) return `${minutes} minutes ago`
+    if (seconds > 0) return `${seconds} seconds ago`
+    return 'just now'
   }
 
   return (
@@ -279,7 +378,7 @@ const DaRuntimeControl: FC = () => {
             ) : (
               <DaRuntimeConnector
                 targetPrefix="runtime-"
-                kitServerUrl={config?.runtime?.url || DEFAULT_KIT_SERVER}
+                kitServerUrl={runtimeServerUrl}
                 ref={runTimeRef1}
                 usedAPIs={usedApis}
                 hideLabel={true}
@@ -367,6 +466,25 @@ const DaRuntimeControl: FC = () => {
             >
               <TbPlayerStopFilled className="w-4 h-4" />
             </button>
+
+            {prototype?.language === 'rust' && (
+              <DaRemoteCompileRust
+                ref={rustCompilerRef}
+                onResponse={(log, isDone, status, appName) => {
+                  appendLog(log)
+                  if (isDone) {
+                    if (status === 'compile-done' && appName) {
+                      if (runTimeRef.current) {
+                        runTimeRef.current?.runBinApp(appName)
+                      }
+                      if (runTimeRef1.current) {
+                        runTimeRef1.current?.runBinApp(appName)
+                      }
+                    }
+                  }
+                }}
+              />
+            )}
           </>
         )}
         {isExpand && (
@@ -542,19 +660,61 @@ const DaRuntimeControl: FC = () => {
             )}
 
             {activeTab === 'vars' && (
-              <div className="h-full px-2 py-1 text-sm">
-                <p style={{ color: 'hsl(0, 0%, 100%)' }}>
-                  Vars Watch - To be implemented
-                </p>
+              <PrototypeVarsWatch
+                requestWriteVarValue={(obj: any) => {
+                  writeVarsValue(obj)
+                }}
+              />
+            )}
+
+            {activeTab === 'rt-usage' && (
+              <div className="h-full overflow-auto px-2 py-1 text-sm">
+                <div className="mt-2 mb-1 font-semibold">
+                  Number of client listen to this runtime: {listenerOnRt.length}
+                </div>
+                <div className="max-h-[300px] overflow-auto">
+                  {listenerOnRt.map((listener: any, idx: number) => (
+                    <div className="py-0.5 flex italic items-center" key={idx}>
+                      <GoDotFill size={10} className="mr-1" />
+                      <div className="grow">Number of listened APIs: {listener.apis?.length || 0}</div>
+                      <div className="text-xs">{getTimeSpanAsString(listener.from)}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 mb-1 font-semibold">
+                  Number of Prototype running on this runtime: {runningAppsOnRt.length}
+                </div>
+                {runningAppsOnRt.map((app: any, idx: number) => (
+                  <div className="py-0.5 flex italic items-center" key={idx}>
+                    <GoDotFill size={10} className="mr-1" />
+                    <div className="grow">{app.appName}</div>
+                    <div className="text-xs">{getTimeSpanAsString(app.from)}</div>
+                  </div>
+                ))}
               </div>
             )}
 
             {activeTab === 'mock' && (
-              <div className="h-full px-2 py-1 text-sm">
-                <p style={{ color: 'hsl(0, 0%, 100%)' }}>
-                  Mock Services - To be implemented
-                </p>
-              </div>
+              <DaMockManager
+                mockSignals={mockSignals}
+                loadMockSignalsFromRt={() => {
+                  if (runTimeRef.current) {
+                    runTimeRef.current?.loadMockSignals()
+                  }
+                  if (runTimeRef1.current) {
+                    runTimeRef1.current?.loadMockSignals()
+                  }
+                }}
+                sendMockSignalsToRt={(signals: any[]) => {
+                  if (runTimeRef.current) {
+                    runTimeRef.current?.setMockSignals(signals)
+                  }
+                  if (runTimeRef1.current) {
+                    runTimeRef1.current?.setMockSignals(signals)
+                  }
+                }}
+              />
             )}
           </>
         )}
@@ -598,7 +758,7 @@ const DaRuntimeControl: FC = () => {
         <div
           className="ml-4 w-10 h-full flex items-center justify-center cursor-pointer hover:bg-slate-400"
           onClick={() => {
-            // Placeholder for advantage mode toggle
+            setIsAdvantageMode((v) => v + 1)
           }}
         />
 
@@ -673,15 +833,16 @@ const DaRuntimeControl: FC = () => {
             >
               Signals Watch
             </div>
-            {/* <div
-              data-id="btn-runtime-control-tab-mock"
+            {/* Commented out for now - enable when needed
+            <div
+              data-id="btn-runtime-control-runtime-usage"
               className={cn(
                 'text-xs flex cursor-pointer items-center px-4 py-0.5',
-                activeTab === 'mock' && 'border-b-2',
+                activeTab === 'rt-usage' && 'border-b-2',
               )}
               style={{
                 color: 'hsl(0, 0%, 100%)',
-                borderBottomColor: activeTab === 'mock' ? 'hsl(0, 0%, 100%)' : 'transparent',
+                borderBottomColor: activeTab === 'rt-usage' ? 'hsl(0, 0%, 100%)' : 'transparent',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = 'hsl(215, 16%, 47%)'
@@ -690,11 +851,36 @@ const DaRuntimeControl: FC = () => {
                 e.currentTarget.style.backgroundColor = 'transparent'
               }}
               onClick={() => {
-                setActiveTab('mock')
+                setActiveTab('rt-usage')
               }}
             >
-              Mock Services
-            </div> */}
+              Runtime Usage ({runningAppsOnRt.length}-{listenerOnRt.length})
+            </div>
+            */}
+            {isAdvantageMode > 0 && (
+              <div
+                data-id="btn-runtime-control-tab-mock"
+                className={cn(
+                  'text-xs flex cursor-pointer items-center px-4 py-0.5',
+                  activeTab === 'mock' && 'border-b-2',
+                )}
+                style={{
+                  color: 'hsl(0, 0%, 100%)',
+                  borderBottomColor: activeTab === 'mock' ? 'hsl(0, 0%, 100%)' : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'hsl(215, 16%, 47%)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent'
+                }}
+                onClick={() => {
+                  setActiveTab('mock')
+                }}
+              >
+                Mock Services
+              </div>
+            )}
           </>
         )}
       </div>
