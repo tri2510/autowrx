@@ -28,7 +28,7 @@ import { Dialog, DialogContent } from '@/components/atoms/dialog'
 import { TbPlus, TbDotsVertical } from 'react-icons/tb'
 import AddonSelect from '@/components/molecules/AddonSelect'
 import CustomModelTabs from '@/components/molecules/CustomModelTabs'
-import CustomTabEditor from '@/components/organisms/CustomTabEditor'
+import CustomTabEditor, { TabConfig } from '@/components/organisms/CustomTabEditor'
 import { Plugin } from '@/services/plugin.service'
 import { updateModelService } from '@/services/model.service'
 import { toast } from 'react-toastify'
@@ -77,6 +77,21 @@ const ModelDetailLayout = () => {
     )
   }, [user, model])
 
+  // Helper to get model tabs in TabConfig format
+  const getModelTabs = (): TabConfig[] => {
+    const tabs = model?.custom_template?.model_tabs || []
+    // If tabs already have 'type' field, they're in new format
+    if (tabs.length > 0 && 'type' in tabs[0]) {
+      return tabs as TabConfig[]
+    }
+    // Convert old format to new (all model tabs are custom)
+    return tabs.map((tab: any) => ({
+      type: 'custom' as const,
+      label: tab.label,
+      plugin: tab.plugin,
+    }))
+  }
+
   // Handler for adding a new addon
   const handleAddonSelect = async (plugin: Plugin, label: string) => {
     if (!model?.id) {
@@ -85,13 +100,10 @@ const ModelDetailLayout = () => {
     }
 
     try {
-      const currentTemplate = model.custom_template || {
-        model_tabs: [],
-        prototype_tabs: [],
-      }
+      const currentTabs = getModelTabs()
 
-      const pluginExists = currentTemplate.model_tabs?.some(
-        (tab: any) => tab.plugin === plugin.slug
+      const pluginExists = currentTabs.some(
+        (tab: TabConfig) => tab.type === 'custom' && tab.plugin === plugin.slug
       )
 
       if (pluginExists) {
@@ -100,18 +112,19 @@ const ModelDetailLayout = () => {
         return
       }
 
-      const newTab = {
+      const newTab: TabConfig = {
+        type: 'custom',
         label: label,
         plugin: plugin.slug,
       }
 
-      const updatedTemplate = {
-        ...currentTemplate,
-        model_tabs: [...(currentTemplate.model_tabs || []), newTab],
-      }
+      const updatedTabs = [...currentTabs, newTab]
 
       await updateModelService(model.id, {
-        custom_template: updatedTemplate,
+        custom_template: {
+          ...model.custom_template,
+          model_tabs: updatedTabs,
+        },
       })
 
       toast.success(`Added ${label} to model tabs`)
@@ -124,32 +137,25 @@ const ModelDetailLayout = () => {
   }
 
   // Handler for saving custom tabs (edit/reorder/remove)
-  const handleSaveCustomTabs = async (updatedTabs: Array<{ label: string; plugin: string }>) => {
+  const handleSaveCustomTabs = async (updatedTabs: TabConfig[]) => {
     if (!model?.id) {
       toast.error('Model not found')
       return
     }
 
     try {
-      const currentTemplate = model.custom_template || {
-        model_tabs: [],
-        prototype_tabs: [],
-      }
-
-      const updatedTemplate = {
-        ...currentTemplate,
-        model_tabs: updatedTabs,
-      }
-
       await updateModelService(model.id, {
-        custom_template: updatedTemplate,
+        custom_template: {
+          ...model.custom_template,
+          model_tabs: updatedTabs,
+        },
       })
 
-      toast.success('Custom tabs updated successfully')
+      toast.success('Model tabs updated successfully')
       window.location.reload()
     } catch (error) {
-      console.error('Failed to update custom tabs:', error)
-      toast.error('Failed to update custom tabs. Please try again.')
+      console.error('Failed to update model tabs:', error)
+      toast.error('Failed to update model tabs. Please try again.')
     }
   }
 
@@ -306,10 +312,10 @@ const ModelDetailLayout = () => {
       <CustomTabEditor
         open={openManageAddonsDialog}
         onOpenChange={setOpenManageAddonsDialog}
-        tabs={model?.custom_template?.model_tabs || []}
+        tabs={getModelTabs()}
         onSave={handleSaveCustomTabs}
         title="Manage Model Tabs"
-        description="Edit labels, reorder, and remove custom model tabs"
+        description="Edit labels, reorder, hide/show, and remove custom model tabs"
       />
     </div>
   )
