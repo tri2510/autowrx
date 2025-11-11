@@ -16,12 +16,15 @@ import { TbCircleFilled, TbPhotoEdit } from 'react-icons/tb'
 import { uploadFileService } from '@/services/upload.service.ts'
 import { partialUpdateUserService } from '@/services/user.service'
 import DaDialog from '@/components/molecules/DaDialog'
+import { useAuthConfigs } from '@/hooks/useAuthConfigs'
+import FormUpdatePassword from '@/components/molecules/forms/FormUpdatePassword'
 
 const PageUserProfile = () => {
   const [isEditing, setIsEditing] = useState(false)
   const { data: user, refetch } = useSelfProfileQuery()
   const [isOpenPopup, setIsOpenPopup] = useState(false)
   const [name, setName] = useState('')
+  const { authConfigs } = useAuthConfigs()
 
   useEffect(() => {
     if (user) {
@@ -144,38 +147,36 @@ const PageUserProfile = () => {
                   {user?.id}
                 </div>
               </div> */}
-              <div className="flex flex-col w-full mt-6">
-                <div className="text-base font-semibold text-foreground">
-                  Password
-                </div>
-                <div className="flex w-full items-start justify-between">
-                  <div className="flex space-x-1 mt-2">
-                    {[...Array(8)].map((_, index) => (
-                      <TbCircleFilled
-                        className="size-3 text-gray-300"
-                        key={index}
-                      />
-                    ))}
+              {authConfigs.PASSWORD_MANAGEMENT && (
+                <div className="flex flex-col w-full mt-6">
+                  <div className="text-base font-semibold text-foreground">
+                    Password
                   </div>
-                  <div className="">
-                    <DaDialog
-                      open={isOpenPopup}
-                      onOpenChange={setIsOpenPopup}
-                      trigger={
-                        <Button size="sm" variant="outline">
-                          Change password
-                        </Button>
-                      }
-                    >
-                      <div className="p-4">
-                        <p className="text-base">
-                          Password change functionality is not available.
-                        </p>
-                      </div>
-                    </DaDialog>
+                  <div className="flex w-full items-start justify-between">
+                    <div className="flex space-x-1 mt-2">
+                      {[...Array(8)].map((_, index) => (
+                        <TbCircleFilled
+                          className="size-3 text-gray-300"
+                          key={index}
+                        />
+                      ))}
+                    </div>
+                    <div className="">
+                      <DaDialog
+                        open={isOpenPopup}
+                        onOpenChange={setIsOpenPopup}
+                        trigger={
+                          <Button size="sm" variant="outline">
+                            Change password
+                          </Button>
+                        }
+                      >
+                        <FormUpdatePassword />
+                      </DaDialog>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

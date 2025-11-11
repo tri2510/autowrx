@@ -5,7 +5,7 @@
 | Variable       | Description                                                     | Default                                       |
 | -------------- | --------------------------------------------------------------- | --------------------------------------------- |
 | `NODE_ENV`     | Environment type (production, development, test)                | -                                             |
-| `ENV`          | Environment name for container naming (dev, prod)               | -                                             |
+| `NAME`          | Environment name for container naming (dev, prod)               | -                                             |
 | `PORT`         | Application port                                                | `8080`                                        |
 | `MONGODB_URL`  | MongoDB connection URL                                          | `mongodb://playground-db:27017/playground-be` |
 | `CORS_ORIGINS` | Allowed CORS origins (comma-separated regex patterns). See [CORS Configuration Guide](../../../CORS_CONFIGURATION.md) for details | `localhost:\\d+,127\\.0\\.0\\.1:\\d+`         |
@@ -47,7 +47,7 @@ The `CORS_ORIGINS` variable accepts comma-separated regex patterns. The system a
 
 | Variable                      | Description             | Default                |
 | ----------------------------- | ----------------------- | ---------------------- |
-| `DB_CONTAINER_NAME`           | Database container name | `${ENV}-playground-db` |
+| `DB_CONTAINER_NAME`           | Database container name | `${NAME}-playground-db` |
 | `KONG_PROXY_PORT`             | Kong API gateway port   | `9800`                 |
 | `KONG_NGINX_WORKER_PROCESSES` | Kong Nginx workers      | `auto`                 |
 | `LOGS_MAX_SIZE`               | Maximum log size (MB)   | `100`                  |

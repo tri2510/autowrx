@@ -11,7 +11,6 @@ const validate = require('../../../middlewares/validate');
 const auth = require('../../../middlewares/auth');
 const { feedbackValidation } = require('../../../validations');
 const { feedbackController } = require('../../../controllers');
-const config = require('../../../config/config');
 
 const router = express.Router();
 
@@ -20,7 +19,7 @@ router
   .post(auth(), validate(feedbackValidation.createFeedback), feedbackController.createFeedback)
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(feedbackValidation.listFeedbacks),
     feedbackController.listFeedbacks

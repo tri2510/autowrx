@@ -14,7 +14,6 @@ const userController = require('../../../controllers/user.controller');
 
 const { checkPermission } = require('../../../middlewares/permission');
 const { PERMISSIONS } = require('../../../config/roles');
-const config = require('../../../config/config');
 
 const router = express.Router();
 
@@ -23,7 +22,7 @@ router
   .post(auth(), checkPermission(PERMISSIONS.ADMIN), validate(userValidation.createUser), userController.createUser)
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(userValidation.getUsers),
     userController.getUsers
@@ -32,13 +31,26 @@ router
 router
   .route('/self')
   .get(auth(), userController.getSelf)
-  .patch(auth(), validate(userValidation.updateSelfUser), userController.updateSelf);
+  .patch(
+    auth(), 
+    validate(userValidation.updateSelfUser),
+    (req, res, next) => {
+      // Check if password management is enabled when user tries to update password
+      if (req.body.password && !req.authConfig.PASSWORD_MANAGEMENT) {
+        const ApiError = require('../../../utils/ApiError');
+        const httpStatus = require('http-status');
+        return next(new ApiError(httpStatus.FORBIDDEN, 'Password management is disabled. Contact administrator.'));
+      }
+      next();
+    },
+    userController.updateSelf
+  );
 
 router
   .route('/:userId')
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(userValidation.getUser),
     userController.getUser

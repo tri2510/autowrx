@@ -14,8 +14,8 @@ source .env
 yarn
 
 # Validate environment variables
-if [ -z "$ENV" ]; then
-  echo "ENV is not set"
+if [ -z "$NAME" ]; then
+  echo "NAME is not set"
   exit 1
 fi
 
@@ -76,10 +76,10 @@ done
 # Determine the Docker Compose command based on the -prod flag
 if [ "$ENV_SUFFIX" == "prod" ]; then
   RESTART_POLICY="always"
-  DOCKER_COMMAND="docker compose -p ${ENV}-playground-be -f docker-compose.yml -f docker-compose.prod.yml up $BUILD $NO_CACHE $DETACH"
+  DOCKER_COMMAND="docker compose -p ${NAME}-playground-be -f docker-compose.yml -f docker-compose.prod.yml up $BUILD $NO_CACHE $DETACH"
 else
   RESTART_POLICY="no"
-  DOCKER_COMMAND="docker compose -p ${ENV}-playground-be -f docker-compose.yml -f docker-compose.dev.yml up $BUILD $NO_CACHE $DETACH"
+  DOCKER_COMMAND="docker compose -p ${NAME}-playground-be -f docker-compose.yml -f docker-compose.dev.yml up $BUILD $NO_CACHE $DETACH"
 fi
 
 export RESTART_POLICY

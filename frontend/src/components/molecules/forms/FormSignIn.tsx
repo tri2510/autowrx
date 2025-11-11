@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { TbAt, TbLock } from 'react-icons/tb'
 import SSOHandler from '../SSOHandler'
 import config from '@/configs/config'
+import { useAuthConfigs } from '@/hooks/useAuthConfigs'
 
 interface FormSignInProps {
   setAuthType: (type: 'sign-in' | 'register' | 'forgot') => void
@@ -26,6 +27,7 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
   const [loading, setLoading] = useState(false)
   const [ssoLoading, setSSOLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const { authConfigs } = useAuthConfigs()
 
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -105,7 +107,7 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
             {loading && <Spinner className="text-white" />}
             Sign in
           </Button>
-          {!config.strictAuth && (
+          {authConfigs.SELF_REGISTRATION && (
             <div className="mt-4 flex w-full justify-center items-center">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?

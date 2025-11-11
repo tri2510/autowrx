@@ -17,7 +17,7 @@ import DaDialog from '../molecules/DaDialog'
 import useAuthStore from '@/stores/authStore'
 import { DaPrototypeItem } from '../molecules/DaPrototypeItem'
 import DaSkeletonGrid from '../molecules/DaSkeletonGrid'
-import config from '@/configs/config'
+import { useAuthConfigs } from '@/hooks/useAuthConfigs'
 
 type HomePrototypePopularProps = {
   requiredLogin?: boolean
@@ -29,6 +29,7 @@ const HomePrototypePopular = ({
   title,
 }: HomePrototypePopularProps) => {
   const { data: user } = useSelfProfileQuery()
+  const { authConfigs } = useAuthConfigs()
   const [popularPrototypes, setPopularPrototypes] = useState<
     Prototype[] | undefined
   >(undefined)
@@ -58,7 +59,8 @@ const HomePrototypePopular = ({
   }
 
   const handlePrototypeClick = (prototype: Prototype) => {
-    if (!config.strictAuth || user) {
+    // Allow navigation if public viewing enabled OR user is logged in
+    if (authConfigs.PUBLIC_VIEWING || user) {
       navigate(
         `/model/${prototype.model_id}/library/prototype/${prototype.id}/view`,
       )

@@ -22,7 +22,8 @@ const config: any = {
   runtime: {
     url: 'https://kit.digitalauto.tech',
   },
-  strictAuth: false,
+  // strictAuth has been replaced by granular auth configs (PUBLIC_VIEWING, SELF_REGISTRATION, etc.)
+  // See useAuthConfigs hook for the new implementation
 }
 
 export default config

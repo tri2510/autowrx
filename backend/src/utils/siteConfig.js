@@ -7,11 +7,17 @@
 // SPDX-License-Identifier: MIT
 
 const { siteConfigService } = require('../services');
+const config = require('../config/config');
 
 // Cache for site configs to avoid repeated database calls
 let configCache = new Map();
 let cacheExpiry = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Auth config cache - separate from general config cache
+let authConfigCache = new Map();
+let authCacheExpiry = null;
+const AUTH_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get a single site config value by key
@@ -138,6 +144,75 @@ const getConfigsSync = (keys) => {
   return {};
 };
 
+/**
+ * Get authentication config value with fallback to STRICT_AUTH environment variable
+ * @param {string} key - Auth config key (PUBLIC_VIEWING, SELF_REGISTRATION, SSO_AUTO_REGISTRATION, PASSWORD_MANAGEMENT)
+ * @returns {Promise<boolean>} - The auth config value
+ */
+const getAuthConfig = async (key) => {
+  const validKeys = ['PUBLIC_VIEWING', 'SELF_REGISTRATION', 'SSO_AUTO_REGISTRATION', 'PASSWORD_MANAGEMENT'];
+  
+  if (!validKeys.includes(key)) {
+    console.warn(`Invalid auth config key: ${key}. Valid keys are: ${validKeys.join(', ')}`);
+    return false;
+  }
+
+  try {
+    // Try to get from database with category='auth'
+    const dbConfig = await siteConfigService.getSiteConfigByKey(key, 'site', null, false);
+    
+    if (dbConfig && dbConfig.value !== undefined && dbConfig.value !== null) {
+      // Store in cache
+      authConfigCache.set(key, dbConfig.value);
+      authCacheExpiry = Date.now() + AUTH_CACHE_DURATION;
+      return Boolean(dbConfig.value);
+    }
+
+    // Fallback to STRICT_AUTH environment variable
+    // STRICT_AUTH=false → all configs = true (open mode)
+    // STRICT_AUTH=true → all configs = false (closed mode)
+    // No STRICT_AUTH → default to false (closed mode)
+    const strictAuth = config.strictAuth !== undefined ? config.strictAuth : true;
+    const fallbackValue = !strictAuth; // Invert: false strict = true open
+    
+    console.info(`Auth config "${key}" not found in database, using STRICT_AUTH fallback: ${fallbackValue}`);
+    return fallbackValue;
+  } catch (error) {
+    console.warn(`Failed to get auth config "${key}":`, error.message);
+    // On error, default to closed/secure mode
+    return false;
+  }
+};
+
+/**
+ * Get authentication config value synchronously from cache
+ * @param {string} key - Auth config key
+ * @param {boolean} defaultValue - Default value if not in cache
+ * @returns {boolean} - The cached auth config value or default
+ */
+const getAuthConfigSync = (key, defaultValue = false) => {
+  const validKeys = ['PUBLIC_VIEWING', 'SELF_REGISTRATION', 'SSO_AUTO_REGISTRATION', 'PASSWORD_MANAGEMENT'];
+  
+  if (!validKeys.includes(key)) {
+    console.warn(`Invalid auth config key: ${key}`);
+    return defaultValue;
+  }
+
+  if (authConfigCache.has(key) && authCacheExpiry && Date.now() < authCacheExpiry) {
+    return authConfigCache.get(key);
+  }
+  
+  return defaultValue;
+};
+
+/**
+ * Clear the auth config cache
+ */
+const clearAuthCache = () => {
+  authConfigCache.clear();
+  authCacheExpiry = null;
+};
+
 module.exports = {
   getConfig,
   getConfigs,
@@ -146,4 +221,7 @@ module.exports = {
   clearCache,
   getConfigSync,
   getConfigsSync,
+  getAuthConfig,
+  getAuthConfigSync,
+  clearAuthCache,
 };

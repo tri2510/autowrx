@@ -13,7 +13,6 @@ const { modelController } = require('../../../controllers');
 const auth = require('../../../middlewares/auth');
 const { checkPermission } = require('../../../middlewares/permission');
 const { PERMISSIONS } = require('../../../config/roles');
-const config = require('../../../config/config');
 const { model } = require('mongoose');
 
 const router = express.Router();
@@ -23,7 +22,7 @@ router
   .post(auth(), validate(modelValidation.createModel), modelController.createModel)
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(modelValidation.listModels),
     modelController.listModels
@@ -31,7 +30,7 @@ router
 
 router.route('/all').get(
   auth({
-    optional: !config.strictAuth,
+    optional: (req) => req.authConfig.PUBLIC_VIEWING,
   }),
   validate(modelValidation.listAllModels),
   modelController.listAllModels
@@ -41,7 +40,7 @@ router
   .route('/:id')
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(modelValidation.getModel),
     modelController.getModel
@@ -65,13 +64,13 @@ router
 
 router.route('/:id/api').get(
   auth({
-    optional: !config.strictAuth,
+    optional: (req) => req.authConfig.PUBLIC_VIEWING,
   }),
   validate(modelValidation.getApiByModelId),
   modelController.getComputedVSSApi
 );
 
-router.route('/:id/api/:apiName').get(auth({ optional: !config.strictAuth }), modelController.getApiDetail);
+router.route('/:id/api/:apiName').get(auth({ optional: (req) => req.authConfig.PUBLIC_VIEWING }), modelController.getApiDetail);
 
 router
   .route('/:id/permissions')

@@ -49,7 +49,12 @@ const SiteStyleSection: React.FC = () => {
     try {
       setSavingStyle(true)
       await configManagementService.updateGlobalCss(globalCss)
-      toast({ title: 'Saved', description: 'Site style updated' })
+      toast({ title: 'Saved', description: 'Site style updated. Reloading page...' })
+      
+      // Reload page to apply new CSS immediately
+      setTimeout(() => {
+        window.location.href = window.location.href
+      }, 800)
     } catch (err) {
       toast({
         title: 'Save failed',
@@ -57,7 +62,6 @@ const SiteStyleSection: React.FC = () => {
           err instanceof Error ? err.message : 'Failed to save site style',
         variant: 'destructive',
       })
-    } finally {
       setSavingStyle(false)
     }
   }
@@ -69,7 +73,12 @@ const SiteStyleSection: React.FC = () => {
       setRestoringDefault(true)
       const res = await configManagementService.restoreDefaultGlobalCss()
       setGlobalCss(res?.content || '')
-      toast({ title: 'Restored', description: 'Site style restored to default' })
+      toast({ title: 'Restored', description: 'Site style restored to default. Reloading page...' })
+      
+      // Reload page to apply default CSS immediately
+      setTimeout(() => {
+        window.location.href = window.location.href
+      }, 800)
     } catch (err) {
       toast({
         title: 'Restore failed',
@@ -77,7 +86,6 @@ const SiteStyleSection: React.FC = () => {
           err instanceof Error ? err.message : 'Failed to restore default style',
         variant: 'destructive',
       })
-    } finally {
       setRestoringDefault(false)
     }
   }

@@ -64,8 +64,11 @@ const auth =
       req.user = user;
       next();
     } catch (error) {
+      // Resolve optional parameter - can be boolean or function that receives req
+      const isOptional = typeof optional === 'function' ? optional(req) : optional;
+      
       // If the middleware is optional, call the next middleware
-      if (optional) next();
+      if (isOptional) next();
       else {
         logger.error(`Failed to authenticate user: %o`, error?.message || error);
         if (isAxiosError(error)) {

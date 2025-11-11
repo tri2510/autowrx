@@ -9,7 +9,6 @@
 const Joi = require('joi');
 const { password, objectId } = require('./custom.validation');
 const { roles } = require('../config/roles');
-const config = require('../config/config');
 
 const rolesSchema = Joi.object().keys({
   model_contributor: Joi.array().items(Joi.string()).default([]),
@@ -26,6 +25,7 @@ const createUser = {
   body: Joi.object().keys({
     name: Joi.string().required().trim(),
     email: Joi.string().required().email().trim(),
+    password: Joi.string().custom(password).optional(), // Always allow password in validation, check at runtime
     role: Joi.string()
       .valid(...roles)
       .default('user'),
@@ -37,12 +37,6 @@ const createUser = {
     provider_data: Joi.array().items(userInfo),
   }),
 };
-
-if (!config.strictAuth) {
-  createUser.body = createUser.body.keys({
-    password: Joi.string().custom(password),
-  });
-}
 
 const getUsers = {
   query: Joi.object().keys({
@@ -74,33 +68,23 @@ const updateUser = {
     .keys({
       email: Joi.string().email(),
       name: Joi.string(),
+      password: Joi.string().custom(password).optional(), // Always allow password in validation, check at runtime
       role: Joi.string().valid(...roles),
     })
     .min(1),
 };
-
-if (!config.strictAuth) {
-  updateUser.body = updateUser.body.keys({
-    password: Joi.string().custom(password),
-  });
-}
 
 const updateSelfUser = {
   body: Joi.object()
     .keys({
       email: Joi.string().email(),
       name: Joi.string(),
+      password: Joi.string().custom(password).optional(), // Always allow password in validation, check at runtime
       is_email_verified: Joi.boolean(),
       image_file: Joi.string(),
     })
     .min(1),
 };
-
-if (!config.strictAuth) {
-  updateSelfUser.body = updateSelfUser.body.keys({
-    password: Joi.string().custom(password),
-  });
-}
 
 const deleteUser = {
   params: Joi.object().keys({

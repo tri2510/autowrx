@@ -12,6 +12,7 @@ import PublicConfigSection from '@/components/organisms/PublicConfigSection'
 import SecretConfigSection from '@/components/organisms/SecretConfigSection'
 import SiteStyleSection from '@/components/organisms/SiteStyleSection'
 import HomeConfigSection from '@/components/organisms/HomeConfigSection'
+import AuthConfigSection from '@/components/organisms/AuthConfigSection'
 
 export const PREDEFINED_SITE_CONFIGS: any[] = [
   {
@@ -72,19 +73,58 @@ export const PREDEFINED_SITE_CONFIGS: any[] = [
   },
 ]
 
+export const PREDEFINED_AUTH_CONFIGS: any[] = [
+  {
+    key: 'PUBLIC_VIEWING',
+    scope: 'site',
+    value: true,
+    secret: false,
+    valueType: 'boolean',
+    category: 'auth',
+    description: 'Allow unauthenticated users to view models, prototypes, and other content',
+  },
+  {
+    key: 'SELF_REGISTRATION',
+    scope: 'site',
+    value: true,
+    secret: false,
+    valueType: 'boolean',
+    category: 'auth',
+    description: 'Allow users to create their own accounts via the registration page',
+  },
+  {
+    key: 'SSO_AUTO_REGISTRATION',
+    scope: 'site',
+    value: true,
+    secret: false,
+    valueType: 'boolean',
+    category: 'auth',
+    description: 'Automatically create accounts for users logging in via SSO (e.g., Microsoft, GitHub)',
+  },
+  {
+    key: 'PASSWORD_MANAGEMENT',
+    scope: 'site',
+    value: true,
+    secret: false,
+    valueType: 'boolean',
+    category: 'auth',
+    description: 'Allow users to set and update their own passwords',
+  },
+]
+
 const SiteConfigManagement: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Get initial section from URL or default to 'public'
-  const getSectionFromUrl = (): 'public' | 'style' | 'secrets' | 'home' => {
+  const getSectionFromUrl = (): 'public' | 'style' | 'secrets' | 'home' | 'auth' => {
     const section = searchParams.get('section')
-    if (section === 'public' || section === 'style' || section === 'secrets' || section === 'home') {
+    if (section === 'public' || section === 'style' || section === 'secrets' || section === 'home' || section === 'auth') {
       return section
     }
     return 'public'
   }
 
-  const [activeTab, setActiveTab] = useState<'public' | 'style' | 'secrets' | 'home'>(
+  const [activeTab, setActiveTab] = useState<'public' | 'style' | 'secrets' | 'home' | 'auth'>(
     getSectionFromUrl(),
   )
 
@@ -93,7 +133,7 @@ const SiteConfigManagement: React.FC = () => {
     setSearchParams({ section: activeTab }, { replace: true })
   }, [activeTab, setSearchParams])
 
-  const handleTabChange = (tab: 'public' | 'style' | 'secrets' | 'home') => {
+  const handleTabChange = (tab: 'public' | 'style' | 'secrets' | 'home' | 'auth') => {
     setActiveTab(tab)
   }
 
@@ -142,6 +182,16 @@ const SiteConfigManagement: React.FC = () => {
                   Home Config
                 </button>
                 <button
+                  onClick={() => handleTabChange('auth')}
+                  className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'auth'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground hover:bg-muted'
+                  }`}
+                >
+                  Auth Config
+                </button>
+                <button
                   onClick={() => handleTabChange('style')}
                   className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'style'
@@ -170,9 +220,10 @@ const SiteConfigManagement: React.FC = () => {
             <div className="bg-background rounded-lg shadow border border-border">
               {/* Conditionally render only the active section */}
               {activeTab === 'public' && <PublicConfigSection />}
-              {activeTab === 'secrets' && <SecretConfigSection />}
-              {activeTab === 'style' && <SiteStyleSection />}
               {activeTab === 'home' && <HomeConfigSection />}
+              {activeTab === 'auth' && <AuthConfigSection />}
+              {activeTab === 'style' && <SiteStyleSection />}
+              {activeTab === 'secrets' && <SecretConfigSection />}
             </div>
           </div>
         </div>

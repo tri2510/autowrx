@@ -112,8 +112,12 @@ const PublicConfigSection: React.FC = () => {
       setIsLoading(true)
       if (config.id) {
         await configManagementService.deleteConfigById(config.id)
-        toast({ title: 'Deleted', description: `Config "${config.key}" deleted` })
-        await loadConfigs()
+        toast({ title: 'Deleted', description: `Config "${config.key}" deleted. Reloading page...` })
+        
+        // Reload page to show changes immediately
+        setTimeout(() => {
+          window.location.href = window.location.href
+        }, 800)
       }
     } catch (err) {
       toast({
@@ -121,7 +125,6 @@ const PublicConfigSection: React.FC = () => {
         description: err instanceof Error ? err.message : 'Failed to delete config',
         variant: 'destructive',
       })
-    } finally {
       setIsLoading(false)
     }
   }
@@ -131,21 +134,22 @@ const PublicConfigSection: React.FC = () => {
       setIsLoading(true)
       if (editingConfig?.id) {
         await configManagementService.updateConfigById(editingConfig.id, config)
-        toast({ title: 'Updated', description: `Config "${config.key}" updated` })
+        toast({ title: 'Updated', description: `Config "${config.key}" updated. Reloading page...` })
       } else {
         await configManagementService.createConfig({ ...config, secret: false })
-        toast({ title: 'Created', description: `Config "${config.key}" created` })
+        toast({ title: 'Created', description: `Config "${config.key}" created. Reloading page...` })
       }
-      setIsFormOpen(false)
-      setEditingConfig(undefined)
-      await loadConfigs()
+      
+      // Reload page to show changes immediately
+      setTimeout(() => {
+        window.location.href = window.location.href
+      }, 800)
     } catch (err) {
       toast({
         title: 'Save failed',
         description: err instanceof Error ? err.message : 'Failed to save config',
         variant: 'destructive',
       })
-    } finally {
       setIsLoading(false)
     }
   }
@@ -178,15 +182,18 @@ const PublicConfigSection: React.FC = () => {
         }
       }
 
-      toast({ title: 'Reset', description: 'Public configs reset to factory defaults' })
-      await loadConfigs() // This will re-create predefined configs
+      toast({ title: 'Reset', description: 'Public configs reset to factory defaults. Reloading page...' })
+      
+      // Reload page to show changes immediately
+      setTimeout(() => {
+        window.location.href = window.location.href
+      }, 800)
     } catch (err) {
       toast({
         title: 'Reset failed',
         description: err instanceof Error ? err.message : 'Failed to reset configs',
         variant: 'destructive',
       })
-    } finally {
       setIsLoading(false)
     }
   }

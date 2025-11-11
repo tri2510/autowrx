@@ -11,7 +11,6 @@ const auth = require('../../../middlewares/auth');
 const validate = require('../../../middlewares/validate');
 const extendedApiValidation = require('../../../validations/extendedApi.validation');
 const extendedApiController = require('../../../controllers/extendedApi.controller');
-const config = require('../../../config/config');
 
 const router = express.Router();
 
@@ -20,7 +19,7 @@ router
   .post(auth(), validate(extendedApiValidation.createExtendedApi), extendedApiController.createExtendedApi)
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(extendedApiValidation.getExtendedApis),
     extendedApiController.getExtendedApis
@@ -28,7 +27,7 @@ router
 
 router.route('/by-api-and-model').get(
   auth({
-    optional: !config.strictAuth,
+    optional: (req) => req.authConfig.PUBLIC_VIEWING,
   }),
   validate(extendedApiValidation.getExtendedApiByApiNameAndModel),
   extendedApiController.getExtendedApiByApiNameAndModel
@@ -38,7 +37,7 @@ router
   .route('/:id')
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(extendedApiValidation.getExtendedApi),
     extendedApiController.getExtendedApi

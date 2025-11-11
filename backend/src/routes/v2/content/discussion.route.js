@@ -11,7 +11,6 @@ const validate = require('../../../middlewares/validate');
 const { discussionValidation } = require('../../../validations');
 const { discussionController } = require('../../../controllers');
 const auth = require('../../../middlewares/auth');
-const config = require('../../../config/config');
 
 const router = express.Router();
 
@@ -20,7 +19,7 @@ router
   .post(auth(), validate(discussionValidation.createDiscussion), discussionController.createDiscussion)
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(discussionValidation.listDiscussions),
     discussionController.listDiscussions

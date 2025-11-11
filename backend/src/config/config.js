@@ -16,7 +16,7 @@ const envVarsSchema = Joi.object()
   .keys({
     NODE_ENV: Joi.string().valid('production', 'development', 'test').required(),
     PORT: Joi.number().default(3200),
-    MONGODB_URL: Joi.string().required().description('Mongo DB url'),
+    MONGODB_URL: Joi.string().default('mongodb://localhost:27017/autowrx').required().description('Mongo DB url'),
     CORS_ORIGINS: Joi.string().default('localhost:\\d+,127\\.0\\.0\\.1:\\d+').description('Allowed CORS origins (comma-separated regex patterns)'),
     // JWT
     JWT_SECRET: Joi.string().description('JWT secret key'),

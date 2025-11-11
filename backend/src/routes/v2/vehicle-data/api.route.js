@@ -11,7 +11,6 @@ const auth = require('../../../middlewares/auth');
 const validate = require('../../../middlewares/validate');
 const { apiController } = require('../../../controllers');
 const { apiValidation } = require('../../../validations');
-const config = require('../../../config/config');
 
 const router = express.Router();
 
@@ -23,7 +22,7 @@ router
   .route('/:id')
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(apiValidation.getApi),
     apiController.getApi

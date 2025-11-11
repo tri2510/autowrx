@@ -13,7 +13,6 @@ const { prototypeValidation } = require('../../../validations');
 const { prototypeController } = require('../../../controllers');
 const { checkPermission } = require('../../../middlewares/permission');
 const { PERMISSIONS } = require('../../../config/roles');
-const config = require('../../../config/config');
 
 const router = express.Router();
 
@@ -22,7 +21,7 @@ router
   .post(auth(), validate(prototypeValidation.createPrototype), prototypeController.createPrototype)
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(prototypeValidation.listPrototypes),
     prototypeController.listPrototypes
@@ -35,7 +34,7 @@ router
 router.route('/recent').get(auth(), prototypeController.listRecentPrototypes);
 router.route('/popular').get(
   auth({
-    optional: !config.strictAuth,
+    optional: (req) => req.authConfig.PUBLIC_VIEWING,
   }),
   prototypeController.listPopularPrototypes
 );
@@ -44,7 +43,7 @@ router
   .route('/:id')
   .get(
     auth({
-      optional: !config.strictAuth,
+      optional: (req) => req.authConfig.PUBLIC_VIEWING,
     }),
     validate(prototypeValidation.getPrototype),
     prototypeController.getPrototype

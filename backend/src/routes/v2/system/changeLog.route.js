@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-const config = require('../../../config/config');
 const { PERMISSIONS } = require('../../../config/roles');
 const { changeLogController } = require('../../../controllers');
 const auth = require('../../../middlewares/auth');
@@ -15,7 +14,7 @@ const router = require('express').Router();
 
 router.route('/').get(
   auth({
-    optional: !config.strictAuth,
+    optional: (req) => req.authConfig.PUBLIC_VIEWING,
   }),
   checkPermission(PERMISSIONS.ADMIN),
   changeLogController.listChangeLogs

@@ -23,7 +23,7 @@ Create a `.env.prod` file in the project root:
 ```bash
 cat > .env.prod << 'EOF'
 # Environment
-ENV=prod
+NAME=prod
 NODE_ENV=production
 
 # Port Configuration

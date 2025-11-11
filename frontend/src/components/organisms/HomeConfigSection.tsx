@@ -118,10 +118,12 @@ const HomeConfigSection: React.FC = () => {
         })
       }
 
-      toast({ title: 'Saved', description: 'Home configuration updated' })
+      toast({ title: 'Saved', description: 'Home configuration updated. Reloading page...' })
 
-      // Reload the config to get the updated version from DB
-      await loadHomeConfig()
+      // Reload page to show changes immediately
+      setTimeout(() => {
+        window.location.href = window.location.href
+      }, 800)
     } catch (err: any) {
       console.error('Save home config error:', err)
       toast({
@@ -132,7 +134,6 @@ const HomeConfigSection: React.FC = () => {
           'Failed to save home configuration',
         variant: 'destructive',
       })
-    } finally {
       setSavingHome(false)
     }
   }

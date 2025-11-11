@@ -121,7 +121,7 @@ Deploy v3 alongside existing v2 for safe testing:
 # 1. Edit .env.stack
 FRONTEND_PORT=8091      # v2 uses 8090
 KONG_PROXY_PORT=9801    # v2 uses 9800
-ENV=staging-new
+NAME=staging-new
 
 # 2. Deploy v3 (no conflict)
 docker compose --env-file .env.stack -f docker-compose.stack.yml up -d

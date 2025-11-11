@@ -11,14 +11,13 @@ const { searchController } = require('../../../controllers');
 const { searchValidation } = require('../../../validations');
 const validate = require('../../../middlewares/validate');
 const auth = require('../../../middlewares/auth');
-const config = require('../../../config/config');
 
 const router = express.Router();
 
 router.get(
   '/',
   auth({
-    optional: !config.strictAuth,
+    optional: (req) => req.authConfig.PUBLIC_VIEWING,
   }),
   validate(searchValidation.search),
   searchController.search
@@ -27,7 +26,7 @@ router.get(
 router.get(
   '/email/:email',
   auth({
-    optional: !config.strictAuth,
+    optional: (req) => req.authConfig.PUBLIC_VIEWING,
   }),
   validate(searchValidation.searchUserByEmail),
   searchController.searchUserByEmail
@@ -36,7 +35,7 @@ router.get(
 router.get(
   '/prototypes/by-signal/:signal',
   auth({
-    optional: !config.strictAuth,
+    optional: (req) => req.authConfig.PUBLIC_VIEWING,
   }),
   validate(searchValidation.searchPrototypesBySignal),
   searchController.searchPrototypesBySignal

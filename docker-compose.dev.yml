@@ -16,7 +16,7 @@ services:
     build:
       context: .
       dockerfile: ./backend/Dockerfile.dev
-    container_name: ${ENV:-dev}-autowrx
+    container_name: ${NAME:-dev}-autowrx
     command: yarn dev
     volumes:
       - ./backend:/usr/src/playground-be
@@ -43,7 +43,7 @@ services:
   # MongoDB - Database
   autowrx-db:
     platform: linux/amd64
-    container_name: ${ENV:-dev}-autowrx-db
+    container_name: ${NAME:-dev}-autowrx-db
     image: mongo:4.4.6-bionic
     ports:
       - "${MONGODB_PORT:-27017}:27017"
@@ -55,10 +55,10 @@ services:
 
 volumes:
   autowrx-dbdata:
-    name: ${ENV:-dev}-autowrx-dbdata
+    name: ${NAME:-dev}-autowrx-dbdata
 
 networks:
   autowrx-network:
-    name: ${ENV:-dev}-autowrx-network
+    name: ${NAME:-dev}-autowrx-network
     driver: bridge
 

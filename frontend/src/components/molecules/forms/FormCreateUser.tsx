@@ -9,7 +9,7 @@
 import { Button } from '@/components/atoms/button'
 import { Input } from '@/components/atoms/input'
 import { Label } from '@/components/atoms/label'
-import config from '@/configs/config'
+import { useAuthConfigs } from '@/hooks/useAuthConfigs'
 import { useListUsers } from '@/hooks/useListUsers'
 import { createUserService, updateUserService } from '@/services/user.service'
 import { User, UserCreate, UserUpdate } from '@/types/user.type'
@@ -32,6 +32,7 @@ const initialData = {
 const FormCreateUser = ({ onClose, updateData }: FormCreateUserProps) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { authConfigs } = useAuthConfigs()
   const { refetch } = useListUsers({
     includeFullDetails: true,
   })
@@ -123,21 +124,21 @@ const FormCreateUser = ({ onClose, updateData }: FormCreateUserProps) => {
     setLoading(true)
     if (isCreate) {
       await createUser(
-        (config.strictAuth
-          ? {
+        (authConfigs.PASSWORD_MANAGEMENT
+          ? data
+          : {
               email: data.email,
               name: data.name,
-            }
-          : data) as UserCreate,
+            }) as UserCreate,
       )
     } else {
       await updateUser(
         updateData.id,
-        config.strictAuth
-          ? {
+        authConfigs.PASSWORD_MANAGEMENT
+          ? data
+          : {
               name: data.name,
-            }
-          : data,
+            },
       )
     }
     await refetch()
@@ -182,7 +183,7 @@ const FormCreateUser = ({ onClose, updateData }: FormCreateUserProps) => {
             />
           </div>
         )}
-        {!config.strictAuth && (
+        {authConfigs.PASSWORD_MANAGEMENT && (
           <div className="space-y-2">
             <Label htmlFor="password">
               {isCreate ? 'Password *' : 'Password'}

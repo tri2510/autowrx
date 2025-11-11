@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom'
 import React, { ReactNode } from 'react'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
 import { cn } from '@/lib/utils'
-import config from '@/configs/config'
+import { useAuthConfigs } from '@/hooks/useAuthConfigs'
 
 interface DisabledLinkProps {
   to: string
@@ -21,16 +21,18 @@ interface DisabledLinkProps {
 
 const DisabledLink = ({ to, children, className, dataId }: DisabledLinkProps) => {
   const { data: user } = useSelfProfileQuery()
+  const { authConfigs } = useAuthConfigs()
 
   const handleClick = (e: React.MouseEvent) => {
-    if (!user && config.strictAuth) {
+    // Prevent navigation if not signed in and public viewing is disabled
+    if (!user && !authConfigs.PUBLIC_VIEWING) {
       e.preventDefault()
     }
   }
 
   return (
     <Link
-      to={!config.strictAuth || user ? to : '#'}
+      to={authConfigs.PUBLIC_VIEWING || user ? to : '#'}
       onClick={handleClick}
       className={cn(className)}
       data-id={dataId}

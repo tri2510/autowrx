@@ -11,7 +11,7 @@ import useAuthStore from '@/stores/authStore'
 import DaDialog from './DaDialog'
 import { Button } from '../atoms/button'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
-import config from '@/configs/config'
+import { useAuthConfigs } from '@/hooks/useAuthConfigs'
 
 interface DaRequireSignedInProps {
   children: ReactNode
@@ -20,11 +20,13 @@ interface DaRequireSignedInProps {
 
 const DaRequireSignedIn = ({ children, message }: DaRequireSignedInProps) => {
   const { data: user } = useSelfProfileQuery()
+  const { authConfigs } = useAuthConfigs()
   const { openLoginDialog, setOpenLoginDialog } = useAuthStore()
   const [openRemindDialog, setOpenRemindDialog] = useState(false)
 
   const handleClick = () => {
-    if (!user && config.strictAuth) {
+    // Show login dialog if not signed in and public viewing is disabled
+    if (!user && !authConfigs.PUBLIC_VIEWING) {
       setOpenRemindDialog(true)
     }
   }

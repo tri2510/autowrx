@@ -11,7 +11,8 @@ const validate = require('../../../middlewares/validate');
 const authValidation = require('../../../validations/auth.validation');
 const authController = require('../../../controllers/auth.controller');
 const auth = require('../../../middlewares/auth');
-const config = require('../../../config/config');
+const ApiError = require('../../../utils/ApiError');
+const httpStatus = require('http-status');
 
 const router = express.Router();
 
@@ -22,9 +23,20 @@ router.post('/authorize', validate(authValidation.authorize), authController.aut
 
 router.get('/github/callback', authController.githubCallback);
 router.post('/sso', validate(authValidation.sso), authController.sso);
-if (!config.strictAuth) {
-  router.post('/register', validate(authValidation.register), authController.register);
-}
+
+// Registration endpoint - always registered but checks SELF_REGISTRATION config
+router.post('/register', 
+  (req, res, next) => {
+    // Check if self-registration is enabled
+    if (!req.authConfig.SELF_REGISTRATION) {
+      return next(new ApiError(httpStatus.FORBIDDEN, 'Self-registration is disabled. Contact administrator.'));
+    }
+    next();
+  },
+  validate(authValidation.register), 
+  authController.register
+);
+
 router.post('/login', validate(authValidation.login), authController.login);
 router.post('/logout', authController.logout);
 router.post('/refresh-tokens', authController.refreshTokens);

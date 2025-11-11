@@ -18,7 +18,7 @@ services:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
-    image: ghcr.io/${GITHUB_REPOSITORY:-eclipse-autowrx/autowrx}/autowrx:${IMAGE_TAG:-latest}
+    image: ghcr.io/eclipse-autowrx/autowrx/autowrx:latest
     ports:
       - "${FRONTEND_PORT:-3200}:3200"
     environment:
@@ -70,4 +70,3 @@ networks:
   autowrx-network:
     name: ${NAME:-prod}-autowrx-network
     driver: bridge
-
