@@ -18,6 +18,7 @@ import { TbAt, TbLock } from 'react-icons/tb'
 import SSOHandler from '../SSOHandler'
 import config from '@/configs/config'
 import { useAuthConfigs } from '@/hooks/useAuthConfigs'
+import { useSSOProviders } from '@/hooks/useSSOProviders'
 
 interface FormSignInProps {
   setAuthType: (type: 'sign-in' | 'register' | 'forgot') => void
@@ -25,9 +26,10 @@ interface FormSignInProps {
 
 const FormSignIn = ({ setAuthType }: FormSignInProps) => {
   const [loading, setLoading] = useState(false)
-  const [ssoLoading, setSSOLoading] = useState(false)
+  const [ssoLoading, setSSOLoading] = useState<string | null>(null)
   const [error, setError] = useState<string>('')
   const { authConfigs } = useAuthConfigs()
+  const { providers: ssoProviders } = useSSOProviders()
 
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -99,7 +101,7 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
           {error && <p className="text-sm mt-2 text-destructive">{error}</p>}
 
           <Button
-            disabled={loading || ssoLoading}
+            disabled={loading || ssoLoading !== null}
             type="submit"
             variant="default"
             className="w-full mt-2"
@@ -125,7 +127,7 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
         </div>
       )}
 
-      {config.sso && !config.disableEmailLogin && (
+      {ssoProviders.length > 0 && !config.disableEmailLogin && (
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t"></span>
@@ -138,26 +140,23 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
         </div>
       )}
 
-      {config.sso && config.sso === 'bosch' && (
-        <div
-          onClick={(event) => {
-            setSSOLoading(true)
-            event.preventDefault()
-            event.stopPropagation()
-          }}
-        >
-          <SSOHandler setSSOLoading={setSSOLoading}>
+      {ssoProviders.map((provider) => (
+        <div key={provider.id} className="mt-2">
+          <SSOHandler 
+            provider={provider}
+            setSSOLoading={(isLoading) => setSSOLoading(isLoading ? provider.id : null)}
+          >
             <Button
               variant="outline"
               className="w-full"
-              disabled={loading || ssoLoading}
+              disabled={loading || ssoLoading !== null}
             >
-              {ssoLoading && <Spinner className="mr-2" size={16} />}
-              BOSCH SSO
+              {ssoLoading === provider.id && <Spinner className="mr-2" size={16} />}
+              Sign in with {provider.name}
             </Button>
           </SSOHandler>
         </div>
-      )}
+      ))}
     </form>
   )
 }

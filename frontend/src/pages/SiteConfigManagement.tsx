@@ -13,6 +13,7 @@ import SecretConfigSection from '@/components/organisms/SecretConfigSection'
 import SiteStyleSection from '@/components/organisms/SiteStyleSection'
 import HomeConfigSection from '@/components/organisms/HomeConfigSection'
 import AuthConfigSection from '@/components/organisms/AuthConfigSection'
+import SSOConfigSection from '@/components/organisms/SSOConfigSection'
 
 export const PREDEFINED_SITE_CONFIGS: any[] = [
   {
@@ -116,15 +117,15 @@ const SiteConfigManagement: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Get initial section from URL or default to 'public'
-  const getSectionFromUrl = (): 'public' | 'style' | 'secrets' | 'home' | 'auth' => {
+  const getSectionFromUrl = (): 'public' | 'style' | 'secrets' | 'home' | 'auth' | 'sso' => {
     const section = searchParams.get('section')
-    if (section === 'public' || section === 'style' || section === 'secrets' || section === 'home' || section === 'auth') {
+    if (section === 'public' || section === 'style' || section === 'secrets' || section === 'home' || section === 'auth' || section === 'sso') {
       return section
     }
     return 'public'
   }
 
-  const [activeTab, setActiveTab] = useState<'public' | 'style' | 'secrets' | 'home' | 'auth'>(
+  const [activeTab, setActiveTab] = useState<'public' | 'style' | 'secrets' | 'home' | 'auth' | 'sso'>(
     getSectionFromUrl(),
   )
 
@@ -133,7 +134,7 @@ const SiteConfigManagement: React.FC = () => {
     setSearchParams({ section: activeTab }, { replace: true })
   }, [activeTab, setSearchParams])
 
-  const handleTabChange = (tab: 'public' | 'style' | 'secrets' | 'home' | 'auth') => {
+  const handleTabChange = (tab: 'public' | 'style' | 'secrets' | 'home' | 'auth' | 'sso') => {
     setActiveTab(tab)
   }
 
@@ -192,6 +193,16 @@ const SiteConfigManagement: React.FC = () => {
                   Auth Config
                 </button>
                 <button
+                  onClick={() => handleTabChange('sso')}
+                  className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'sso'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground hover:bg-muted'
+                  }`}
+                >
+                  SSO Config
+                </button>
+                <button
                   onClick={() => handleTabChange('style')}
                   className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'style'
@@ -222,6 +233,7 @@ const SiteConfigManagement: React.FC = () => {
               {activeTab === 'public' && <PublicConfigSection />}
               {activeTab === 'home' && <HomeConfigSection />}
               {activeTab === 'auth' && <AuthConfigSection />}
+              {activeTab === 'sso' && <SSOConfigSection />}
               {activeTab === 'style' && <SiteStyleSection />}
               {activeTab === 'secrets' && <SecretConfigSection />}
             </div>

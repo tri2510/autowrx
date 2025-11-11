@@ -22,7 +22,8 @@ const upload = async (file) => {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    return (await axios.post(`http://upload:${config.services.upload.port}/upload/autowrx`, formData)).data;
+    // Use the backend's own upload endpoint
+    return (await axios.post(`http://localhost:${config.port}/v2/system/file/upload/store-be`, formData)).data;
   } catch (error) {
     logger.error(`Failed to upload file ${error}`);
     throw new ApiError(httpStatus.BAD_REQUEST, 'Failed to upload file');
@@ -39,20 +40,9 @@ const resolveUrl = (url) => {
     return url;
   }
 
-  /** @type {string} */
-  let uploadPath = config.services.upload.domain;
-  if (!uploadPath.endsWith('/')) {
-    uploadPath += '/';
-  }
-
-  let relativePath;
-  if (url.startsWith(uploadPath)) {
-    relativePath = url.slice(uploadPath.length);
-  } else {
-    relativePath = url.slice(1);
-  }
-
-  return `http://upload:${config.services.upload.port}/${relativePath}`;
+  // The backend serves its own uploads, so just use localhost and the backend port
+  // This converts relative paths like "/d/..." to full URLs that can be fetched
+  return `http://localhost:${config.port}${url}`;
 };
 
 /**

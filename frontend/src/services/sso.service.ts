@@ -6,52 +6,87 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { LogLevel } from '@azure/msal-browser'
-import config from '@/configs/config'
+import { LogLevel, PublicClientApplication, Configuration } from '@azure/msal-browser'
+import { serverAxios } from './base'
 
-export const msalConfig = {
-  auth: {
-    clientId: import.meta.env.VITE_REACT_SSO_CLIENT_ID,
-    authority: import.meta.env.VITE_REACT_SSO_AUTHORITY,
-    redirectUri: window.location.origin,
-  },
-  cache: {
-    cacheLocation: 'sessionStorage', // This configures where your cache will be stored
-    storeAuthStateInCookie: false, // Set this to "true" if you are having issues on IE11 or Edge
-  },
-  system: {
-    loggerOptions: {
-      loggerCallback: (level: any, containsPii: any) => {
-        if (containsPii) {
-          return
-        }
-        switch (level) {
-          case LogLevel.Error:
-            // console.error(message);
-            return
-          case LogLevel.Info:
-            // console.info(message);
-            return
-          case LogLevel.Verbose:
-            // console.debug(message);
-            return
-          case LogLevel.Warning:
-            // console.warn(message);
-            return
-          default:
-            return
-        }
-      },
-    },
-  },
+export interface SSOProvider {
+  id: string
+  name: string
+  type: 'MSAL'
+  enabled: boolean
+  clientId: string
+  authority: string
+  scopes: string[]
 }
 
 /**
- * Scopes you add here will be prompted for user consent during sign-in.
- * By default, MSAL.js will add OIDC scopes (openid, profile, email) to any login request.
- * For more information about OIDC scopes, visit:
- * https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
+ * Fetch public SSO providers from backend
  */
-export const loginRequest = {
-  scopes: ['User.Read'],
+export const getPublicSSOProviders = async (): Promise<SSOProvider[]> => {
+  try {
+    const response = await serverAxios.get('/system/site-management/sso/providers')
+    return response.data || []
+  } catch (error) {
+    console.error('Failed to fetch SSO providers:', error)
+    return []
+  }
+}
+
+/**
+ * Create MSAL configuration from SSO provider
+ */
+export const createMSALConfig = (provider: SSOProvider): Configuration => {
+  return {
+    auth: {
+      clientId: provider.clientId,
+      authority: provider.authority,
+      redirectUri: window.location.origin,
+    },
+    cache: {
+      cacheLocation: 'sessionStorage',
+      storeAuthStateInCookie: false,
+    },
+    system: {
+      loggerOptions: {
+        loggerCallback: (level: any, _message: any, containsPii: any) => {
+          if (containsPii) {
+            return
+          }
+          switch (level) {
+            case LogLevel.Error:
+              // console.error(message);
+              return
+            case LogLevel.Info:
+              // console.info(message);
+              return
+            case LogLevel.Verbose:
+              // console.debug(message);
+              return
+            case LogLevel.Warning:
+              // console.warn(message);
+              return
+            default:
+              return
+          }
+        },
+      },
+    },
+  }
+}
+
+/**
+ * Create MSAL PublicClientApplication instance for a provider
+ */
+export const createMSALInstance = (provider: SSOProvider): PublicClientApplication => {
+  const config = createMSALConfig(provider)
+  return new PublicClientApplication(config)
+}
+
+/**
+ * Default login request scopes
+ */
+export const getLoginRequest = (provider: SSOProvider) => {
+  return {
+    scopes: provider.scopes || ['User.Read'],
+  }
 }

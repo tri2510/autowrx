@@ -8,7 +8,7 @@
 
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
-const { siteConfigService } = require('../services');
+const { siteConfigService, ssoService } = require('../services');
 const pick = require('../utils/pick');
 const ApiError = require('../utils/ApiError');
 const fs = require('fs');
@@ -137,6 +137,12 @@ const bulkUpsertSiteConfigs = catchAsync(async (req, res) => {
   res.status(httpStatus.OK).send(result);
 });
 
+// SSO providers public endpoint
+const getPublicSSOProviders = catchAsync(async (req, res) => {
+  const providers = await ssoService.getEnabledSSOProviders();
+  res.send(providers);
+});
+
 module.exports = {
   createSiteConfig,
   getSiteConfigs,
@@ -155,6 +161,7 @@ module.exports = {
   deleteSiteConfig,
   deleteSiteConfigByKey,
   bulkUpsertSiteConfigs,
+  getPublicSSOProviders,
   // global.css helpers
   getGlobalCss: catchAsync(async (req, res) => {
     const cssPath = path.join(__dirname, '..', '..', 'static', 'global.css');

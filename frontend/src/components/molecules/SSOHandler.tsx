@@ -1,13 +1,131 @@
-// SSO Handler stub
-import { ReactNode } from 'react'
+// Copyright (c) 2025 Eclipse Foundation.
+//
+// This program and the accompanying materials are made available under the
+// terms of the MIT License which is available at
+// https://opensource.org/licenses/MIT.
+//
+// SPDX-License-Identifier: MIT
+
+import { ReactNode, useState, useEffect } from 'react'
+import { PublicClientApplication } from '@azure/msal-browser'
+import { createMSALInstance, getLoginRequest, SSOProvider } from '@/services/sso.service'
+import { ssoService } from '@/services/auth.service'
+import { useToast } from '@/components/molecules/toaster/use-toast'
 
 interface SSOHandlerProps {
+  provider: SSOProvider
   setSSOLoading?: (loading: boolean) => void
   children: ReactNode
 }
 
-const SSOHandler = ({ setSSOLoading, children }: SSOHandlerProps) => {
-  return <>{children}</>
+const SSOHandler = ({ provider, setSSOLoading, children }: SSOHandlerProps) => {
+  const [msalInstance, setMsalInstance] = useState<PublicClientApplication | null>(null)
+  const [isInitializing, setIsInitializing] = useState(false)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    // Initialize MSAL instance when provider changes
+    if (provider) {
+      const initializeMsal = async () => {
+        try {
+          setIsInitializing(true)
+          const instance = createMSALInstance(provider)
+          
+          // MUST call and await initialize() before using any MSAL API
+          await instance.initialize()
+          
+          setMsalInstance(instance)
+          console.log('MSAL instance initialized successfully')
+        } catch (error) {
+          console.error('Failed to initialize MSAL instance:', error)
+          toast({
+            title: 'SSO Configuration Error',
+            description: 'Failed to initialize SSO. Please contact your administrator.',
+            variant: 'destructive',
+          })
+        } finally {
+          setIsInitializing(false)
+        }
+      }
+      
+      initializeMsal()
+    }
+  }, [provider, toast])
+
+  const handleSSOLogin = async (event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (isInitializing) {
+      toast({
+        title: 'SSO Initializing',
+        description: 'Please wait while SSO is being initialized...',
+      })
+      return
+    }
+
+    if (!msalInstance) {
+      toast({
+        title: 'SSO Not Ready',
+        description: 'SSO authentication is not initialized. Please try again.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (setSSOLoading) setSSOLoading(true)
+
+    try {
+      // Initiate popup login
+      const loginRequest = getLoginRequest(provider)
+      const loginResponse = await msalInstance.loginPopup(loginRequest)
+
+      if (!loginResponse || !loginResponse.accessToken) {
+        throw new Error('No access token received from Microsoft')
+      }
+
+      // Call backend with access token and provider ID
+      const response = await ssoService(loginResponse.accessToken, provider.id)
+      
+      if (response.data) {
+        toast({
+          title: 'Login Successful',
+          description: `Welcome back, ${response.data.user?.name || 'User'}!`,
+        })
+        
+        // Reload page to refresh auth state
+        setTimeout(() => {
+          window.location.href = window.location.href
+        }, 500)
+      }
+    } catch (error: any) {
+      console.error('SSO login error:', error)
+      
+      // Handle specific MSAL errors
+      if (error.errorCode === 'user_cancelled') {
+        toast({
+          title: 'Login Cancelled',
+          description: 'You cancelled the login process.',
+        })
+      } else if (error.errorCode === 'popup_window_error') {
+        toast({
+          title: 'Popup Blocked',
+          description: 'Please allow popups for this site to use SSO login.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Login Failed',
+          description: error.response?.data?.message || error.message || 'Failed to authenticate with SSO.',
+          variant: 'destructive',
+        })
+      }
+    } finally {
+      if (setSSOLoading) setSSOLoading(false)
+    }
+  }
+
+  return <div onClick={handleSSOLogin}>{children}</div>
 }
 
 export default SSOHandler

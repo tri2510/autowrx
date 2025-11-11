@@ -141,15 +141,20 @@ const verifyEmail = async (verifyEmailToken) => {
 };
 
 /**
- *
- * @param {string} accessToken
+ * Call Microsoft Graph API to fetch user data
+ * @param {string} accessToken - Microsoft access token
+ * @param {string} providerId - SSO provider ID (optional for backward compatibility)
  * @returns {Promise<import('../typedefs/msGraph').MSGraph>}
  */
-const callMsGraph = async (accessToken) => {
-  logger.debug(`Fetching user data from: ${config.sso.msGraphMeEndpoint}`);
+const callMsGraph = async (accessToken, providerId = null) => {
+  // If providerId provided, fetch provider config for validation
+  // For now, we'll use the default endpoint but this allows for future tenant-specific validation
+  const msGraphMeEndpoint = config.sso.msGraphMeEndpoint;
+  
+  logger.debug(`Fetching user data from: ${msGraphMeEndpoint}${providerId ? ` (Provider: ${providerId})` : ''}`);
 
   // Fetch user data
-  const userData = await fetch(config.sso.msGraphMeEndpoint, {
+  const userData = await fetch(msGraphMeEndpoint, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -162,7 +167,7 @@ const callMsGraph = async (accessToken) => {
 
   // Fetch user profile photo
   let userPhotoUrl = null;
-  await fetch(`${config.sso.msGraphMeEndpoint}/photo/$value`, {
+  await fetch(`${msGraphMeEndpoint}/photo/$value`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -178,7 +183,7 @@ const callMsGraph = async (accessToken) => {
       console.error('Error fetching user photo:', error);
     });
 
-  return { ...userData, userPhotoUrl };
+  return { ...userData, userPhotoUrl, providerId };
 };
 
 module.exports = {

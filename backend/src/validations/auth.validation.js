@@ -77,6 +77,7 @@ const legacyRegister = {
 const sso = {
   body: Joi.object().keys({
     msAccessToken: Joi.string().required(),
+    providerId: Joi.string().required(),
   }),
 };
 

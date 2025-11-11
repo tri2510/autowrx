@@ -26,5 +26,6 @@ router.use('/model-template', modelTemplateRoute);
 // Backward/compat path to match docs and frontend
 router.use('/system/plugin', pluginRoute);
 router.use('/system/model-template', modelTemplateRoute);
+router.use('/system/site-management', siteManagementRoute);
 
 module.exports = router;

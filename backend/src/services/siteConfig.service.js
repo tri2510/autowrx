@@ -11,6 +11,7 @@ const ApiError = require('../utils/ApiError');
 const httpStatus = require('http-status');
 const fs = require('fs');
 const path = require('path');
+const ssoService = require('./sso.service');
 
 /**
  * Get value type from a value
@@ -97,11 +98,17 @@ const createSiteConfig = async (siteConfigBody) => {
 
   const valueType = clientValueType || getValueType(value);
   
+  // Encrypt SSO provider secrets if this is SSO_PROVIDERS config
+  let processedValue = value;
+  if (key === 'SSO_PROVIDERS' && Array.isArray(value)) {
+    processedValue = ssoService.encryptProviderSecrets(value);
+  }
+  
   return SiteConfig.create({
     key,
     scope,
     target_id: scope === 'site' ? undefined : target_id,
-    value,
+    value: processedValue,
     valueType,
     secret,
     description,
@@ -155,7 +162,15 @@ const querySiteConfigs = async (filter, options) => {
  * @returns {Promise<SiteConfig>}
  */
 const getSiteConfigById = async (id) => {
-  return SiteConfig.findById(id);
+  const config = await SiteConfig.findById(id);
+  
+  // Decrypt SSO provider secrets for admin access
+  if (config && config.key === 'SSO_PROVIDERS' && Array.isArray(config.value)) {
+    const decryptedValue = ssoService.decryptProviderSecrets(config.value);
+    return { ...config.toObject(), value: decryptedValue };
+  }
+  
+  return config;
 };
 
 /**
@@ -312,7 +327,8 @@ const getModelConfigs = async (modelId, options = {}) => {
  * @returns {Promise<SiteConfig>}
  */
 const updateSiteConfigById = async (siteConfigId, updateBody) => {
-  const siteConfig = await getSiteConfigById(siteConfigId);
+  // Get the original Mongoose document (not decrypted)
+  const siteConfig = await SiteConfig.findById(siteConfigId);
   if (!siteConfig) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Site config not found');
   }
@@ -320,8 +336,20 @@ const updateSiteConfigById = async (siteConfigId, updateBody) => {
   // Preserve existing valueType unless client explicitly provides a new one
   // If only value is updated, do NOT auto-derive and overwrite valueType
 
+  // Encrypt SSO provider secrets if this is SSO_PROVIDERS config and value is being updated
+  if (siteConfig.key === 'SSO_PROVIDERS' && updateBody.value && Array.isArray(updateBody.value)) {
+    updateBody.value = ssoService.encryptProviderSecrets(updateBody.value);
+  }
+
   Object.assign(siteConfig, updateBody);
   await siteConfig.save();
+  
+  // Return decrypted version for SSO_PROVIDERS
+  if (siteConfig.key === 'SSO_PROVIDERS' && Array.isArray(siteConfig.value)) {
+    const decryptedValue = ssoService.decryptProviderSecrets(siteConfig.value);
+    return { ...siteConfig.toObject(), value: decryptedValue };
+  }
+  
   return siteConfig;
 };
 
@@ -332,8 +360,8 @@ const updateSiteConfigById = async (siteConfigId, updateBody) => {
  * @returns {Promise<SiteConfig>}
  */
 const updateSiteConfigByKey = async (key, updateBody) => {
-  // Don't use default fallback for update operations
-  const siteConfig = await getSiteConfigByKey(key, 'site', null, false);
+  // Don't use default fallback for update operations - get Mongoose document directly
+  const siteConfig = await SiteConfig.findOne({ key, scope: 'site' });
   if (!siteConfig) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Site config not found');
   }
@@ -341,8 +369,20 @@ const updateSiteConfigByKey = async (key, updateBody) => {
   // Preserve existing valueType unless client explicitly provides a new one
   // If only value is updated, do NOT auto-derive and overwrite valueType
 
+  // Encrypt SSO provider secrets if this is SSO_PROVIDERS config and value is being updated
+  if (siteConfig.key === 'SSO_PROVIDERS' && updateBody.value && Array.isArray(updateBody.value)) {
+    updateBody.value = ssoService.encryptProviderSecrets(updateBody.value);
+  }
+
   Object.assign(siteConfig, updateBody);
   await siteConfig.save();
+  
+  // Return decrypted version for SSO_PROVIDERS
+  if (siteConfig.key === 'SSO_PROVIDERS' && Array.isArray(siteConfig.value)) {
+    const decryptedValue = ssoService.decryptProviderSecrets(siteConfig.value);
+    return { ...siteConfig.toObject(), value: decryptedValue };
+  }
+  
   return siteConfig;
 };
 
@@ -352,7 +392,7 @@ const updateSiteConfigByKey = async (key, updateBody) => {
  * @returns {Promise<SiteConfig>}
  */
 const deleteSiteConfigById = async (siteConfigId) => {
-  const siteConfig = await getSiteConfigById(siteConfigId);
+  const siteConfig = await SiteConfig.findById(siteConfigId);
   if (!siteConfig) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Site config not found');
   }
@@ -366,8 +406,8 @@ const deleteSiteConfigById = async (siteConfigId) => {
  * @returns {Promise<SiteConfig>}
  */
 const deleteSiteConfigByKey = async (key) => {
-  // Don't use default fallback for delete operations
-  const siteConfig = await getSiteConfigByKey(key, 'site', null, false);
+  // Get Mongoose document directly
+  const siteConfig = await SiteConfig.findOne({ key, scope: 'site' });
   if (!siteConfig) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Site config not found');
   }

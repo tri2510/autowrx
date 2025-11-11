@@ -192,9 +192,17 @@ const githubCallback = catchAsync(async (req, res) => {
 });
 
 const sso = catchAsync(async (req, res) => {
-  const { msAccessToken } = req.body;
+  const { msAccessToken, providerId } = req.body;
+  const ssoService = require('../services/sso.service');
 
-  const graphData = await authService.callMsGraph(msAccessToken);
+  // Validate that provider exists and is enabled
+  try {
+    await ssoService.getSSOProviderById(providerId, false);
+  } catch (error) {
+    throw new ApiError(httpStatus.BAD_REQUEST, error.message || 'Invalid or disabled SSO provider');
+  }
+
+  const graphData = await authService.callMsGraph(msAccessToken, providerId);
   if (graphData.error) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid MS access token');
   }

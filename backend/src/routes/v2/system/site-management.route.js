@@ -25,6 +25,9 @@ router.get('/public/:key', siteConfigController.getSiteConfigValue);
 router.get('/public/:scope/:target_id', siteConfigController.getPublicConfigsByScope);
 router.get('/public/:scope/:target_id/:key', siteConfigController.getPublicConfigValueByScope);
 
+// SSO providers public endpoint (no secrets)
+router.get('/sso/providers', siteConfigController.getPublicSSOProviders);
+
 // Admin-only routes (require authentication and admin permission)
 router.use(auth(), checkPermission(PERMISSIONS.ADMIN));
 
