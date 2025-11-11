@@ -39,7 +39,7 @@ USER node
 
 EXPOSE 3200
 
-NAME PORT=3200
+ENV PORT=3200
 
 CMD ["yarn", "prod:test"]
 

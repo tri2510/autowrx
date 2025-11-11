@@ -13,7 +13,7 @@
 services:
   # AutoWRX - Backend serves both API and frontend static files
   autowrx:
-    platform: linux/amd64
+    # platform: linux/amd64  # Commented out for local testing on non-AMD64 machines
     container_name: ${NAME:-prod}-autowrx
     build:
       context: .
@@ -45,7 +45,7 @@ services:
 
   # MongoDB - Database
   autowrx-db:
-    platform: linux/amd64
+    # platform: linux/amd64  # Commented out for local testing on non-AMD64 machines
     container_name: ${NAME:-prod}-autowrx-db
     image: mongo:4.4.6-bionic
     # ports:
