@@ -22,6 +22,9 @@ RUN chmod +x build-frontend.sh && ./build-frontend.sh
 # Stage 2: Build Backend (only backend code, no frontend source)
 FROM node:20-alpine
 
+# Install Python and build tools needed for native dependencies (bufferutil, utf-8-validate)
+RUN apk add --no-cache python3 make g++
+
 RUN mkdir -p /usr/src/playground-be && chown -R node:node /usr/src/playground-be
 
 WORKDIR /usr/src/playground-be
@@ -29,6 +32,9 @@ WORKDIR /usr/src/playground-be
 COPY backend/package.json backend/yarn.lock ./
 
 RUN yarn install --frozen-lockfile --production
+
+# Remove build tools to reduce image size (optional, but keeps python3 for runtime if needed)
+RUN apk del make g++
 
 COPY --chown=node:node backend/ .
 
