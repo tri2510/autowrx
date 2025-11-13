@@ -24,6 +24,7 @@ import config from '@/configs/config'
 import CodeEditor from '@/components/molecules/CodeEditor'
 import { Spinner } from '@/components/atoms/spinner'
 import { retry } from '@/lib/retry'
+import SDVDeploymentHub from './SDVDeploymentHub'
 
 // Helper function to determine editor type
 const getEditorType = (content: string): 'project' | 'code' => {
@@ -93,7 +94,8 @@ const PrototypeTabCode: FC = () => {
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.READ_MODEL, model?.id])
   const [isOpenVelocitasDialog, setIsOpenVelocitasDialog] = useState(false)
-  
+  const [isOpenSDVDeployment, setIsOpenSDVDeployment] = useState(false)
+
   // Editor type state
   const [editorType, setEditorType] = useState<'project' | 'code'>('code')
 
