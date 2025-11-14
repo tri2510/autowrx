@@ -48,6 +48,15 @@ This directory contains comprehensive documentation for the Software Defined Veh
 - Component interactions
 - Deployment workflow
 
+### 🔌 [Device Contract Specification](DEVICE_CONTRACT_SPECIFICATION.md)
+**Device Compatibility Requirements** - Technical contract for deployable devices
+- Device classification and requirements
+- Core OS and runtime specifications
+- Device agent API contract
+- Vehicle communication interface (Kuksa VSS)
+- Network and security requirements
+- Certification process and testing framework
+
 ## 🎯 How to Use This Documentation
 
 ### For **v3-Base Development Team**
