@@ -57,6 +57,15 @@ This directory contains comprehensive documentation for the Software Defined Veh
 - Network and security requirements
 - Certification process and testing framework
 
+### 🏭️ [Automotive Deployment Setup](AUTOMOTIVE_DEPLOYMENT_SETUP.md)
+**Zero-Touch Automotive Deployment** - Manufacturing-grade deployment setup
+- Manufacturing line automation and flashing scripts
+- First boot configuration and device onboarding
+- Fleet deployment and remote configuration
+- Security hardening and real-time optimizations
+- OTA updates and maintenance procedures
+- Production diagnostics and monitoring
+
 ## 🎯 How to Use This Documentation
 
 ### For **v3-Base Development Team**
