@@ -6,12 +6,13 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { FC } from 'react'
+import { FC, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import PluginPageRender from '@/components/organisms/PluginPageRender'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import useCurrentPrototype from '@/hooks/useCurrentPrototype'
 import { Spinner } from '@/components/atoms/spinner'
+import useModelStore from '@/stores/modelStore'
 
 interface PagePrototypePluginProps {}
 
@@ -20,6 +21,49 @@ const PagePrototypePlugin: FC<PagePrototypePluginProps> = () => {
   const { data: prototype, isLoading: isPrototypeLoading } = useCurrentPrototype()
   const [searchParams] = useSearchParams()
   const pluginId = searchParams.get('plugid')
+
+  const [activeModelApis, activeModelV2CApis] = useModelStore((state) => [
+    state.activeModelApis,
+    state.activeModelV2CApis,
+  ])
+
+  const { useApis, usedV2CApis } = useMemo(() => {
+    const code = prototype?.code || ''
+    let useList: any[] = []
+    let useV2CList: any[] = []
+
+    if (code && activeModelApis && activeModelApis.length > 0) {
+      activeModelApis.forEach((item: any) => {
+        if (code.includes(item.shortName)) {
+          useList.push(item)
+        }
+      })
+    }
+
+    if (code && activeModelV2CApis && activeModelV2CApis.length > 0) {
+      activeModelV2CApis.forEach((item: any) => {
+        if (code.includes(item.path)) {
+          useV2CList.push(item)
+        }
+      })
+    }
+
+    return {
+      useApis: useList,
+      usedV2CApis: useV2CList,
+    }
+  }, [prototype?.code, activeModelApis, activeModelV2CApis])
+
+  const prototypeWithApis = useMemo(() => {
+    if (!prototype) return null
+    return {
+      ...prototype,
+      apis: {
+        V2C: usedV2CApis,
+        VSS: useApis,
+      },
+    }
+  }, [prototype, useApis, usedV2CApis])
 
   if (!pluginId) {
     return (
@@ -47,7 +91,7 @@ const PagePrototypePlugin: FC<PagePrototypePluginProps> = () => {
         plugin_id={pluginId}
         data={{
           model: model || null,
-          prototype: prototype || null,
+          prototype: prototypeWithApis,
         }}
       />
     </div>
