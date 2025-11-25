@@ -8,7 +8,7 @@
 
 import { mountStoreDevtool } from 'simple-zustand-devtools'
 import { immer } from 'zustand/middleware/immer'
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 
 type GlobalState = {
   isChatShowed?: boolean
@@ -23,7 +23,7 @@ type Actions = {
   setAutomationSequenceActionAt?: (index: number, action: any) => void
 }
 
-const useGlobalStore = create<GlobalState & Actions>()(
+const useGlobalStore = createWithEqualityFn<GlobalState & Actions>()(
   immer((set) => ({
     isChatShowed: false,
     isShowedAutomationControl: false,

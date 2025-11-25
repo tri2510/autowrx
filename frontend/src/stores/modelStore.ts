@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: MIT
 
 import { mountStoreDevtool } from 'simple-zustand-devtools'
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 import { CustomApi, Model, Prototype, VehicleApi } from '@/types/model.type'
 import { parseCvi } from '@/lib/utils'
 import { getComputedAPIs } from '@/services/model.service'
@@ -36,7 +36,7 @@ type Actions = {
   setPrototypeHasUnsavedChanges: (hasChanges: boolean) => void
 }
 
-const useModelStore = create<ModelState & Actions>()((set, get) => ({
+const useModelStore = createWithEqualityFn<ModelState & Actions>()((set, get) => ({
   model: undefined,
   activeModelApis: [],
   activeModelUspSevices: [],

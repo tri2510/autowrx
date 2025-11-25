@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: MIT
 
 import { io, Socket } from 'socket.io-client'
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 
 type SocketState = {
   socket: Map<string, Socket>
@@ -17,7 +17,7 @@ type SocketActions = {
   getSocketIO: (url: string, accessToken?: string) => Socket | null
 }
 
-const useSocketStore = create<SocketState & SocketActions>()((set, get) => ({
+const useSocketStore = createWithEqualityFn<SocketState & SocketActions>()((set, get) => ({
   socket: new Map(),
   getSocketIO(url, accessToken) {
     if (get().socket.has(url)) {

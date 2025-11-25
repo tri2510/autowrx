@@ -40,7 +40,9 @@ export const createMSALConfig = (provider: SSOProvider): Configuration => {
     auth: {
       clientId: provider.clientId,
       authority: provider.authority,
-      redirectUri: window.location.origin,
+      redirectUri: `${window.location.origin}/`,
+      postLogoutRedirectUri: `${window.location.origin}/`,
+      navigateToLoginRequestUrl: false,
     },
     cache: {
       cacheLocation: 'sessionStorage',

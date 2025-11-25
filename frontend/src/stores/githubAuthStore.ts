@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: MIT
 
 import { Token } from '@/types/token.type'
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 import { immer } from 'zustand/middleware/immer'
 import { persist } from 'zustand/middleware'
 
@@ -20,7 +20,7 @@ type Actions = {
   clear: () => void
 }
 
-const useGithubAuthStore = create<AuthState & Actions>()(
+const useGithubAuthStore = createWithEqualityFn<AuthState & Actions>()(
   immer(
     persist(
       (set) => ({

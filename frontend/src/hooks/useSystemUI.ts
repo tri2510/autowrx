@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 
 interface SystemUIState {
   showPrototypeFlowASIL: boolean
@@ -19,7 +19,7 @@ interface SystemUIState {
   setShowPrototypeRequirementFullScreen: (value: boolean) => void
 }
 
-export const useSystemUI = create<SystemUIState>((set) => ({
+export const useSystemUI = createWithEqualityFn<SystemUIState>((set) => ({
   showPrototypeFlowASIL: false,
   setShowPrototypeFlowASIL: (value) =>
     set(() => ({ showPrototypeFlowASIL: value })),

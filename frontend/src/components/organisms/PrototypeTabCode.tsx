@@ -17,7 +17,7 @@ import usePermissionHook from '@/hooks/usePermissionHook'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import { PERMISSIONS } from '@/data/permission'
 import { updatePrototypeService } from '@/services/prototype.service'
-import { TbBrandGithub } from 'react-icons/tb'
+
 import { GrDeploy } from 'react-icons/gr'
 import { toast } from 'react-toastify'
 import config from '@/configs/config'
@@ -64,17 +64,7 @@ const DaGenAI_Python = lazy(() =>
   }))
 ) as any
 
-const DaVelocitasProjectCreator = lazy(() =>
-  Promise.resolve({
-    default: ({ code, onClose, vssPayload }: { code: string; onClose: () => void; vssPayload: any }) => (
-      <div className="p-4 text-muted-foreground">Velocitas Project Creator not available</div>
-    )
-  }).catch(() => ({
-    default: ({ code, onClose, vssPayload }: { code: string; onClose: () => void; vssPayload: any }) => (
-      <div className="p-4 text-muted-foreground">Velocitas Project Creator not available</div>
-    )
-  }))
-) as any
+
 
 const PrototypeTabCode: FC = () => {
   const [prototype, setActivePrototype, activeModelApis] = useModelStore(
@@ -92,7 +82,6 @@ const PrototypeTabCode: FC = () => {
   const [isOpenGenAI, setIsOpenGenAI] = useState(false)
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.READ_MODEL, model?.id])
-  const [isOpenVelocitasDialog, setIsOpenVelocitasDialog] = useState(false)
   
   // Editor type state
   const [editorType, setEditorType] = useState<'project' | 'code'>('code')
@@ -177,53 +166,6 @@ const PrototypeTabCode: FC = () => {
                   </Suspense>
                 </div>
               </DaDialog>
-              
-              <DaDialog
-                open={isOpenVelocitasDialog}
-                onOpenChange={setIsOpenVelocitasDialog}
-                trigger={
-                  <Button size="sm" variant="outline" className="ml-2">
-                    <TbBrandGithub className="mr-1 size-4" />
-                    Create Velocitas Project
-                  </Button>
-                }
-                dialogTitle="Create Velocitas Project"
-              >
-                <Suspense fallback={<div className="flex items-center justify-center h-full"><Spinner /></div>}>
-                  <DaVelocitasProjectCreator
-                    code={prototype?.code || ''}
-                    onClose={() => setIsOpenVelocitasDialog(false)}
-                    vssPayload={{}}
-                  />
-                </Suspense>
-              </DaDialog>
-
-              {config?.enableDeployToEPAM !== false && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="ml-2"
-                  onClick={async () => {
-                    if (code) {
-                      try {
-                        // Note: deployToEPAM function may need to be imported if available
-                        toast.info('Deploy to EPAM feature coming soon')
-                        // let res = await deployToEPAM(prototype.id, code || '')
-                        // if (res?.statusCode == 400) {
-                        //   toast.error(`Deploy to EPAM fail! ${res?.body}`)
-                        // }
-                      } catch (err) {
-                        console.log('Err on deploy to EPAM')
-                        console.log(err)
-                        toast.error('Error deploying to EPAM')
-                      }
-                    }
-                  }}
-                >
-                  <GrDeploy className="mr-1" size={16} />
-                  Deploy as EPAM service
-                </Button>
-              )}
             </div>
           )}
 

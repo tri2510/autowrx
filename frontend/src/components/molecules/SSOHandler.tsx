@@ -99,26 +99,30 @@ const SSOHandler = ({ provider, setSSOLoading, children }: SSOHandlerProps) => {
         }, 500)
       }
     } catch (error: any) {
-      console.error('SSO login error:', error)
-      
+      console.log('error in SSOHandler', error)
       // Handle specific MSAL errors
       if (error.errorCode === 'user_cancelled') {
+        // User intentionally cancelled - no need to log as error
         toast({
           title: 'Login Cancelled',
           description: 'You cancelled the login process.',
         })
-      } else if (error.errorCode === 'popup_window_error') {
-        toast({
-          title: 'Popup Blocked',
-          description: 'Please allow popups for this site to use SSO login.',
-          variant: 'destructive',
-        })
       } else {
-        toast({
-          title: 'Login Failed',
-          description: error.response?.data?.message || error.message || 'Failed to authenticate with SSO.',
-          variant: 'destructive',
-        })
+        console.error('SSO login error:', error)
+        
+        if (error.errorCode === 'popup_window_error') {
+          toast({
+            title: 'Popup Blocked',
+            description: 'Please allow popups for this site to use SSO login.',
+            variant: 'destructive',
+          })
+        } else {
+          toast({
+            title: 'Login Failed',
+            description: error.response?.data?.message || error.message || 'Failed to authenticate with SSO.',
+            variant: 'destructive',
+          })
+        }
       }
     } finally {
       if (setSSOLoading) setSSOLoading(false)

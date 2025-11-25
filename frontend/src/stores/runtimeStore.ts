@@ -8,7 +8,7 @@
 
 import { mountStoreDevtool } from 'simple-zustand-devtools'
 import { immer } from 'zustand/middleware/immer'
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 
 type RuntimeState = {
   apisValue?: {}
@@ -22,7 +22,7 @@ type Actions = {
   setTraceVars: (_: any) => void
 }
 
-const useRuntimeStore = create<RuntimeState & Actions>()(
+const useRuntimeStore = createWithEqualityFn<RuntimeState & Actions>()(
   immer((set) => ({
     apisValue: [],
     appLog: "",

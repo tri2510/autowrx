@@ -10,7 +10,7 @@ import { Token } from '@/types/token.type.ts'
 import { mountStoreDevtool } from 'simple-zustand-devtools'
 import { immer } from 'zustand/middleware/immer'
 import { logoutService } from '@/services/auth.service.ts'
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 
 type AuthState = {
   access?: Token | null
@@ -25,7 +25,7 @@ type Actions = {
   setOpenLoginDialog: (isOpen: boolean) => void
 }
 
-const useAuthStore = create<AuthState & Actions>()(
+const useAuthStore = createWithEqualityFn<AuthState & Actions>()(
   immer((set) => ({
     access: undefined,
     user: undefined,

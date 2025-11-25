@@ -1,11 +1,11 @@
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional'
 
 interface RefStore {
   value: Record<string, HTMLElement[]>
   setValue: (key: string, refs: HTMLElement[]) => void
 }
 
-const useRefStore = create<RefStore>((set) => ({
+const useRefStore = createWithEqualityFn<RefStore>((set) => ({
   value: {},
   setValue: (key, refs) =>
     set((state) => ({

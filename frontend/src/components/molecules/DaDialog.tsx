@@ -131,6 +131,7 @@ const DaDialog = ({
             e.preventDefault()
           }
         }}
+        aria-describedby={description ? undefined : undefined}
       >
         {dialogTitle && (
           <DialogHeader className="text-primary space-y-1">

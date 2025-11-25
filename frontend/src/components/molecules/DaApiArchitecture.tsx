@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { ImageAreaEdit, ImageAreaPreview } from '@digital-auto/image-area-lib'
+// import { ImageAreaEdit, ImageAreaPreview } from '@digital-auto/image-area-lib'
 import axios, { AxiosError } from 'axios'
 import { Button } from '@/components/atoms/button'
 import { useEffect, useState } from 'react'
