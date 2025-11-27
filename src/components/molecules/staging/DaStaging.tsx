@@ -145,11 +145,10 @@ const TARGETS = [
   {
     name: 'UDA Agent Deployment',
     short_name: 'UDA',
-    icon: '/imgs/targets/uda-agent.png', // Custom UDA Agent icon
-    prefix: 'uda-',
+    icon: '/imgs/targets/uda-agent.png',
     version: 'v.1.0',
+    isUDA: true,
     target_document_url: '',
-    isUDA: true, // Special flag to identify UDA Agent
     state: {
       '1.1.1.1.1': { version: '1.0', cycle: {"Infrastructure Maturity": "2", "Functional Maturity": "1", "Deployment Version": "1", "Compliance Readiness": "2", "Security Readiness": "1", "Homologation Readiness": "1"}},
       '1.1.1.1.2': { version: '1.0', cycle: {"Infrastructure Maturity": "1", "Functional Maturity": "1", "Deployment Version": "1", "Compliance Readiness": "1", "Security Readiness": "1", "Homologation Readiness": "1"}},
