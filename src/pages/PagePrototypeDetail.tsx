@@ -16,6 +16,7 @@ import {
   TbBinaryTree,
   TbChecklist,
   TbCode,
+  TbCube,
   TbDotsVertical,
   TbGauge,
   TbListCheck,
@@ -35,6 +36,7 @@ import DaStaging from '@/components/molecules/staging/DaStaging'
 import PrototypeTabJourney from '@/components/organisms/PrototypeTabJourney'
 import PrototypeTabArchitecture from '@/components/organisms/PrototypeTabArchitecture'
 import PrototypeTabCode from '@/components/organisms/PrototypeTabCode'
+import PrototypeTabSDVRuntime from '@/components/organisms/PrototypeTabSDVRuntime'
 import PrototypeTabDashboard from '@/components/organisms/PrototypeTabDashboard'
 import PrototypeTabHomologation from '@/components/organisms/PrototypeTabHomologation'
 import PrototypeTabFeedback from '@/components/organisms/PrototypeTabFeedback'
@@ -70,7 +72,7 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
     } else {
       setIsDefaultTab(false)
     }
-    setShowRt(['code', 'dashboard'].includes(tab || ''))
+    setShowRt(['code', 'runtime', 'dashboard'].includes(tab || ''))
   }, [tab])
 
   useEffect(() => {
@@ -149,6 +151,14 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
           >
             <TbCode className="w-5 h-5 mr-2" />
             SDV Code
+          </DaTabItem>
+          <DaTabItem
+            active={tab === 'runtime'}
+            to={`/model/${model_id}/library/prototype/${prototype_id}/runtime`}
+            dataId='tab-runtime'
+          >
+            <TbCube className="w-5 h-5 mr-2" />
+            SDV Runtime
           </DaTabItem>
           <DaTabItem
             active={tab === 'dashboard'}
@@ -259,6 +269,7 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
           {tab == 'requirements' && <PrototypeOverview mode="requirement"/> }
           {tab == 'architecture' && <PrototypeTabArchitecture />}
           {tab == 'code' && <PrototypeTabCode />}
+          {tab == 'runtime' && <PrototypeTabSDVRuntime />}
           {tab == 'flow' && <PrototypeTabFlow />}
           {tab == 'dashboard' && <PrototypeTabDashboard />}
           {tab == 'homologation' && <PrototypeTabHomologation />}

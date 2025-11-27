@@ -11,7 +11,19 @@ export type Token = {
   expires: string
 }
 
+export type User = {
+  id: string
+  name: string
+  email: string
+  provider: string
+  provider_data: any[]
+  created_at: string
+}
+
 export type AuthToken = {
-  access: Token
-  tokens: any
+  user: User
+  tokens: {
+    access: Token
+    refresh?: Token
+  }
 }

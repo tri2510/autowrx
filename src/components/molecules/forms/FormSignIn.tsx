@@ -17,6 +17,7 @@ import { TbLoader } from 'react-icons/tb'
 import { TbAt, TbLock } from 'react-icons/tb'
 import SSOHandler from '../SSOHandler'
 import config from '@/configs/config'
+import useAuthStore from '@/stores/authStore'
 
 interface FormSignInProps {
   setAuthType: (type: 'sign-in' | 'register' | 'forgot') => void
@@ -26,6 +27,11 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
   const [loading, setLoading] = useState(false)
   const [ssoLoading, setSSOLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const { setAccess, setUser, setOpenLoginDialog } = useAuthStore((state) => ({
+    setAccess: state.setAccess,
+    setUser: state.setUser,
+    setOpenLoginDialog: state.setOpenLoginDialog
+  }))
 
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -35,7 +41,15 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
         e.currentTarget.email.value,
         e.currentTarget.password.value,
       ]
-      await loginService(email, password)
+      const response = await loginService(email, password)
+
+      // Store the access token and user data in auth store
+      setAccess(response.tokens.access)
+      setUser(response.user, response.tokens.access)
+
+      // Close the login dialog
+      setOpenLoginDialog(false)
+
       // Server addLog have error after security patches
       // await addLog({
       //   name: `User log in`,
@@ -43,6 +57,8 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
       //   type: 'user-login@email',
       //   create_by: email,
       // })
+
+      // Reload page to reflect authenticated state
       window.location.href = window.location.href
     } catch (error) {
       if (isAxiosError(error)) {

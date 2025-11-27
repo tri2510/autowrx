@@ -9,6 +9,7 @@
 import { Token } from '@/types/token.type'
 import { mountStoreDevtool } from 'simple-zustand-devtools'
 import { immer } from 'zustand/middleware/immer'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { logoutService } from '@/services/auth.service'
 import { create } from 'zustand'
 
@@ -26,34 +27,40 @@ type Actions = {
 }
 
 const useAuthStore = create<AuthState & Actions>()(
-  immer((set) => ({
-    access: undefined,
-    user: undefined,
-    openLoginDialog: false,
-    setUser: (user, access) =>
-      set((state) => {
-        state.access = access
-        state.user = user
-      }),
-    setAccess: (access) =>
-      set((state) => {
-        state.access = access
-      }),
-    logOut: () =>
-      set((state) => {
-        if (state.access) {
-          logoutService().then(() => {
-            window.location.pathname = '/'
-          })
-        }
-        state.access = null
-        state.user = null
-      }),
-    setOpenLoginDialog: (isOpen) =>
-      set((state) => {
-        state.openLoginDialog = isOpen
-      }),
-  })),
+  persist(
+    immer((set) => ({
+      access: undefined,
+      user: undefined,
+      openLoginDialog: false,
+      setUser: (user, access) =>
+        set((state) => {
+          state.access = access
+          state.user = user
+        }),
+      setAccess: (access) =>
+        set((state) => {
+          state.access = access
+        }),
+      logOut: () =>
+        set((state) => {
+          if (state.access) {
+            logoutService().then(() => {
+              window.location.pathname = '/'
+            })
+          }
+          state.access = null
+          state.user = null
+        }),
+      setOpenLoginDialog: (isOpen) =>
+        set((state) => {
+          state.openLoginDialog = isOpen
+        }),
+    })),
+    {
+      name: 'auth-store',
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
 )
 
 if (process.env.NODE_ENV === 'development') {

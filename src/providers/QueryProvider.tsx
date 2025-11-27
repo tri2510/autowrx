@@ -71,7 +71,7 @@ const QueryProvider = ({ children }: QueryProviderProps) => {
       refreshingToken.current = true
 
       const response = await serverAxios.post<AuthToken>('/auth/refresh-tokens')
-      setAccess(response.data.access)
+      setAccess(response.data.tokens.access)
     } catch (error) {
       logOut()
       throw error
