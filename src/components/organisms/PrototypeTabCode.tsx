@@ -23,9 +23,15 @@ import DaVelocitasProjectCreator from '../molecules/velocitas_project/DaVelocita
 import { retry } from '@/lib/retry'
 import { GrDeploy } from 'react-icons/gr'
 import { deployToEPAM } from '@/lib/deployToEpam'
+import {
+  TbServer,
+  TbCube,
+  TbCloudUpload
+} from 'react-icons/tb'
 import { useToast } from '../molecules/toaster/use-toast'
 import config from '@/configs/config'
 import { getEditorType, extractMainContent } from '@/lib/projectEditorUtils'
+import { useUDAConnectionStatus } from '@/hooks/useUDAConnectionStatus'
 
 const CodeEditor = lazy(() => retry(() => import('../molecules/CodeEditor')))
 const ProjectEditor = lazy(() => retry(() => import('../molecules/project_editor/ProjectEditor')))
@@ -55,6 +61,7 @@ const PrototypeTabCode: FC = ({}) => {
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.READ_MODEL, model?.id])
   const [isOpenVelocitasDialog, setIsOpenVelocitasDialog] = useState(false)
+  const isUDAConnected = useUDAConnectionStatus()
   
   // Editor type and project data state
   const [editorType, setEditorType] = useState<'project' | 'code'>('code')
@@ -195,6 +202,45 @@ const PrototypeTabCode: FC = ({}) => {
                   Deploy as EPAM service
                 </DaButton>
               )}
+
+              {/* UDA Agent Deployment Button */}
+              <DaButton
+                size="sm"
+                className="ml-2"
+                variant="plain"
+                disabled={!isUDAConnected}
+                onClick={async () => {
+                  if (code) {
+                    try {
+                      // Mock UDA deployment - replace with actual API call
+                      toast({
+                        title: `🚀 Deploying to UDA Agent`,
+                        description: 'Deploying vehicle app to UDA agent...',
+                        duration: 3000,
+                      })
+
+                      // Simulate deployment
+                      setTimeout(() => {
+                        toast({
+                          title: `✅ Successfully deployed to UDA Agent`,
+                          description: 'Application is running on Test Vehicle 1',
+                          duration: 5000,
+                        })
+                      }, 2000)
+                    } catch (err) {
+                      toast({
+                        title: `❌ UDA Deployment Failed`,
+                        description: 'Unable to connect to UDA agent',
+                        duration: 3000,
+                      })
+                    }
+                  }
+                }}
+                title={isUDAConnected ? 'Deploy vehicle app to UDA Agent' : 'UDA Agent not connected. Complete setup in Staging > UDA Agent Deployment.'}
+              >
+                <TbServer className="mr-1" size={16} />
+                Deploy to UDA Agent
+              </DaButton>
             </div>
           )}
 

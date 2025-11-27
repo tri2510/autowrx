@@ -10,6 +10,7 @@ import DaText from '@/components/atoms/DaText'
 import { useState } from 'react'
 import { DaButton } from '@/components/atoms/DaButton'
 import DaEditSystemStaging from './DaEditSystemStaging'
+import DaUDASetupDashboard from './DaUDASetupDashboard'
 
 import {
   TbChevronsRight,
@@ -17,6 +18,23 @@ import {
   TbPlayerPlay,
   TbPlayerPlayFilled,
   TbTriangleFilled,
+  TbServer,
+  TbCloudUpload,
+  TbSettings,
+  TbActivity,
+  TbDatabase,
+  TbNetwork,
+  TbCpu,
+  TbDeviceFloppy,
+  TbClock,
+  TbDownload,
+  TbEye,
+  TbBug,
+  TbCube,
+  TbDeviceDesktop,
+  TbApps,
+  TbMessageCircle,
+  TbRefresh,
 } from 'react-icons/tb'
 import { cn } from '@/lib/utils'
 import { TbChevronRight } from 'react-icons/tb'
@@ -52,7 +70,7 @@ const TARGETS = [
       '3.2.1.2': { version: '7.0.1', cycle: {"Infrastructure Maturity": "1", "Functional Maturity": "1", "Deployment Version": "2", "Compliance Readiness": "2", "Security Readiness": "1", "Homologation Readiness": "2"}},
       '3.2.2.2.1': { version: '8.0.1', cycle: {"Infrastructure Maturity": "2", "Functional Maturity": "1", "Deployment Version": "2", "Compliance Readiness": "1", "Security Readiness": "2", "Homologation Readiness": "1"}},
       '3.2.2.2.1.1': { version: '0.2.1', cycle: {"Infrastructure Maturity": "3", "Functional Maturity": "2", "Deployment Version": "2", "Compliance Readiness": "2", "Security Readiness": "4", "Homologation Readiness": "2"}},
-      
+
     },
   },
   {
@@ -122,6 +140,19 @@ const TARGETS = [
       '3.2.1.2': { version: '7.0.1', cycle: {"Infrastructure Maturity": "2", "Functional Maturity": "1", "Deployment Version": "2", "Compliance Readiness": "1", "Security Readiness": "2", "Homologation Readiness": "1"}},
       '3.2.2.2.1': { version: '7.2.1', cycle: {"Infrastructure Maturity": "2", "Functional Maturity": "2", "Deployment Version": "1", "Compliance Readiness": "1", "Security Readiness": "2", "Homologation Readiness": "1"}},
       '3.2.2.2.1.1': { version: '0.2.1', cycle: {"Infrastructure Maturity": "4", "Functional Maturity": "2", "Deployment Version": "1", "Compliance Readiness": "2", "Security Readiness": "3", "Homologation Readiness": "2"}},
+    },
+  },
+  {
+    name: 'UDA Agent Deployment',
+    short_name: 'UDA',
+    icon: '/imgs/targets/desktopKit.png', // Reuse existing icon or create new one
+    prefix: 'uda-',
+    version: 'v.1.0',
+    target_document_url: '',
+    isUDA: true, // Special flag to identify UDA Agent
+    state: {
+      '1.1.1.1.1': { version: '1.0', cycle: {"Infrastructure Maturity": "2", "Functional Maturity": "1", "Deployment Version": "1", "Compliance Readiness": "2", "Security Readiness": "1", "Homologation Readiness": "1"}},
+      '1.1.1.1.2': { version: '1.0', cycle: {"Infrastructure Maturity": "1", "Functional Maturity": "1", "Deployment Version": "1", "Compliance Readiness": "1", "Security Readiness": "1", "Homologation Readiness": "1"}},
     },
   },
 ]
@@ -305,10 +336,16 @@ const DaStaging = ({ isWizard }: DaStagingProps) => {
   const MODE_OVERVIEW = 'overview'
   const MODE_EDIT_DEFINE = 'edit_define'
   const MODE_ON_TARGET = 'on_target'
+  const MODE_UDA_SETUP = 'uda_setup'
   const [mode, setMode] = useState<string>(MODE_OVERVIEW)
   const [stageDefine, setStageDefine] = useState<any>(STANDARD_STAGE)
   const [prototype] = useModelStore((state) => [state.prototype as Prototype])
   const [activeLifeCycle, setActiveLifeCycle] = useState<string>("Deployment Version")
+
+  // Check UDA agent connection status
+  const [isUDAConnected, setIsUDAConnected] = useState(() => {
+    return localStorage.getItem('uda-agent-connected') === 'true'
+  })
 
   const handleOpenTargetDocs = (url: string): void => {
     window.open(url, '_blank', 'noopener,noreferrer')
@@ -339,6 +376,19 @@ const DaStaging = ({ isWizard }: DaStagingProps) => {
           stageDefine={stageDefine}
           target={activeTarget}
           onCancel={() => {
+            setMode(MODE_OVERVIEW)
+          }}
+        />
+      )}
+
+      {mode == MODE_UDA_SETUP && (
+        <DaUDASetupDashboard
+          target={activeTarget}
+          onCancel={() => {
+            setMode(MODE_OVERVIEW)
+          }}
+          onFinish={() => {
+            setIsUDAConnected(true)
             setMode(MODE_OVERVIEW)
           }}
         />
@@ -459,12 +509,18 @@ const DaStaging = ({ isWizard }: DaStagingProps) => {
                         variant="outline-nocolor"
                         className="my-1 w-[100px]"
                         onClick={() => {
-                          setActiveTarget(target)
-                          setMode(MODE_ON_TARGET)
+                          if (target.isUDA) {
+                            // Open UDA Setup Dashboard
+                            setActiveTarget(target)
+                            setMode(MODE_UDA_SETUP)
+                          } else {
+                            setActiveTarget(target)
+                            setMode(MODE_ON_TARGET)
+                          }
                         }}
                         size="sm"
                       >
-                        Update
+                        {target.isUDA ? 'Setup' : 'Update'}
                       </DaButton>
                     </div>
                   </div>
