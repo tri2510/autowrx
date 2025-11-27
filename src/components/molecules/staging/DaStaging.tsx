@@ -145,7 +145,7 @@ const TARGETS = [
   {
     name: 'UDA Agent Deployment',
     short_name: 'UDA',
-    icon: '/imgs/targets/desktopKit.png', // Reuse existing icon or create new one
+    icon: '/imgs/targets/uda-agent.png', // Custom UDA Agent icon
     prefix: 'uda-',
     version: 'v.1.0',
     target_document_url: '',
