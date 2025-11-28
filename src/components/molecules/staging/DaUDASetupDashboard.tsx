@@ -45,7 +45,15 @@ import {
   TbGauge,
   TbTemperature,
   TbSignalG,
-  TbChartLine
+  TbChartLine,
+  TbRadar,
+  TbStack,
+  TbGitBranch,
+  TbArrowsJoin,
+  TbHexagon,
+  TbTopologyStar,
+  TbComponents,
+  TbTransfer
 } from 'react-icons/tb'
 
 interface DaUDASetupDashboardProps {
@@ -73,6 +81,18 @@ interface Device {
   group: string
   uptime?: string
   latency?: number
+  services: DeviceService[]
+  deploymentMode: 'standalone' | 'hybrid-full' | 'hybrid-partial'
+}
+
+interface DeviceService {
+  name: string
+  type: 'kuksa' | 'mqtt' | 'vss' | 'python' | 'docker' | 'custom'
+  version: string
+  status: 'running' | 'stopped' | 'available'
+  port?: number
+  endpoint?: string
+  managedBy: 'uda' | 'external' | 'sdv-runtime'
 }
 
 interface DeviceApp {
@@ -104,7 +124,7 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
   target,
   onFinish
 }) => {
-  const [view, setView] = useState<'fleet' | 'device' | 'deployment' | 'setup'>('fleet')
+  const [view, setView] = useState<'welcome' | 'fleet' | 'device' | 'deployment' | 'setup'>('welcome')
   const [setupStep, setSetupStep] = useState<'method' | 'connect' | 'install' | 'manage'>('method')
   const [selectedMethod, setSelectedMethod] = useState<'ip' | 'manual' | null>(null)
   const [agentIP, setAgentIP] = useState('')
@@ -113,6 +133,7 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
   const [isDeploying, setIsDeploying] = useState(false)
   const [deploymentStatus, setDeploymentStatus] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [connectedAgent, setConnectedAgent] = useState<any>(null)
 
   // Fleet management state
   const [devices, setDevices] = useState<Device[]>([
@@ -128,10 +149,17 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
         { id: 'app-1', name: 'door-control-v1', version: '1.2.3', status: 'running', resources: { cpu: 5, memory: 45 }, autoStart: true, deployedAt: '2025-11-20', signalCount: 2 },
         { id: 'app-2', name: 'seat-heater-v2', version: '2.1.0', status: 'running', resources: { cpu: 12, memory: 67 }, autoStart: true, deployedAt: '2025-11-22', signalCount: 3 }
       ],
-      capabilities: ['python', 'velocitas-sdk', 'kuksa-databroker', 'mqtt'],
+      capabilities: ['python', 'velocitas-sdk', 'service-discovery', 'fleet-orchestration'],
       group: 'production',
       uptime: '3d 14h',
-      latency: 12
+      latency: 12,
+      deploymentMode: 'hybrid-full',
+      services: [
+        { name: 'KUKSA Data Broker', type: 'kuksa', version: '0.4.0', status: 'running', port: 55555, managedBy: 'external' },
+        { name: 'MQTT Broker', type: 'mqtt', version: '5.0', status: 'running', port: 1883, managedBy: 'external' },
+        { name: 'VSS Repository', type: 'vss', version: '4.0', status: 'available', endpoint: '/vss', managedBy: 'uda' },
+        { name: 'Python Runtime', type: 'python', version: '3.9', status: 'running', managedBy: 'uda' }
+      ]
     },
     {
       id: 'vehicle-002',
@@ -144,10 +172,15 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
       apps: [
         { id: 'app-3', name: 'speed-monitor-v1', version: '1.0.1', status: 'running', resources: { cpu: 3, memory: 23 }, autoStart: true, deployedAt: '2025-11-25', signalCount: 1 }
       ],
-      capabilities: ['python', 'velocitas-sdk', 'kuksa-databroker'],
+      capabilities: ['python', 'velocitas-sdk', 'service-discovery'],
       group: 'production',
       uptime: '5d 8h',
-      latency: 15
+      latency: 15,
+      deploymentMode: 'hybrid-partial',
+      services: [
+        { name: 'KUKSA Data Broker', type: 'kuksa', version: '0.4.0', status: 'running', port: 55555, managedBy: 'uda' },
+        { name: 'Python Runtime', type: 'python', version: '3.9', status: 'running', managedBy: 'uda' }
+      ]
     },
     {
       id: 'vehicle-003',
@@ -161,48 +194,66 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
         { id: 'app-4', name: 'lane-assist-v2', version: '2.0.0', status: 'running', resources: { cpu: 25, memory: 156 }, autoStart: true, deployedAt: '2025-11-24', signalCount: 4 },
         { id: 'app-5', name: 'gps-tracker-v1', version: '1.1.0', status: 'running', resources: { cpu: 8, memory: 89 }, autoStart: true, deployedAt: '2025-11-23', signalCount: 2 }
       ],
-      capabilities: ['python', 'velocitas-sdk', 'kuksa-databroker', 'mqtt', 'docker'],
+      capabilities: ['python', 'velocitas-sdk', 'service-discovery', 'docker', 'fleet-orchestration'],
       group: 'production',
       uptime: '2d 3h',
-      latency: 8
+      latency: 8,
+      deploymentMode: 'standalone',
+      services: [
+        { name: 'KUKSA Data Broker', type: 'kuksa', version: '0.4.0', status: 'running', port: 55555, managedBy: 'uda' },
+        { name: 'MQTT Broker', type: 'mqtt', version: '5.0', status: 'running', port: 1883, managedBy: 'uda' },
+        { name: 'VSS Repository', type: 'vss', version: '4.0', status: 'available', endpoint: '/vss', managedBy: 'uda' },
+        { name: 'Docker Engine', type: 'docker', version: '20.10', status: 'running', managedBy: 'uda' },
+        { name: 'Python Runtime', type: 'python', version: '3.9', status: 'running', managedBy: 'uda' }
+      ]
     },
     {
-      id: 'test-001',
-      name: 'Test-001',
+      id: 'dev-001',
+      name: 'DevBoard-A1',
       ip: '192.168.1.200',
-      platform: 'Development Board',
+      platform: 'Raspberry Pi 4',
       status: 'online',
       lastSeen: 'Just now',
       resources: { cpu: 12, memory: 12, storage: 2, temperature: 35 },
       apps: [],
-      capabilities: ['python', 'velocitas-sdk'],
+      capabilities: ['python', 'velocitas-sdk', 'service-discovery'],
       group: 'development',
       uptime: '1d 12h',
-      latency: 5
+      latency: 5,
+      deploymentMode: 'standalone',
+      services: [
+        { name: 'Python Runtime', type: 'python', version: '3.9', status: 'running', managedBy: 'uda' }
+      ]
     },
     {
-      id: 'test-002',
-      name: 'Test-002',
+      id: 'dev-002',
+      name: 'DevBoard-B2',
       ip: '192.168.1.201',
-      platform: 'Development Board',
+      platform: 'Raspberry Pi 4',
       status: 'offline',
       lastSeen: '2 hours ago',
       resources: { cpu: 0, memory: 0, storage: 0, temperature: 0 },
       apps: [],
       capabilities: ['python', 'velocitas-sdk'],
-      group: 'development'
+      group: 'development',
+      deploymentMode: 'standalone',
+      services: []
     },
     {
-      id: 'simulator-001',
-      name: 'Simulator-001',
-      ip: 'localhost',
-      platform: 'Virtual Device',
+      id: 'sim-001',
+      name: 'Simulator-C3',
+      ip: '10.0.0.100',
+      platform: 'Virtual Environment',
       status: 'offline',
       lastSeen: '30 min ago',
       resources: { cpu: 0, memory: 0, storage: 0, temperature: 0 },
       apps: [],
-      capabilities: ['python'],
-      group: 'test'
+      capabilities: ['python', 'service-discovery'],
+      group: 'development',
+      deploymentMode: 'hybrid-partial',
+      services: [
+        { name: 'SDV Runtime', type: 'docker', version: '2.1.0', status: 'stopped', managedBy: 'external' }
+      ]
     }
   ])
 
@@ -224,15 +275,6 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
       deviceCount: devices.filter(d => d.group === 'development').length,
       onlineCount: devices.filter(d => d.group === 'development' && d.status === 'online').length,
       totalApps: devices.filter(d => d.group === 'development').reduce((sum, d) => sum + d.apps.length, 0)
-    },
-    {
-      id: 'test',
-      name: 'Test',
-      icon: <TbCube className="w-4 h-4" />,
-      description: 'Test and simulation devices',
-      deviceCount: devices.filter(d => d.group === 'test').length,
-      onlineCount: devices.filter(d => d.group === 'test' && d.status === 'online').length,
-      totalApps: devices.filter(d => d.group === 'test').reduce((sum, d) => sum + d.apps.length, 0)
     }
   ]
 
@@ -255,11 +297,15 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
     setConnectionStatus('connecting')
     try {
       // Test basic TCP connection to check if UDA agent is accessible
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
       const response = await fetch(`http://${ip}:3090`, {
         method: 'GET',
         mode: 'no-cors',
-        timeout: 5000
+        signal: controller.signal
       })
+      clearTimeout(timeoutId)
       setConnectionStatus('connected')
       return true
     } catch (error) {
@@ -285,6 +331,128 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
       setSetupStep('manage')
     }
   }
+
+  // Welcome Screen
+  const renderWelcomeScreen = () => (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+          <TbServer className="w-10 h-10 text-white" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to UDA Agent</h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Universal Deployment Agent for vehicle applications - Deploy and manage your SDV apps across multiple devices
+          </p>
+        </div>
+      </div>
+
+      {/* Quick Intro Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 text-center space-y-3 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+            <TbRadar className="w-6 h-6 text-blue-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900">Service Discovery</h3>
+          <p className="text-sm text-gray-600">
+            Automatically detect and integrate with existing KUKSA, MQTT, and VSS services in your network
+          </p>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-6 text-center space-y-3 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <TbArrowsJoin className="w-6 h-6 text-green-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900">Hybrid Deployment</h3>
+          <p className="text-sm text-gray-600">
+            Seamlessly integrate with SDV Runtime or use standalone - flexible deployment for any infrastructure
+          </p>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-6 text-center space-y-3 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+            <TbTopologyStar className="w-6 h-6 text-purple-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900">Fleet Orchestration</h3>
+          <p className="text-sm text-gray-600">
+            Manage distributed vehicle apps across multiple devices with centralized control and monitoring
+          </p>
+        </div>
+      </div>
+
+      {/* Getting Started */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 max-w-2xl mx-auto">
+        <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+          <TbBolt className="w-5 h-5" />
+          Getting Started
+        </h3>
+        <div className="space-y-3 text-blue-800">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-xs font-bold text-blue-800">1</span>
+            </div>
+            <div>
+              <p className="font-medium">Install UDA Agent on your device</p>
+              <p className="text-sm opacity-90">Run the agent on your vehicle device, development board, or simulator</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-xs font-bold text-blue-800">2</span>
+            </div>
+            <div>
+              <p className="font-medium">Connect your device</p>
+              <p className="text-sm opacity-90">Use quick connect or enter the device IP address manually</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-xs font-bold text-blue-800">3</span>
+            </div>
+            <div>
+              <p className="font-medium">Deploy vehicle apps</p>
+              <p className="text-sm opacity-90">Send your applications and monitor their performance</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <button
+          onClick={() => {
+            setView('setup')
+            setSetupStep('method')
+          }}
+          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 shadow-md hover:shadow-lg"
+        >
+          <TbPlus className="w-5 h-5" />
+          Add Your First Device
+        </button>
+
+        <button
+          onClick={() => setView('fleet')}
+          className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+        >
+          <TbActivity className="w-5 h-5" />
+          View Fleet
+        </button>
+      </div>
+
+      {/* Help Section */}
+      <div className="text-center space-y-2">
+        <p className="text-sm text-gray-600">
+          Need help? Check out the <a href="#" className="text-blue-600 hover:underline">UDA Agent documentation</a>
+        </p>
+        <p className="text-xs text-gray-500">
+          UDA Agent supports Python applications with Velocitas SDK and KUKSA Data Broker integration
+        </p>
+      </div>
+    </div>
+  )
 
   const renderSetupMethod = () => (
     <div className="space-y-6">
@@ -786,28 +954,78 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
         </div>
       </div>
 
+      {/* Service Discovery Status */}
+      <div className="border border-gray-200 rounded-lg p-4">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <TbRadar className="w-5 h-5 text-blue-500" />
+          Service Discovery Status
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TbCheck className="w-5 h-5 text-green-600" />
+                <span className="font-medium text-green-800">KUKSA Data Broker</span>
+              </div>
+              <span className="text-sm text-green-600">3 found</span>
+            </div>
+            <p className="text-sm text-green-700 mt-1">Vehicle signal access ready</p>
+          </div>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TbCheck className="w-5 h-5 text-green-600" />
+                <span className="font-medium text-green-800">MQTT Brokers</span>
+              </div>
+              <span className="text-sm text-green-600">2 found</span>
+            </div>
+            <p className="text-sm text-green-700 mt-1">Message routing available</p>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TbComponents className="w-5 h-5 text-blue-600" />
+                <span className="font-medium text-blue-800">VSS Repositories</span>
+              </div>
+              <span className="text-sm text-blue-600">2 found</span>
+            </div>
+            <p className="text-sm text-blue-700 mt-1">Signal catalogs loaded</p>
+          </div>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2 text-sm">
+            <TbRadar className="w-4 h-4" />
+            Run Discovery
+          </button>
+          <button className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center gap-2 text-sm">
+            <TbSettings className="w-4 h-4" />
+            Configure Services
+          </button>
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="border border-gray-200 rounded-lg p-4">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <TbActivity className="w-5 h-5 text-blue-500" />
-          Quick Actions
+          Fleet Actions
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <button className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center justify-center gap-2 text-sm">
             <TbCloudUpload className="w-4 h-4" />
-            Deploy New App
+            Deploy to Fleet
           </button>
           <button className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2 text-sm">
             <TbPlus className="w-4 h-4" />
             Add Device
           </button>
-          <button className="px-3 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 flex items-center justify-center gap-2 text-sm">
-            <TbPlayerStop className="w-4 h-4" />
-            Emergency Stop
+          <button className="px-3 py-2 border border-orange-300 text-orange-700 rounded-md hover:bg-orange-50 flex items-center justify-center gap-2 text-sm">
+            <TbGitBranch className="w-4 h-4" />
+            Switch Mode
           </button>
           <button className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2 text-sm">
-            <TbNetwork className="w-4 h-4" />
-            Network Scan
+            <TbTopologyStar className="w-4 h-4" />
+            Orchestrate
           </button>
         </div>
       </div>
@@ -882,6 +1100,18 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
                       <div className="flex justify-between">
                         <span>📱 {device.apps.length} apps</span>
                         <span>💾 {device.resources.memory}% RAM</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          device.deploymentMode === 'standalone' ? 'bg-blue-100 text-blue-800' :
+                          device.deploymentMode === 'hybrid-full' ? 'bg-green-100 text-green-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {device.deploymentMode === 'standalone' ? '🏠 Standalone' :
+                           device.deploymentMode === 'hybrid-full' ? '🔄 Hybrid-Full' :
+                           '⚡ Hybrid-Partial'}
+                        </span>
+                        <span>🔧 {device.services.length} services</span>
                       </div>
                       {device.uptime && (
                         <div className="text-gray-500">
@@ -1059,6 +1289,95 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
           </div>
         </div>
 
+        {/* Services */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold flex items-center gap-2">
+              <TbComponents className="w-5 h-5" />
+              Services ({selectedDevice.services.length})
+            </h3>
+            <div className="flex gap-2">
+              <button className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm">
+                <TbRadar className="w-4 h-4 mr-2" />
+                Discover
+              </button>
+              <button className="px-3 py-1 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm">
+                <TbSettings className="w-4 h-4 mr-2" />
+                Configure
+              </button>
+            </div>
+          </div>
+
+          {/* Deployment Mode Indicator */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TbGitBranch className="w-5 h-5 text-blue-600" />
+                <span className="font-medium text-blue-800">Deployment Mode</span>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                selectedDevice.deploymentMode === 'standalone' ? 'bg-blue-100 text-blue-800' :
+                selectedDevice.deploymentMode === 'hybrid-full' ? 'bg-green-100 text-green-800' :
+                'bg-yellow-100 text-yellow-800'
+              }`}>
+                {selectedDevice.deploymentMode === 'standalone' ? '🏠 Standalone' :
+                 selectedDevice.deploymentMode === 'hybrid-full' ? '🔄 Hybrid-Full (Integrates with SDV Runtime)' :
+                 '⚡ Hybrid-Partial (Selective Integration)'}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {selectedDevice.services.map((service, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{service.name}</h4>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        service.status === 'running' ? 'bg-green-100 text-green-800' :
+                        service.status === 'stopped' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {service.status}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        service.managedBy === 'uda' ? 'bg-purple-100 text-purple-800' :
+                        service.managedBy === 'external' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {service.managedBy === 'uda' ? '🔧 UDA Managed' :
+                         service.managedBy === 'external' ? '🔗 External' :
+                         '🐳 SDV Runtime'}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Version: {service.version} • Type: {service.type}
+                      {service.port && ` • Port: ${service.port}`}
+                      {service.endpoint && ` • Endpoint: ${service.endpoint}`}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">
+                      <TbEye className="w-4 h-4" />
+                    </button>
+                    {service.managedBy === 'uda' && (
+                      <button className="p-1 text-gray-600 hover:bg-gray-50 rounded">
+                        <TbSettings className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {selectedDevice.services.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No services discovered yet
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Applications */}
         <div className="border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
@@ -1121,57 +1440,78 @@ const DaUDASetupDashboard: FC<DaUDASetupDashboardProps> = ({
   return (
     <div className="w-full max-w-7xl h-[80vh] max-h-[700px] flex flex-col">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <TbServer className="w-5 h-5 text-blue-500" />
-            UDA Fleet Management
-          </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage your fleet of UDA agents for vehicle application deployment
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {/* View Navigation */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+        {view === 'welcome' ? (
+          // Welcome screen header - minimal
+          <div className="flex items-center justify-between w-full">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <TbServer className="w-5 h-5 text-blue-500" />
+              UDA Agent Setup
+            </h2>
             <button
-              onClick={() => setView('fleet')}
-              className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                view === 'fleet' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-              }`}
+              onClick={onCancel}
+              className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center gap-2"
             >
-              <TbActivity className="w-4 h-4 mr-2" />
-              Fleet
-            </button>
-            <button
-              onClick={() => setView('setup')}
-              className={`px-3 py-1 rounded-md text-sm transition-colors ${
-                view === 'setup' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <TbPlus className="w-4 h-4 mr-2" />
-              Add Device
+              <TbX className="w-4 h-4" />
+              Close
             </button>
           </div>
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              localStorage.setItem('uda-agent-connected', 'true')
-              onFinish?.()
-            }}
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-          >
-            Finish
-          </button>
-        </div>
+        ) : (
+          // Normal navigation header
+          <>
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <TbServer className="w-5 h-5 text-blue-500" />
+                UDA Fleet Management
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Manage your fleet of UDA agents for vehicle application deployment
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {/* View Navigation */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setView('fleet')}
+                  className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                    view === 'fleet' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <TbActivity className="w-4 h-4 mr-2" />
+                  Fleet
+                </button>
+                <button
+                  onClick={() => setView('setup')}
+                  className={`px-3 py-1 rounded-md text-sm transition-colors ${
+                    view === 'setup' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <TbPlus className="w-4 h-4 mr-2" />
+                  Add Device
+                </button>
+              </div>
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('uda-agent-connected', 'true')
+                  onFinish?.()
+                }}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              >
+                Finish
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
+        {view === 'welcome' && renderWelcomeScreen()}
         {view === 'fleet' && renderFleetOverview()}
         {view === 'device' && renderDeviceManagement()}
         {view === 'setup' && renderSetupMethod()}

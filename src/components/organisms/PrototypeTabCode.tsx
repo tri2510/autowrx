@@ -291,19 +291,12 @@ const PrototypeTabCode: FC = ({}) => {
       {/* UDA Agent Deployment Modal */}
       <DaPopup
         state={[udaModalOpen, setUdaModalOpen]}
-        trigger={null}
+        trigger={<button>UDA Setup</button>}
         onClose={() => setUdaModalOpen(false)}
         closeBtnClassName="top-6 right-6"
       >
         <DaUDASetupDashboard
           onCancel={() => setUdaModalOpen(false)}
-          currentApp={{
-            id: prototype?.id || 'current-app',
-            name: prototype?.name || 'Current Vehicle App',
-            code: code || '',
-            signals: extractVssSignals(code || ''),
-            description: `Deploy ${prototype?.name || 'vehicle app'} to UDA Agent devices`
-          }}
         />
       </DaPopup>
     </div>
