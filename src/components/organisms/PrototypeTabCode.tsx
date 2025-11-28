@@ -32,6 +32,7 @@ import { useToast } from '../molecules/toaster/use-toast'
 import config from '@/configs/config'
 import { getEditorType, extractMainContent } from '@/lib/projectEditorUtils'
 import { useUDAConnectionStatus } from '@/hooks/useUDAConnectionStatus'
+import DaUDASetupDashboard from '../molecules/staging/DaUDASetupDashboard'
 
 const CodeEditor = lazy(() => retry(() => import('../molecules/CodeEditor')))
 const ProjectEditor = lazy(() => retry(() => import('../molecules/project_editor/ProjectEditor')))
@@ -58,10 +59,19 @@ const PrototypeTabCode: FC = ({}) => {
   const [ticker, setTicker] = useState(0)
   const [activeTab, setActiveTab] = useState('api')
   const [isOpenGenAI, setIsOpenGenAI] = useState(false)
+  const [udaModalOpen, setUdaModalOpen] = useState(false)
   const { data: model } = useCurrentModel()
   const [isAuthorized] = usePermissionHook([PERMISSIONS.READ_MODEL, model?.id])
   const [isOpenVelocitasDialog, setIsOpenVelocitasDialog] = useState(false)
   const isUDAConnected = useUDAConnectionStatus()
+
+  // Extract VSS signals from code (simple placeholder implementation)
+  const extractVssSignals = (code: string): string[] => {
+    // Simple regex to find VSS signal patterns
+    const vssPattern = /Vehicle\.[\w.]+/g
+    const matches = code.match(vssPattern) || []
+    return [...new Set(matches)] // Remove duplicates
+  }
   
   // Editor type and project data state
   const [editorType, setEditorType] = useState<'project' | 'code'>('code')
@@ -208,35 +218,13 @@ const PrototypeTabCode: FC = ({}) => {
                 size="sm"
                 className="ml-2"
                 variant="plain"
-                disabled={!isUDAConnected}
-                onClick={async () => {
+                onClick={() => {
                   if (code) {
-                    try {
-                      // Mock UDA deployment - replace with actual API call
-                      toast({
-                        title: `🚀 Deploying to UDA Agent`,
-                        description: 'Deploying vehicle app to UDA agent...',
-                        duration: 3000,
-                      })
-
-                      // Simulate deployment
-                      setTimeout(() => {
-                        toast({
-                          title: `✅ Successfully deployed to UDA Agent`,
-                          description: 'Application is running on Test Vehicle 1',
-                          duration: 5000,
-                        })
-                      }, 2000)
-                    } catch (err) {
-                      toast({
-                        title: `❌ UDA Deployment Failed`,
-                        description: 'Unable to connect to UDA agent',
-                        duration: 3000,
-                      })
-                    }
+                    // Open UDA deployment modal with current app info
+                    setUdaModalOpen(true)
                   }
                 }}
-                title={isUDAConnected ? 'Deploy vehicle app to UDA Agent' : 'UDA Agent not connected. Complete setup in Staging > UDA Agent Deployment.'}
+                title="Deploy current vehicle app to UDA Agent fleet"
               >
                 <TbServer className="mr-1" size={16} />
                 Deploy to UDA Agent
@@ -299,6 +287,25 @@ const PrototypeTabCode: FC = ({}) => {
           </Suspense>
         )}
       </div>
+
+      {/* UDA Agent Deployment Modal */}
+      <DaPopup
+        state={[udaModalOpen, setUdaModalOpen]}
+        trigger={null}
+        onClose={() => setUdaModalOpen(false)}
+        closeBtnClassName="top-6 right-6"
+      >
+        <DaUDASetupDashboard
+          onCancel={() => setUdaModalOpen(false)}
+          currentApp={{
+            id: prototype?.id || 'current-app',
+            name: prototype?.name || 'Current Vehicle App',
+            code: code || '',
+            signals: extractVssSignals(code || ''),
+            description: `Deploy ${prototype?.name || 'vehicle app'} to UDA Agent devices`
+          }}
+        />
+      </DaPopup>
     </div>
   )
 }

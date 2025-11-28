@@ -472,7 +472,7 @@ const DaStaging = ({ isWizard }: DaStagingProps) => {
                       </div>
                     )}
                     {/* Target content */}
-                    <div className="flex min-w-[100px] flex-1 flex-col items-center justify-center overflow-x-hidden px-1 pb-1 pt-1">
+                    <div className="flex min-w-[120px] flex-1 flex-col items-center justify-center overflow-x-hidden px-1 pb-1 pt-1">
                       <div className="flex h-[80px] py-1 w-full items-center justify-center">
                         <img
                           src={target.icon}
@@ -482,7 +482,7 @@ const DaStaging = ({ isWizard }: DaStagingProps) => {
                       </div>
                       <div
                         className={cn(
-                          'flex items-center  px-2 py-1 rounded-lg',
+                          'flex flex-col items-center justify-center px-2 py-1 rounded-lg text-center',
                           target.target_document_url &&
                             'hover:bg-gray-100  cursor-pointer',
                         )}
@@ -492,7 +492,7 @@ const DaStaging = ({ isWizard }: DaStagingProps) => {
                           }
                         }}
                       >
-                        <DaText variant="small-bold" className="">
+                        <DaText variant="small-bold" className="text-center leading-tight">
                           {target.name}
                         </DaText>
                         {target.target_document_url && (
