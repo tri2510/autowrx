@@ -3,6 +3,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Development mode indicator */
+body.dev-mode::before {
+  content: "DEV MODE";
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: white;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 9999;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: pulse-dev 2s infinite;
+}
+
+@keyframes pulse-dev {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Development mode floating sign-in button animation */
+@keyframes pulse-button {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 0 0 0 rgba(251, 146, 60, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2), 0 0 0 8px rgba(251, 146, 60, 0);
+  }
+}
+
+.dev-signin-button-pulse {
+  animation: pulse-button 2s infinite;
+}
+
+/* Add spacing to account for dev mode indicator */
+body.dev-mode {
+  padding-top: 28px;
+}
+
+body.dev-mode .fixed.top-0 {
+  top: 28px !important;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

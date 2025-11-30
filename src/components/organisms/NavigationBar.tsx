@@ -36,6 +36,7 @@ import { useState, useEffect, useRef, Fragment } from 'react'
 import useLastAccessedModel from '@/hooks/useLastAccessedModel'
 import { FaCar } from 'react-icons/fa'
 import DaTestAutomation from '../molecules/DaTestAutomation'
+import DaDevModeIndicator from '../molecules/DaDevModeIndicator'
 
 const NavigationBar = ({}) => {
 
@@ -185,6 +186,9 @@ const NavigationBar = ({}) => {
 
       {learningMode && <LearningIntegration requestClose={() => setIsLearningMode(false)} />}
       <DaNavUser />
+      
+      {/* Development Mode Indicator */}
+      <DaDevModeIndicator />
     </header>
   )
 }

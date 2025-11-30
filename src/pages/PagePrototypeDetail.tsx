@@ -24,6 +24,7 @@ import {
   TbScale,
   TbTargetArrow,
   TbListTree,
+  TbDeviceLaptop,
 } from 'react-icons/tb'
 import { saveRecentPrototype } from '@/services/prototype.service'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
@@ -32,6 +33,7 @@ import DaPopup from '@/components/atoms/DaPopup'
 import { TbMessage } from 'react-icons/tb'
 import DaDiscussions from '@/components/molecules/DaDiscussions'
 import DaStaging from '@/components/molecules/staging/DaStaging'
+import DaUDADashboard from '@/components/molecules/uda/DaUDADashboard'
 import PrototypeTabJourney from '@/components/organisms/PrototypeTabJourney'
 import PrototypeTabArchitecture from '@/components/organisms/PrototypeTabArchitecture'
 import PrototypeTabCode from '@/components/organisms/PrototypeTabCode'
@@ -62,6 +64,7 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
   const prototype = useModelStore((state) => state.prototype as Prototype)
   const [isDefaultTab, setIsDefaultTab] = useState(false)
   const [openStagingDialog, setOpenStagingDialog] = useState(false)
+  const [openUDADialog, setOpenUDADialog] = useState(false)
   const [showRt, setShowRt] = useState(false)
 
   useEffect(() => {
@@ -165,6 +168,24 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
             <TbScale className="w-5 h-5 mr-2" />
             Homologation
           </DaTabItem>
+          <DaPopup
+            trigger={
+              <DaTabItem>
+                <TbDeviceLaptop className="w-5 h-5 mr-2" />
+                UDA Agent
+              </DaTabItem>
+            }
+            state={[openUDADialog, setOpenUDADialog]}
+            onClose={() => {
+              setOpenUDADialog(false)
+            }}
+            closeBtnClassName="top-5 size-5"
+          >
+            <DaUDADashboard 
+              onClose={() => setOpenUDADialog(false)}
+              prototypeId={prototype_id}
+            />
+          </DaPopup>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div
