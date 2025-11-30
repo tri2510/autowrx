@@ -170,7 +170,7 @@ const DaDevModeSignInButton: React.FC<DaDevModeSignInButtonProps> = ({ className
 
   const getButtonTitle = () => {
     if (isAuthenticated) {
-      return `Signed in as ${currentUser?.name || authUser?.name || 'Dev User'} - Click to sign in again`
+      return `Signed in as ${(currentUser as any)?.name || (authUser as any)?.name || 'Dev User'} - Click to sign in again`
     }
     return `Click to auto sign-in as ${devCreds.email}`
   }

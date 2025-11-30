@@ -49,7 +49,7 @@ const DaDevModeIndicator: React.FC<DaDevModeIndicatorProps> = ({ className = '' 
     setIsSigningIn(true)
     try {
       const authToken = await loginService(devCreds.email, devCreds.password)
-      setUser(authToken.user, authToken.access)
+      setUser(authToken.user as any, authToken.tokens?.access as any)
       
       toast({
         title: "✅ Sign-in Successful",
