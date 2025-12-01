@@ -170,10 +170,10 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
           </DaTabItem>
           <DaPopup
             trigger={
-              <DaTabItem>
+              <div className="flex h-full da-label-small-bold items-center justify-center min-w-20 cursor-pointer hover:opacity-80 border-b-2 border-transparent py-1 px-4 text-da-gray-medium hover:text-da-primary-500">
                 <TbRocket className="w-5 h-5 mr-2" />
                 Universal Deployment Agent
-              </DaTabItem>
+              </div>
             }
             state={[openUDADialog, setOpenUDADialog]}
             onClose={() => {
