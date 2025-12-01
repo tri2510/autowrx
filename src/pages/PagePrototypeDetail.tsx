@@ -21,6 +21,7 @@ import {
   TbListCheck,
   TbMessagePlus,
   TbRoute,
+  TbRocket,
   TbScale,
   TbTargetArrow,
   TbListTree,
@@ -31,6 +32,7 @@ import useCurrentModel from '@/hooks/useCurrentModel'
 import DaPopup from '@/components/atoms/DaPopup'
 import { TbMessage } from 'react-icons/tb'
 import DaDiscussions from '@/components/molecules/DaDiscussions'
+import { DaUDADashboard } from '@/components/molecules/uda'
 import DaStaging from '@/components/molecules/staging/DaStaging'
 import PrototypeTabJourney from '@/components/organisms/PrototypeTabJourney'
 import PrototypeTabArchitecture from '@/components/organisms/PrototypeTabArchitecture'
@@ -62,6 +64,7 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
   const prototype = useModelStore((state) => state.prototype as Prototype)
   const [isDefaultTab, setIsDefaultTab] = useState(false)
   const [openStagingDialog, setOpenStagingDialog] = useState(false)
+  const [openUDADialog, setOpenUDADialog] = useState(false)
   const [showRt, setShowRt] = useState(false)
 
   useEffect(() => {
@@ -165,6 +168,21 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
             <TbScale className="w-5 h-5 mr-2" />
             Homologation
           </DaTabItem>
+          <DaPopup
+            trigger={
+              <DaTabItem>
+                <TbRocket className="w-5 h-5 mr-2" />
+                Universal Deployment Agent
+              </DaTabItem>
+            }
+            state={[openUDADialog, setOpenUDADialog]}
+            onClose={() => {
+              setOpenUDADialog(false)
+            }}
+            closeBtnClassName="top-5 size-5"
+          >
+            <DaUDADashboard onClose={() => setOpenUDADialog(false)} />
+          </DaPopup>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div
