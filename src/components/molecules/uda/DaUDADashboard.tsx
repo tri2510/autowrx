@@ -1059,10 +1059,10 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
               activeTab === tab.id
-                ? 'bg-white text-da-primary-600 shadow-sm'
-                : 'text-da-gray-600 hover:text-da-gray-900'
+                ? 'bg-da-primary-500 text-white shadow-lg border-2 border-da-primary-600 scale-105'
+                : 'text-da-gray-600 hover:text-da-gray-900 hover:bg-da-white hover:shadow-md'
             }`}
           >
             <tab.icon className="w-4 h-4" />
