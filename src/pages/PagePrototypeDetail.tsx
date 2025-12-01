@@ -180,6 +180,8 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
               setOpenUDADialog(false)
             }}
             closeBtnClassName="top-5 size-5"
+            width="1200px"
+            className="w-full h-[90vh] p-4 overflow-hidden"
           >
             <DaUDADashboard onClose={() => setOpenUDADialog(false)} />
           </DaPopup>

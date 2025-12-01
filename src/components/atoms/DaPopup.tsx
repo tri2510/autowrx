@@ -57,7 +57,7 @@ const DaPopup = forwardRef<HTMLDivElement, PopupProps>(
         >
           <div
             className={clsx('da-popup-inner relative', className)}
-            style={{ width: width ?? '400px !important', overflow: 'visible' }}
+            style={{ width: width ?? '400px !important', overflow: 'hidden' }}
           >
             {onClose && (
               <TbX

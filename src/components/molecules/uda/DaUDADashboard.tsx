@@ -980,9 +980,9 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
   )
 
   return (
-    <div className="flex flex-col w-full max-w-7xl mx-auto h-[90vh]">
+    <div className="flex flex-col w-full h-full max-h-[90vh]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center mb-6 flex-shrink-0">
         <div className="flex items-center space-x-3">
           <TbRocket className="w-8 h-8 text-da-primary-500" />
           <div>
@@ -990,16 +990,10 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
             <p className="text-da-gray-600">Python Vehicle App Deployment with VSS Conflict Resolution</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 text-da-gray-500 hover:text-da-gray-700 hover:bg-da-gray-100 rounded-lg transition-colors"
-        >
-          <TbX className="w-5 h-5" />
-        </button>
       </div>
 
       {/* Enhanced Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 flex-shrink-0">
         <div className="bg-gradient-to-br from-da-green-50 to-da-emerald-50 border border-da-green-200 p-4 rounded-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -1054,7 +1048,7 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
       </div>
 
       {/* Enhanced Navigation Tabs */}
-      <div className="flex space-x-1 mb-6 bg-da-gray-100 p-1 rounded-lg">
+      <div className="flex space-x-1 mb-6 bg-da-gray-100 p-1 rounded-lg flex-shrink-0">
         {[
           { id: 'overview', label: 'Overview', icon: TbActivity },
           { id: 'deployment-wizard', label: 'Deploy App', icon: TbRocket },
@@ -1083,13 +1077,13 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'deployment-wizard' && <DeploymentWizard />}
         {activeTab === 'devices' && <DevicesTab />}
         {activeTab === 'vss-conflicts' && <ConflictsTab />}
         {activeTab === 'deployments' && (
-          <div className="bg-white border border-da-gray-200 rounded-lg p-8 text-center">
+          <div className="bg-white border border-da-gray-200 rounded-lg p-8 text-center h-full flex items-center justify-center">
             <TbApps className="w-12 h-12 mx-auto mb-3 text-da-gray-400" />
             <p className="text-da-gray-500">Detailed deployment management interface</p>
           </div>
