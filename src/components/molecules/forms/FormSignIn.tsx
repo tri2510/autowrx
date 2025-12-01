@@ -17,6 +17,8 @@ import { TbLoader } from 'react-icons/tb'
 import { TbAt, TbLock } from 'react-icons/tb'
 import SSOHandler from '../SSOHandler'
 import config from '@/configs/config'
+import useAuthStore from '@/stores/authStore'
+import { useNavigate } from 'react-router-dom'
 
 interface FormSignInProps {
   setAuthType: (type: 'sign-in' | 'register' | 'forgot') => void
@@ -26,6 +28,10 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
   const [loading, setLoading] = useState(false)
   const [ssoLoading, setSSOLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const setAccess = useAuthStore((state) => state.setAccess)
+  const setUser = useAuthStore((state) => state.setUser)
+  const setOpenLoginDialog = useAuthStore((state) => state.setOpenLoginDialog)
+  const navigate = useNavigate()
 
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -35,7 +41,16 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
         e.currentTarget.email.value,
         e.currentTarget.password.value,
       ]
-      await loginService(email, password)
+
+      const response = await loginService(email, password)
+
+      // Store the authentication token and user data
+      setAccess(response.tokens.access)
+      setUser(response.user, response.tokens.access)
+
+      // Close the login dialog
+      setOpenLoginDialog(false)
+
       // Server addLog have error after security patches
       // await addLog({
       //   name: `User log in`,
@@ -43,12 +58,15 @@ const FormSignIn = ({ setAuthType }: FormSignInProps) => {
       //   type: 'user-login@email',
       //   create_by: email,
       // })
-      window.location.href = window.location.href
+
+      // Navigate to home page instead of page reload
+      navigate('/')
     } catch (error) {
       if (isAxiosError(error)) {
         setError(error.response?.data.message || 'Something went wrong')
         return
       }
+      setError('Something went wrong')
     } finally {
       setLoading(false)
     }

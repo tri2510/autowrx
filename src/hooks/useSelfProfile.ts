@@ -8,9 +8,17 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { getSelfService } from '@/services/user.service'
+import useAuthStore from '@/stores/authStore'
 
 const useSelfProfileQuery = () => {
-  return useQuery({ queryKey: ['getSelf'], queryFn: getSelfService })
+  const getValidToken = useAuthStore((state) => state.getValidToken)
+  const validToken = getValidToken()
+
+  return useQuery({
+    queryKey: ['getSelf'],
+    queryFn: getSelfService,
+    enabled: !!validToken?.token // Only run query if user has a valid token
+  })
 }
 
 export default useSelfProfileQuery
