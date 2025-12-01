@@ -45,6 +45,8 @@ import {
   TbBolt
 } from 'react-icons/tb'
 
+import { DaSelect, DaSelectItem } from '@/components/atoms/DaSelect'
+
 interface DaUDADashboardProps {
   onClose?: () => void
 }
@@ -115,6 +117,17 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [showDeploymentFlow, setShowDeploymentFlow] = useState(false)
   const [deploymentStep, setDeploymentStep] = useState(0)
+
+  // Enhanced deployment wizard state
+  const [selectedApp, setSelectedApp] = useState('')
+  const [selectedTargetDevice, setSelectedTargetDevice] = useState('')
+  const [deploymentConfig, setDeploymentConfig] = useState({
+    enableAutoRestart: true,
+    enableHealthChecks: true,
+    enableResourceMonitoring: true,
+    enableConflictResolution: true
+  })
+  const [showFinalCheck, setShowFinalCheck] = useState(false)
   const [conflicts, setConflicts] = useState<SignalConflict[]>([
     {
       id: '1',
@@ -191,6 +204,60 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
       os: 'Buildroot',
       memory: 1024,
       cpu: 0
+    }
+  ]
+
+  // Sample Python apps for deployment
+  const sampleApps = [
+    {
+      id: 'speed-monitor',
+      name: 'Speed Monitor App',
+      description: 'Real-time vehicle speed monitoring with configurable thresholds',
+      category: 'Safety',
+      version: '1.2.0',
+      memory: 128,
+      cpu: 15,
+      vssSignals: ['Vehicle.Speed', 'Vehicle.Powertrain.Transmission.CurrentGear']
+    },
+    {
+      id: 'cruise-control',
+      name: 'Adaptive Cruise Control',
+      description: 'Intelligent cruise control with automatic distance management',
+      category: 'Driver Assistance',
+      version: '2.1.0',
+      memory: 256,
+      cpu: 25,
+      vssSignals: ['Vehicle.Speed', 'Vehicle.ADAS.CruiseControl.SpeedSet', 'Vehicle.Chassis.Axle.Row1.Wheel.Left.SteeringAngle']
+    },
+    {
+      id: 'battery-monitor',
+      name: 'Battery Health Monitor',
+      description: 'Electric vehicle battery health and performance monitoring',
+      category: 'Powertrain',
+      version: '1.0.5',
+      memory: 192,
+      cpu: 20,
+      vssSignals: ['Vehicle.Powertrain.Battery.StateOfCharge', 'Vehicle.Powertrain.Battery.Temperature']
+    },
+    {
+      id: 'gps-tracker',
+      name: 'GPS Location Tracker',
+      description: 'Real-time GPS positioning and route tracking application',
+      category: 'Navigation',
+      version: '3.0.1',
+      memory: 160,
+      cpu: 18,
+      vssSignals: ['Vehicle.Position.Latitude', 'Vehicle.Position.Longitude', 'Vehicle.Position.Speed']
+    },
+    {
+      id: 'climate-control',
+      name: 'Smart Climate Control',
+      description: 'AI-powered cabin climate optimization system',
+      category: 'Comfort',
+      version: '1.5.2',
+      memory: 224,
+      cpu: 22,
+      vssSignals: ['Vehicle.Cabin.Temperature', 'Vehicle.Cabin.Humidity', 'Vehicle.DoorCount']
     }
   ]
 
@@ -356,7 +423,41 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
 
   const handleStartDeployment = () => {
     setShowDeploymentFlow(true)
+    setDeploymentStep(1) // Start with step 1 - App Selection
+    setShowFinalCheck(false)
+  }
+
+  const handleProceedToNextStep = () => {
+    if (deploymentStep < 4) {
+      setDeploymentStep(deploymentStep + 1)
+    } else if (deploymentStep === 4) {
+      setShowFinalCheck(true)
+    }
+  }
+
+  const handleGoBack = () => {
+    if (deploymentStep > 1) {
+      setDeploymentStep(deploymentStep - 1)
+    }
+    setShowFinalCheck(false)
+  }
+
+  const handleDeploy = () => {
+    // Simulate deployment
+    alert('Deployment started! This would trigger the actual deployment process.')
+    setShowDeploymentFlow(false)
     setDeploymentStep(0)
+    setSelectedApp('')
+    setSelectedTargetDevice('')
+    setShowFinalCheck(false)
+  }
+
+  const handleCancelDeployment = () => {
+    setShowDeploymentFlow(false)
+    setDeploymentStep(0)
+    setSelectedApp('')
+    setSelectedTargetDevice('')
+    setShowFinalCheck(false)
   }
 
   const getStatusIcon = (status: string) => {
@@ -388,106 +489,548 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
 
   const DeploymentWizard = () => (
     <div className="space-y-6">
-      {/* Quick Deploy CTA */}
-      <div className="bg-gradient-to-r from-da-primary-500 to-da-blue-600 text-white rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold mb-2">Deploy New Python App</h3>
-            <p className="text-white text-opacity-90">Deploy your vehicle model app to edge devices with automatic VSS conflict detection</p>
+      {/* Quick Deploy CTA - Only show when not in deployment flow */}
+      {!showDeploymentFlow && (
+        <div className="bg-gradient-to-r from-da-primary-500 to-da-blue-600 text-white rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold mb-2">Deploy New Python App</h3>
+              <p className="text-white text-opacity-90">Deploy your vehicle model app to edge devices with automatic VSS conflict detection</p>
+            </div>
+            <button
+              onClick={handleStartDeployment}
+              className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center space-x-2"
+            >
+              <TbRocket className="w-5 h-5" />
+              <span>Start Deployment</span>
+            </button>
           </div>
-          <button
-            onClick={handleStartDeployment}
-            className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center space-x-2"
-          >
-            <TbRocket className="w-5 h-5" />
-            <span>Start Deployment</span>
-          </button>
         </div>
-      </div>
+      )}
 
-      {/* Deployment Flow Visualization */}
+      {/* Enhanced Deployment Flow */}
       {showDeploymentFlow && (
         <div className="bg-white border border-da-gray-200 rounded-lg p-6">
-          <h3 className="font-semibold text-da-gray-900 mb-6">Deployment Progress</h3>
-          <div className="space-y-4">
-            {deploymentFlowSteps.map((step, index) => (
-              <div key={step.step} className="flex items-center space-x-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  step.status === 'completed' ? 'bg-da-green-500 text-white' :
-                  step.status === 'active' ? 'bg-da-primary-500 text-white' :
-                  'bg-da-gray-200 text-da-gray-400'
-                }`}>
-                  <step.icon className="w-6 h-6" />
+          {/* Progress Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-da-gray-900">Deployment Configuration</h3>
+              <button
+                onClick={handleCancelDeployment}
+                className="text-da-gray-400 hover:text-da-gray-600 transition-colors"
+              >
+                <TbX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Progress Steps */}
+            <div className="flex items-center justify-between relative">
+              <div className="absolute left-0 top-1/2 h-0.5 bg-da-gray-200 w-full -translate-y-1/2" style={{ zIndex: 0 }} />
+              {[
+                { step: 1, label: 'Select App', icon: TbPackage },
+                { step: 2, label: 'Target Device', icon: TbDeviceDesktop },
+                { step: 3, label: 'VSS Analysis', icon: TbChartLine },
+                { step: 4, label: 'Configuration', icon: TbSettings }
+              ].map((item) => (
+                <div key={item.step} className="relative flex flex-col items-center" style={{ zIndex: 1 }}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
+                    deploymentStep === item.step ? 'bg-da-primary-500 text-white' :
+                    deploymentStep > item.step ? 'bg-da-green-500 text-white' :
+                    'bg-da-gray-200 text-da-gray-400'
+                  }`}>
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <span className={`text-xs font-medium ${
+                    deploymentStep === item.step ? 'text-da-primary-600' :
+                    deploymentStep > item.step ? 'text-da-green-600' :
+                    'text-da-gray-400'
+                  }`}>
+                    {item.label}
+                  </span>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-da-gray-900">{step.title}</h4>
-                      <p className="text-sm text-da-gray-600">{step.description}</p>
+              ))}
+            </div>
+          </div>
+
+          {/* Step Content */}
+          <div className="min-h-[400px]">
+            {/* Step 1: Select Python App */}
+            {deploymentStep === 1 && (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-medium text-da-gray-900 mb-2">Select Python App</h4>
+                  <p className="text-sm text-da-gray-600">Choose the vehicle application to deploy from your current model library</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sampleApps.map((app) => (
+                    <div
+                      key={app.id}
+                      onClick={() => setSelectedApp(app.id)}
+                      className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                        selectedApp === app.id
+                          ? 'border-da-primary-500 bg-da-primary-50'
+                          : 'border-da-gray-200 hover:border-da-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h5 className="font-medium text-da-gray-900">{app.name}</h5>
+                          <p className="text-xs text-da-gray-500">Version {app.version}</p>
+                        </div>
+                        <span className="px-2 py-1 text-xs bg-da-gray-100 text-da-gray-600 rounded-full">
+                          {app.category}
+                        </span>
+                      </div>
+                      <p className="text-sm text-da-gray-600 mb-3">{app.description}</p>
+                      <div className="flex items-center justify-between text-xs text-da-gray-500">
+                        <div className="flex items-center space-x-4">
+                          <span className="flex items-center">
+                            <TbCpu className="w-3 h-3 mr-1" />
+                            {app.cpu}% CPU
+                          </span>
+                          <span className="flex items-center">
+                            <TbDatabase className="w-3 h-3 mr-1" />
+                            {app.memory}MB
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <TbGitBranch className="w-3 h-3 mr-1" />
+                          {app.vssSignals.length} signals
+                        </div>
+                      </div>
                     </div>
-                    {step.status === 'completed' && (
-                      <TbCheck className="w-5 h-5 text-da-green-500" />
-                    )}
-                    {step.status === 'active' && (
-                      <TbLoader className="w-5 h-5 text-da-primary-500 animate-spin" />
-                    )}
+                  ))}
+                </div>
+
+                {/* Dropdown Alternative */}
+                <div className="border-t border-da-gray-200 pt-4">
+                  <p className="text-sm text-da-gray-600 mb-2">Or select from dropdown:</p>
+                  <DaSelect
+                    value={selectedApp}
+                    onValueChange={setSelectedApp}
+                    wrapperClassName="max-w-md"
+                  >
+                    {sampleApps.map((app) => (
+                      <DaSelectItem key={app.id} value={app.id}>
+                        {app.name} ({app.version})
+                      </DaSelectItem>
+                    ))}
+                  </DaSelect>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Choose Target Device */}
+            {deploymentStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-medium text-da-gray-900 mb-2">Choose Target Device</h4>
+                  <p className="text-sm text-da-gray-600">Select the vehicle ECU where the app will be deployed</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {devices.filter(device => device.status === 'online').map((device) => (
+                    <div
+                      key={device.id}
+                      onClick={() => setSelectedTargetDevice(device.id)}
+                      className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                        selectedTargetDevice === device.id
+                          ? 'border-da-primary-500 bg-da-primary-50'
+                          : 'border-da-gray-200 hover:border-da-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="font-medium text-da-gray-900">{device.name}</h5>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          device.status === 'online'
+                            ? 'bg-da-green-100 text-da-green-600'
+                            : 'bg-da-red-100 text-da-red-600'
+                        }`}>
+                          {device.status}
+                        </span>
+                      </div>
+                      <div className="space-y-2 text-sm text-da-gray-600">
+                        <div className="flex items-center justify-between">
+                          <span>IP:</span>
+                          <span className="font-mono">{device.ip}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Architecture:</span>
+                          <span>{device.architecture}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>OS:</span>
+                          <span>{device.os}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Memory:</span>
+                          <span>{device.memory}MB</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>CPU:</span>
+                          <span>{device.cpu}%</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Current Apps:</span>
+                          <span>{device.apps}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Dropdown Alternative */}
+                <div className="border-t border-da-gray-200 pt-4">
+                  <p className="text-sm text-da-gray-600 mb-2">Or select from dropdown:</p>
+                  <DaSelect
+                    value={selectedTargetDevice}
+                    onValueChange={setSelectedTargetDevice}
+                    wrapperClassName="max-w-md"
+                  >
+                    {devices.filter(device => device.status === 'online').map((device) => (
+                      <DaSelectItem key={device.id} value={device.id}>
+                        {device.name} ({device.ip})
+                      </DaSelectItem>
+                    ))}
+                  </DaSelect>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: VSS Signal Analysis */}
+            {deploymentStep === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-medium text-da-gray-900 mb-2">VSS Signal Analysis</h4>
+                  <p className="text-sm text-da-gray-600">Automatically detect and resolve VSS signal conflicts</p>
+                </div>
+
+                <div className="bg-da-blue-50 border border-da-blue-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <TbInfoCircle className="w-5 h-5 text-da-blue-600 mt-0.5" />
+                    <div>
+                      <h5 className="font-medium text-da-blue-900">Conflict Detection Results</h5>
+                      <p className="text-sm text-da-blue-700 mt-1">
+                        Analysis complete. Found {conflicts.length} potential conflicts that need attention before deployment.
+                      </p>
+                    </div>
                   </div>
                 </div>
-                {index < deploymentFlowSteps.length - 1 && (
-                  <div className={`w-8 h-0.5 ${step.status === 'completed' ? 'bg-da-green-500' : 'bg-da-gray-200'}`} />
+
+                {/* Selected App Info */}
+                {selectedApp && (
+                  <div className="border border-da-gray-200 rounded-lg p-4">
+                    <h5 className="font-medium text-da-gray-900 mb-3">Selected App: {sampleApps.find(a => a.id === selectedApp)?.name}</h5>
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <span className="font-medium text-da-gray-700">Required VSS Signals:</span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {sampleApps.find(a => a.id === selectedApp)?.vssSignals.map((signal) => (
+                            <span key={signal} className="px-2 py-1 bg-da-gray-100 text-da-gray-700 rounded text-xs">
+                              {signal}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
+
+                {/* Conflicts List */}
+                {conflicts.length > 0 && (
+                  <div className="space-y-3">
+                    <h5 className="font-medium text-da-gray-900">Detected Conflicts:</h5>
+                    {conflicts.map((conflict) => (
+                      <div key={conflict.id} className="border border-da-red-200 rounded-lg p-4 bg-da-red-50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <TbAlertTriangle className="w-4 h-4 text-da-red-600" />
+                              <span className="font-medium text-da-red-900">{conflict.signalPath}</span>
+                              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                conflict.severity === 'high' ? 'bg-da-red-100 text-da-red-700' :
+                                conflict.severity === 'medium' ? 'bg-da-yellow-100 text-da-yellow-700' :
+                                'bg-da-blue-100 text-da-blue-700'
+                              }`}>
+                                {conflict.severity}
+                              </span>
+                            </div>
+                            <p className="text-sm text-da-gray-700 mb-2">{conflict.description}</p>
+                            <div className="flex items-center space-x-4 text-xs text-da-gray-600">
+                              <span>Apps: {conflict.apps.join(', ')}</span>
+                              <span>Type: {conflict.conflictType}</span>
+                            </div>
+                          </div>
+                          <button className="text-da-red-600 hover:text-da-red-700">
+                            <TbArrowRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="bg-da-green-50 border border-da-green-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <TbCheck className="w-5 h-5 text-da-green-600" />
+                    <span className="text-sm text-da-green-700">
+                      Auto-resolution enabled. Conflicts will be automatically resolved during deployment.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Configuration */}
+            {deploymentStep === 4 && (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-medium text-da-gray-900 mb-2">Deployment Configuration</h4>
+                  <p className="text-sm text-da-gray-600">Configure deployment settings and monitoring options</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Deployment Summary */}
+                  <div className="border border-da-gray-200 rounded-lg p-4">
+                    <h5 className="font-medium text-da-gray-900 mb-3">Deployment Summary</h5>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Application:</span>
+                        <span className="font-medium">{sampleApps.find(a => a.id === selectedApp)?.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Target Device:</span>
+                        <span className="font-medium">{devices.find(d => d.id === selectedTargetDevice)?.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Version:</span>
+                        <span className="font-medium">{sampleApps.find(a => a.id === selectedApp)?.version}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Conflicts:</span>
+                        <span className="font-medium">{conflicts.length} detected</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Configuration Options */}
+                  <div className="border border-da-gray-200 rounded-lg p-4">
+                    <h5 className="font-medium text-da-gray-900 mb-3">Deployment Options</h5>
+                    <div className="space-y-3">
+                      {Object.entries({
+                        enableAutoRestart: 'Auto-restart on failure',
+                        enableHealthChecks: 'Enable health monitoring',
+                        enableResourceMonitoring: 'Resource usage monitoring',
+                        enableConflictResolution: 'Automatic conflict resolution'
+                      }).map(([key, label]) => (
+                        <label key={key} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={deploymentConfig[key as keyof typeof deploymentConfig]}
+                            onChange={(e) => setDeploymentConfig(prev => ({
+                              ...prev,
+                              [key]: e.target.checked
+                            }))}
+                            className="rounded border-da-gray-300 text-da-primary-600 focus:ring-da-primary-500"
+                          />
+                          <span className="text-sm text-da-gray-700">{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Resource Requirements */}
+                <div className="border border-da-gray-200 rounded-lg p-4">
+                  <h5 className="font-medium text-da-gray-900 mb-3">Resource Requirements</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {selectedApp && (() => {
+                      const app = sampleApps.find(a => a.id === selectedApp)
+                      const device = devices.find(d => d.id === selectedTargetDevice)
+                      return [
+                        { label: 'Memory', value: `${app?.memory || 0}MB`, available: `${device?.memory || 0}MB` },
+                        { label: 'CPU', value: `${app?.cpu || 0}%`, available: `${100 - (device?.cpu || 0)}%` },
+                        { label: 'VSS Signals', value: app?.vssSignals.length || 0, available: 'N/A' },
+                        { label: 'Storage', value: '~50MB', available: '~2GB' }
+                      ]
+                    })().map((item) => (
+                      <div key={item.label} className="text-center">
+                        <div className="text-2xl font-bold text-da-gray-900">{item.value}</div>
+                        <div className="text-xs text-da-gray-500">{item.label}</div>
+                        <div className="text-xs text-da-green-600">Available: {item.available}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Final Check Screen */}
+            {showFinalCheck && (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-medium text-da-gray-900 mb-2">Final Check Before Deployment</h4>
+                  <p className="text-sm text-da-gray-600">Review all configurations before initiating deployment</p>
+                </div>
+
+                <div className="bg-gradient-to-r from-da-yellow-50 to-da-orange-50 border border-da-yellow-200 rounded-lg p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-12 h-12 bg-da-yellow-500 rounded-full flex items-center justify-center">
+                      <TbRocket className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h5 className="text-lg font-semibold text-da-gray-900">Ready to Deploy!</h5>
+                      <p className="text-sm text-da-gray-700">All checks passed. You can now deploy your application.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div>
+                      <h6 className="font-medium text-da-gray-900 mb-2">Application Details</h6>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-da-gray-600">Name:</span>
+                          <span className="font-medium">{sampleApps.find(a => a.id === selectedApp)?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-da-gray-600">Version:</span>
+                          <span className="font-medium">{sampleApps.find(a => a.id === selectedApp)?.version}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-da-gray-600">Category:</span>
+                          <span className="font-medium">{sampleApps.find(a => a.id === selectedApp)?.category}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h6 className="font-medium text-da-gray-900 mb-2">Target Device</h6>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-da-gray-600">Device:</span>
+                          <span className="font-medium">{devices.find(d => d.id === selectedTargetDevice)?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-da-gray-600">IP Address:</span>
+                          <span className="font-medium">{devices.find(d => d.id === selectedTargetDevice)?.ip}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-da-gray-600">Status:</span>
+                          <span className="font-medium text-da-green-600">Online</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-da-yellow-300">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-da-gray-700">Estimated deployment time:</span>
+                      <span className="text-sm font-medium">~2-3 minutes</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-6 border-t border-da-gray-200">
+            <button
+              onClick={deploymentStep === 1 ? handleCancelDeployment : handleGoBack}
+              className="px-4 py-2 text-da-gray-600 hover:text-da-gray-800 transition-colors"
+            >
+              {deploymentStep === 1 ? 'Cancel' : 'Back'}
+            </button>
+
+            <div className="flex items-center space-x-3">
+              {!showFinalCheck ? (
+                <button
+                  onClick={handleProceedToNextStep}
+                  disabled={
+                    (deploymentStep === 1 && !selectedApp) ||
+                    (deploymentStep === 2 && !selectedTargetDevice)
+                  }
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+                    (deploymentStep === 1 && !selectedApp) ||
+                    (deploymentStep === 2 && !selectedTargetDevice)
+                      ? 'bg-da-gray-200 text-da-gray-400 cursor-not-allowed'
+                      : 'bg-da-primary-500 text-white hover:bg-da-primary-600'
+                  }`}
+                >
+                  <span>{deploymentStep === 4 ? 'Review & Deploy' : 'Next'}</span>
+                  <TbArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setShowFinalCheck(false)}
+                    className="px-4 py-2 text-da-gray-600 hover:text-da-gray-800 transition-colors"
+                  >
+                    Back to Configuration
+                  </button>
+                  <button
+                    onClick={handleDeploy}
+                    className="px-6 py-2 bg-da-green-500 text-white rounded-lg font-medium hover:bg-da-green-600 transition-colors flex items-center space-x-2"
+                  >
+                    <TbRocket className="w-4 h-4" />
+                    <span>Deploy Now</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Deployments - Only show when not in deployment flow */}
+      {!showDeploymentFlow && (
+        <div className="bg-white border border-da-gray-200 rounded-lg">
+          <div className="p-4 border-b border-da-gray-200 flex items-center justify-between">
+            <h3 className="font-semibold text-da-gray-900">Recent Deployments</h3>
+            <button className="text-da-primary-600 hover:text-da-primary-700 text-sm font-medium">
+              View All
+            </button>
+          </div>
+          <div className="divide-y divide-da-gray-200">
+            {deployedApps.slice(0, 3).map((app) => (
+              <div key={app.id} className="p-4 hover:bg-da-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      app.status === 'running' ? 'bg-da-green-100 text-da-green-600' :
+                      app.status === 'error' ? 'bg-da-red-100 text-da-red-600' :
+                      'bg-da-gray-100 text-da-gray-600'
+                    }`}>
+                      {getStatusIcon(app.status)}
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-da-gray-900">{app.name}</h4>
+                      <p className="text-sm text-da-gray-600">
+                        {devices.find(d => d.id === app.deviceId)?.name} • {app.deployedAt}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-6">
+                    <div className="text-right">
+                      <p className="text-sm text-da-gray-600">Resources</p>
+                      <p className="text-sm font-medium">{app.memory}MB • {app.cpu}% CPU</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button className="p-2 text-da-gray-400 hover:text-da-gray-600">
+                        <TbEye className="w-4 h-4" />
+                      </button>
+                      <button className="p-2 text-da-gray-400 hover:text-da-gray-600">
+                        <TbRefresh className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {/* Recent Deployments */}
-      <div className="bg-white border border-da-gray-200 rounded-lg">
-        <div className="p-4 border-b border-da-gray-200 flex items-center justify-between">
-          <h3 className="font-semibold text-da-gray-900">Recent Deployments</h3>
-          <button className="text-da-primary-600 hover:text-da-primary-700 text-sm font-medium">
-            View All
-          </button>
-        </div>
-        <div className="divide-y divide-da-gray-200">
-          {deployedApps.slice(0, 3).map((app) => (
-            <div key={app.id} className="p-4 hover:bg-da-gray-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    app.status === 'running' ? 'bg-da-green-100 text-da-green-600' :
-                    app.status === 'error' ? 'bg-da-red-100 text-da-red-600' :
-                    'bg-da-gray-100 text-da-gray-600'
-                  }`}>
-                    {getStatusIcon(app.status)}
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-da-gray-900">{app.name}</h4>
-                    <p className="text-sm text-da-gray-600">
-                      {devices.find(d => d.id === app.deviceId)?.name} • {app.deployedAt}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-6">
-                  <div className="text-right">
-                    <p className="text-sm text-da-gray-600">Resources</p>
-                    <p className="text-sm font-medium">{app.memory}MB • {app.cpu}% CPU</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button className="p-2 text-da-gray-400 hover:text-da-gray-600">
-                      <TbEye className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-da-gray-400 hover:text-da-gray-600">
-                      <TbRefresh className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 
@@ -1051,8 +1594,8 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
       <div className="flex space-x-1 mb-6 bg-da-gray-100 p-1 rounded-lg flex-shrink-0">
         {[
           { id: 'overview', label: 'Overview', icon: TbActivity },
-          { id: 'deployment-wizard', label: 'Deploy App', icon: TbRocket },
           { id: 'devices', label: 'Devices', icon: TbDeviceDesktop },
+          { id: 'deployment-wizard', label: 'Deploy App', icon: TbRocket },
           { id: 'deployments', label: 'Deployments', icon: TbApps },
           { id: 'vss-conflicts', label: 'VSS Conflicts', icon: TbAlertTriangle, count: conflicts.length }
         ].map((tab) => (
