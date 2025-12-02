@@ -104,6 +104,53 @@ interface SignalConflict {
   impact: string
 }
 
+// Service Configuration Interfaces
+interface ServiceStatus {
+  name: string
+  detected: boolean
+  version?: string
+  endpoint?: string
+  port?: number
+  status: 'running' | 'stopped' | 'unknown' | 'deploying'
+  lastChecked: string
+  config?: Record<string, any>
+}
+
+interface KuksaConfig {
+  enabled: boolean
+  host: string
+  port: number
+  useSSL: boolean
+  vssPath: string
+  authRequired: boolean
+  username?: string
+  password?: string
+  autoDeploy: boolean
+  version?: string
+}
+
+interface MQTTConfig {
+  enabled: boolean
+  host: string
+  port: number
+  useSSL: boolean
+  useAuth: boolean
+  username?: string
+  password?: string
+  clientId: string
+  topicPrefix: string
+  qos: 0 | 1 | 2
+  autoDeploy: boolean
+  brokerVersion?: string
+}
+
+interface ServiceDetectionResult {
+  kuksa: ServiceStatus
+  mqtt: ServiceStatus
+  recommendedActions: string[]
+  deploymentReadiness: 'ready' | 'needs_setup' | 'partial'
+}
+
 interface DeploymentFlow {
   step: number
   title: string
@@ -128,6 +175,31 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
     enableConflictResolution: true
   })
   const [showFinalCheck, setShowFinalCheck] = useState(false)
+
+  // Service detection and configuration state
+  const [serviceDetection, setServiceDetection] = useState<ServiceDetectionResult | null>(null)
+  const [isDetectingServices, setIsDetectingServices] = useState(false)
+  const [kuksaConfig, setKuksaConfig] = useState<KuksaConfig>({
+    enabled: true,
+    host: 'localhost',
+    port: 8090,
+    useSSL: false,
+    vssPath: '/vss',
+    authRequired: false,
+    autoDeploy: false
+  })
+  const [mqttConfig, setMqttConfig] = useState<MQTTConfig>({
+    enabled: true,
+    host: 'localhost',
+    port: 1883,
+    useSSL: false,
+    useAuth: false,
+    clientId: 'autowrx-deployment',
+    topicPrefix: 'vehicle/',
+    qos: 1,
+    autoDeploy: false
+  })
+  const [showServiceConfig, setShowServiceConfig] = useState(false)
   const [conflicts, setConflicts] = useState<SignalConflict[]>([
     {
       id: '1',
@@ -428,9 +500,9 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
   }
 
   const handleProceedToNextStep = () => {
-    if (deploymentStep < 4) {
+    if (deploymentStep < 5) {
       setDeploymentStep(deploymentStep + 1)
-    } else if (deploymentStep === 4) {
+    } else if (deploymentStep === 5) {
       setShowFinalCheck(true)
     }
   }
@@ -458,6 +530,153 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
     setSelectedApp('')
     setSelectedTargetDevice('')
     setShowFinalCheck(false)
+  }
+
+  // Service detection and deployment functions
+  const handleDetectServices = async () => {
+    setIsDetectingServices(true)
+
+    try {
+      // Simulate service detection - in real implementation, this would call backend APIs
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      const targetDevice = devices.find(d => d.id === selectedTargetDevice)
+      const deviceIP = targetDevice?.ip || 'localhost'
+
+      // Mock detection results
+      const kuksaDetected = Math.random() > 0.5
+      const mqttDetected = Math.random() > 0.3
+
+      const detectionResult: ServiceDetectionResult = {
+        kuksa: {
+          name: 'KUKSA Data Broker',
+          detected: kuksaDetected,
+          version: kuksaDetected ? '0.4.0' : undefined,
+          endpoint: kuksaDetected ? `http://${deviceIP}:8090` : undefined,
+          port: kuksaDetected ? 8090 : undefined,
+          status: kuksaDetected ? 'running' : 'stopped',
+          lastChecked: new Date().toISOString(),
+          config: kuksaDetected ? {
+            vssPath: '/vss',
+            sslEnabled: false
+          } : undefined
+        },
+        mqtt: {
+          name: 'MQTT Broker',
+          detected: mqttDetected,
+          version: mqttDetected ? '5.1.0' : undefined,
+          endpoint: mqttDetected ? `mqtt://${deviceIP}:1883` : undefined,
+          port: mqttDetected ? 1883 : undefined,
+          status: mqttDetected ? 'running' : 'stopped',
+          lastChecked: new Date().toISOString(),
+          config: mqttDetected ? {
+            protocolVersion: '5.0',
+            clientId: 'autowrx-client'
+          } : undefined
+        },
+        recommendedActions: [
+          ...(kuksaDetected ? [] : ['Deploy KUKSA Data Broker for VSS signal management']),
+          ...(mqttDetected ? [] : ['Deploy MQTT Broker for vehicle communication']),
+          ...(!kuksaDetected && !mqttDetected ? ['Consider using docker-compose for service deployment'] : [])
+        ],
+        deploymentReadiness:
+          kuksaDetected && mqttDetected ? 'ready' :
+          kuksaDetected || mqttDetected ? 'partial' : 'needs_setup'
+      }
+
+      setServiceDetection(detectionResult)
+
+      // Update configurations based on detection
+      if (kuksaDetected) {
+        setKuksaConfig(prev => ({
+          ...prev,
+          host: deviceIP,
+          autoDeploy: false
+        }))
+      } else {
+        setKuksaConfig(prev => ({
+          ...prev,
+          host: deviceIP,
+          autoDeploy: true
+        }))
+      }
+
+      if (mqttDetected) {
+        setMqttConfig(prev => ({
+          ...prev,
+          host: deviceIP,
+          autoDeploy: false
+        }))
+      } else {
+        setMqttConfig(prev => ({
+          ...prev,
+          host: deviceIP,
+          autoDeploy: true
+        }))
+      }
+
+    } catch (error) {
+      console.error('Service detection failed:', error)
+    } finally {
+      setIsDetectingServices(false)
+    }
+  }
+
+  const handleDeployService = async (serviceType: 'kuksa' | 'mqtt') => {
+    const targetDevice = devices.find(d => d.id === selectedTargetDevice)
+    if (!targetDevice) return
+
+    console.log(`Deploying ${serviceType} to device ${targetDevice.name}`)
+
+    // Update status to deploying
+    if (serviceType === 'kuksa' && serviceDetection) {
+      setServiceDetection(prev => prev ? {
+        ...prev,
+        kuksa: { ...prev.kuksa, status: 'deploying' }
+      } : null)
+
+      // Simulate deployment
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      setServiceDetection(prev => prev ? {
+        ...prev,
+        kuksa: {
+          ...prev.kuksa,
+          detected: true,
+          status: 'running',
+          version: '0.4.0',
+          endpoint: `http://${targetDevice.ip}:8090`,
+          port: 8090,
+          lastChecked: new Date().toISOString()
+        }
+      } : null)
+
+      setKuksaConfig(prev => ({ ...prev, autoDeploy: false }))
+
+    } else if (serviceType === 'mqtt' && serviceDetection) {
+      setServiceDetection(prev => prev ? {
+        ...prev,
+        mqtt: { ...prev.mqtt, status: 'deploying' }
+      } : null)
+
+      // Simulate deployment
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      setServiceDetection(prev => prev ? {
+        ...prev,
+        mqtt: {
+          ...prev.mqtt,
+          detected: true,
+          status: 'running',
+          version: '5.1.0',
+          endpoint: `mqtt://${targetDevice.ip}:1883`,
+          port: 1883,
+          lastChecked: new Date().toISOString()
+        }
+      } : null)
+
+      setMqttConfig(prev => ({ ...prev, autoDeploy: false }))
+    }
   }
 
   const getStatusIcon = (status: string) => {
@@ -555,8 +774,9 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
               {[
                 { step: 1, label: 'Select App', icon: TbPackage },
                 { step: 2, label: 'Target Device', icon: TbDeviceDesktop },
-                { step: 3, label: 'VSS Analysis', icon: TbChartLine },
-                { step: 4, label: 'Configuration', icon: TbSettings }
+                { step: 3, label: 'Service Detection', icon: TbPlug },
+                { step: 4, label: 'VSS Analysis', icon: TbChartLine },
+                { step: 5, label: 'Configuration', icon: TbSettings }
               ].map((item) => (
                 <div key={item.step} className="relative flex flex-col items-center" style={{ zIndex: 1 }}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
@@ -724,21 +944,293 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* Step 3: VSS Signal Analysis */}
+            {/* Step 3: Service Detection */}
             {deploymentStep === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-medium text-da-gray-900 mb-2">Service Detection</h4>
+                  <p className="text-sm text-da-gray-600">Detect and configure KUKSA Data Broker and MQTT services on the target device</p>
+                </div>
+
+                {!serviceDetection ? (
+                  <div className="text-center py-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-da-gray-100 rounded-full mb-4">
+                      <TbPlug className="w-8 h-8 text-da-gray-400" />
+                    </div>
+                    <h5 className="text-lg font-medium text-da-gray-900 mb-2">Detect Required Services</h5>
+                    <p className="text-sm text-da-gray-600 mb-6 max-w-md mx-auto">
+                      Scan the target device to detect KUKSA Data Broker and MQTT broker services required for VSS signal management.
+                    </p>
+                    <button
+                      onClick={handleDetectServices}
+                      disabled={isDetectingServices}
+                      className="bg-da-primary-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-da-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center space-x-2"
+                    >
+                      {isDetectingServices ? (
+                        <>
+                          <TbLoader className="w-4 h-4 animate-spin" />
+                          <span>Detecting Services...</span>
+                        </>
+                      ) : (
+                        <>
+                          <TbActivity className="w-4 h-4" />
+                          <span>Detect Services</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Service Status Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* KUKSA Service Card */}
+                      <div className={`border rounded-lg p-4 ${
+                        serviceDetection.kuksa.detected
+                          ? 'border-da-green-200 bg-da-green-50'
+                          : 'border-da-red-200 bg-da-red-50'
+                      }`}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                              serviceDetection.kuksa.detected ? 'bg-da-green-100' : 'bg-da-red-100'
+                            }`}>
+                              {getStatusIcon(serviceDetection.kuksa.status)}
+                            </div>
+                            <div>
+                              <h5 className="font-medium text-da-gray-900">KUKSA Data Broker</h5>
+                              <p className="text-sm text-da-gray-600">
+                                {serviceDetection.kuksa.detected
+                                  ? `Version ${serviceDetection.kuksa.version}`
+                                  : 'Not detected on device'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          {serviceDetection.kuksa.detected && (
+                            <span className="px-2 py-1 text-xs bg-da-green-100 text-da-green-600 rounded-full">
+                              {serviceDetection.kuksa.status}
+                            </span>
+                          )}
+                        </div>
+
+                        {serviceDetection.kuksa.detected ? (
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-da-gray-600">Endpoint:</span>
+                              <span className="font-mono text-xs">{serviceDetection.kuksa.endpoint}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-da-gray-600">Port:</span>
+                              <span>{serviceDetection.kuksa.port}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-da-gray-600">Last Checked:</span>
+                              <span className="text-xs">{new Date(serviceDetection.kuksa.lastChecked).toLocaleTimeString()}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <p className="text-sm text-da-red-600">
+                              KUKSA Data Broker is required for VSS signal management and conflict detection.
+                            </p>
+                            <button
+                              onClick={() => handleDeployService('kuksa')}
+                              disabled={serviceDetection.kuksa.status === 'deploying'}
+                              className="w-full bg-da-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-da-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center space-x-2"
+                            >
+                              {serviceDetection.kuksa.status === 'deploying' ? (
+                                <>
+                                  <TbLoader className="w-3 h-3 animate-spin" />
+                                  <span>Deploying...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <TbPackage className="w-3 h-3" />
+                                  <span>Deploy KUKSA</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* MQTT Service Card */}
+                      <div className={`border rounded-lg p-4 ${
+                        serviceDetection.mqtt.detected
+                          ? 'border-da-green-200 bg-da-green-50'
+                          : 'border-da-red-200 bg-da-red-50'
+                      }`}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                              serviceDetection.mqtt.detected ? 'bg-da-green-100' : 'bg-da-red-100'
+                            }`}>
+                              {getStatusIcon(serviceDetection.mqtt.status)}
+                            </div>
+                            <div>
+                              <h5 className="font-medium text-da-gray-900">MQTT Broker</h5>
+                              <p className="text-sm text-da-gray-600">
+                                {serviceDetection.mqtt.detected
+                                  ? `Version ${serviceDetection.mqtt.version}`
+                                  : 'Not detected on device'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          {serviceDetection.mqtt.detected && (
+                            <span className="px-2 py-1 text-xs bg-da-green-100 text-da-green-600 rounded-full">
+                              {serviceDetection.mqtt.status}
+                            </span>
+                          )}
+                        </div>
+
+                        {serviceDetection.mqtt.detected ? (
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-da-gray-600">Endpoint:</span>
+                              <span className="font-mono text-xs">{serviceDetection.mqtt.endpoint}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-da-gray-600">Port:</span>
+                              <span>{serviceDetection.mqtt.port}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-da-gray-600">Last Checked:</span>
+                              <span className="text-xs">{new Date(serviceDetection.mqtt.lastChecked).toLocaleTimeString()}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <p className="text-sm text-da-red-600">
+                              MQTT Broker is recommended for vehicle communication and data streaming.
+                            </p>
+                            <button
+                              onClick={() => handleDeployService('mqtt')}
+                              disabled={serviceDetection.mqtt.status === 'deploying'}
+                              className="w-full bg-da-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-da-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center space-x-2"
+                            >
+                              {serviceDetection.mqtt.status === 'deploying' ? (
+                                <>
+                                  <TbLoader className="w-3 h-3 animate-spin" />
+                                  <span>Deploying...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <TbPackage className="w-3 h-3" />
+                                  <span>Deploy MQTT</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Deployment Readiness */}
+                    <div className={`border rounded-lg p-4 ${
+                      serviceDetection.deploymentReadiness === 'ready'
+                        ? 'border-da-green-200 bg-da-green-50'
+                        : serviceDetection.deploymentReadiness === 'partial'
+                        ? 'border-da-yellow-200 bg-da-yellow-50'
+                        : 'border-da-red-200 bg-da-red-50'
+                    }`}>
+                      <div className="flex items-center space-x-3">
+                        {serviceDetection.deploymentReadiness === 'ready' ? (
+                          <TbCheck className="w-5 h-5 text-da-green-600" />
+                        ) : serviceDetection.deploymentReadiness === 'partial' ? (
+                          <TbAlertTriangle className="w-5 h-5 text-da-yellow-600" />
+                        ) : (
+                          <TbX className="w-5 h-5 text-da-red-600" />
+                        )}
+                        <div>
+                          <h5 className="font-medium text-da-gray-900">
+                            {serviceDetection.deploymentReadiness === 'ready'
+                              ? 'Ready for Deployment'
+                              : serviceDetection.deploymentReadiness === 'partial'
+                              ? 'Partially Ready'
+                              : 'Setup Required'
+                            }
+                          </h5>
+                          <p className="text-sm text-da-gray-600 mt-1">
+                            {serviceDetection.deploymentReadiness === 'ready'
+                              ? 'All required services are available and configured.'
+                              : serviceDetection.deploymentReadiness === 'partial'
+                              ? 'Some services are available. Deploy missing services for full functionality.'
+                              : 'No required services detected. Deploy services to continue.'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recommended Actions */}
+                    {serviceDetection.recommendedActions.length > 0 && (
+                      <div className="border border-da-gray-200 rounded-lg p-4">
+                        <h5 className="font-medium text-da-gray-900 mb-3">Recommended Actions:</h5>
+                        <ul className="space-y-2">
+                          {serviceDetection.recommendedActions.map((action, index) => (
+                            <li key={index} className="flex items-start space-x-2">
+                              <TbArrowRight className="w-4 h-4 text-da-blue-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-da-gray-600">{action}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 4: VSS Signal Analysis */}
+            {deploymentStep === 4 && (
               <div className="space-y-6">
                 <div>
                   <h4 className="text-lg font-medium text-da-gray-900 mb-2">VSS Signal Analysis</h4>
                   <p className="text-sm text-da-gray-600">Automatically detect and resolve VSS signal conflicts</p>
                 </div>
 
+                {/* Service Detection Integration */}
+                {serviceDetection && (
+                  <div className={`border rounded-lg p-4 ${
+                    serviceDetection.kuksa.detected
+                      ? 'bg-da-green-50 border-da-green-200'
+                      : 'bg-da-red-50 border-da-red-200'
+                  }`}>
+                    <div className="flex items-start space-x-3">
+                      {serviceDetection.kuksa.detected ? (
+                        <TbCheck className="w-5 h-5 text-da-green-600 mt-0.5" />
+                      ) : (
+                        <TbX className="w-5 h-5 text-da-red-600 mt-0.5" />
+                      )}
+                      <div>
+                        <h5 className={`font-medium ${
+                          serviceDetection.kuksa.detected ? 'text-da-green-900' : 'text-da-red-900'
+                        }`}>
+                          KUKSA VSS Integration Status
+                        </h5>
+                        <p className={`text-sm mt-1 ${
+                          serviceDetection.kuksa.detected ? 'text-da-green-700' : 'text-da-red-700'
+                        }`}>
+                          {serviceDetection.kuksa.detected
+                            ? `KUKSA Data Broker v${serviceDetection.kuksa.version} detected at ${serviceDetection.kuksa.endpoint}:${serviceDetection.kuksa.port}. VSS signal conflict analysis is based on this server's configuration.`
+                            : 'KUKSA Data Broker not detected. VSS signal conflict detection requires a running KUKSA server. Return to Service Detection to deploy KUKSA.'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Enhanced Conflict Detection Results */}
                 <div className="bg-da-blue-50 border border-da-blue-200 rounded-lg p-4">
                   <div className="flex items-start space-x-3">
                     <TbInfoCircle className="w-5 h-5 text-da-blue-600 mt-0.5" />
                     <div>
-                      <h5 className="font-medium text-da-blue-900">Conflict Detection Results</h5>
+                      <h5 className="font-medium text-da-blue-900">VSS Signal Conflict Analysis</h5>
                       <p className="text-sm text-da-blue-700 mt-1">
-                        Analysis complete. Found {conflicts.length} potential conflicts that need attention before deployment.
+                        Analysis based on {serviceDetection?.kuksa.detected ? `KUKSA server configuration at ${serviceDetection.kuksa.endpoint}` : 'standard VSS model'}.
+                        Found {conflicts.length} potential conflicts that need attention before deployment.
                       </p>
                     </div>
                   </div>
@@ -808,8 +1300,8 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* Step 4: Configuration */}
-            {deploymentStep === 4 && (
+            {/* Step 5: Configuration */}
+            {deploymentStep === 5 && (
               <div className="space-y-6">
                 <div>
                   <h4 className="text-lg font-medium text-da-gray-900 mb-2">Deployment Configuration</h4>
@@ -836,6 +1328,22 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
                       <div className="flex justify-between">
                         <span className="text-da-gray-600">Conflicts:</span>
                         <span className="font-medium">{conflicts.length} detected</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">KUKSA Service:</span>
+                        <span className={`font-medium ${
+                          serviceDetection?.kuksa.detected ? 'text-da-green-600' : 'text-da-red-600'
+                        }`}>
+                          {serviceDetection?.kuksa.detected ? 'Available' : 'Not Detected'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">MQTT Service:</span>
+                        <span className={`font-medium ${
+                          serviceDetection?.mqtt.detected ? 'text-da-green-600' : 'text-da-yellow-600'
+                        }`}>
+                          {serviceDetection?.mqtt.detected ? 'Available' : 'Optional'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -889,6 +1397,136 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
                     ))}
                   </div>
                 </div>
+
+                {/* Service Configuration */}
+                {serviceDetection && (
+                  <div className="border border-da-gray-200 rounded-lg p-4">
+                    <h5 className="font-medium text-da-gray-900 mb-3">Service Configuration</h5>
+                    <div className="space-y-4">
+                      {/* KUKSA Configuration */}
+                      <div className={`border rounded-lg p-3 ${
+                        serviceDetection.kuksa.detected
+                          ? 'border-da-green-200 bg-da-green-50'
+                          : 'border-da-red-200 bg-da-red-50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                              serviceDetection.kuksa.detected ? 'bg-da-green-500' : 'bg-da-red-500'
+                            }`}>
+                              <TbPlug className="w-3 h-3 text-white" />
+                            </div>
+                            <span className="font-medium text-da-gray-900">KUKSA Data Broker</span>
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${
+                              serviceDetection.kuksa.detected
+                                ? 'bg-da-green-100 text-da-green-700'
+                                : 'bg-da-red-100 text-da-red-700'
+                            }`}>
+                              {serviceDetection.kuksa.detected ? 'Detected' : 'Not Detected'}
+                            </span>
+                          </div>
+                        </div>
+                        {serviceDetection.kuksa.detected ? (
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <label className="text-da-gray-600">Endpoint:</label>
+                              <input
+                                type="text"
+                                value={serviceDetection.kuksa.endpoint || ''}
+                                onChange={(e) => {
+                                  setServiceDetection(prev => prev ? {
+                                    ...prev,
+                                    kuksa: { ...prev.kuksa, endpoint: e.target.value }
+                                  } : null)
+                                }}
+                                className="w-full mt-1 px-2 py-1 border border-da-gray-300 rounded text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-da-gray-600">Port:</label>
+                              <input
+                                type="number"
+                                value={serviceDetection.kuksa.port || ''}
+                                onChange={(e) => {
+                                  setServiceDetection(prev => prev ? {
+                                    ...prev,
+                                    kuksa: { ...prev.kuksa, port: parseInt(e.target.value) }
+                                  } : null)
+                                }}
+                                className="w-full mt-1 px-2 py-1 border border-da-gray-300 rounded text-xs"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-da-red-600">
+                            KUKSA Data Broker is required for VSS signal management. Return to Service Detection to deploy.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* MQTT Configuration */}
+                      <div className={`border rounded-lg p-3 ${
+                        serviceDetection.mqtt.detected
+                          ? 'border-da-green-200 bg-da-green-50'
+                          : 'border-da-yellow-200 bg-da-yellow-50'
+                      }`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                              serviceDetection.mqtt.detected ? 'bg-da-green-500' : 'bg-da-yellow-500'
+                            }`}>
+                              <TbWorld className="w-3 h-3 text-white" />
+                            </div>
+                            <span className="font-medium text-da-gray-900">MQTT Broker</span>
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${
+                              serviceDetection.mqtt.detected
+                                ? 'bg-da-green-100 text-da-green-700'
+                                : 'bg-da-yellow-100 text-da-yellow-700'
+                            }`}>
+                              {serviceDetection.mqtt.detected ? 'Detected' : 'Optional'}
+                            </span>
+                          </div>
+                        </div>
+                        {serviceDetection.mqtt.detected ? (
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <label className="text-da-gray-600">Endpoint:</label>
+                              <input
+                                type="text"
+                                value={serviceDetection.mqtt.endpoint || ''}
+                                onChange={(e) => {
+                                  setServiceDetection(prev => prev ? {
+                                    ...prev,
+                                    mqtt: { ...prev.mqtt, endpoint: e.target.value }
+                                  } : null)
+                                }}
+                                className="w-full mt-1 px-2 py-1 border border-da-gray-300 rounded text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-da-gray-600">Port:</label>
+                              <input
+                                type="number"
+                                value={serviceDetection.mqtt.port || ''}
+                                onChange={(e) => {
+                                  setServiceDetection(prev => prev ? {
+                                    ...prev,
+                                    mqtt: { ...prev.mqtt, port: parseInt(e.target.value) }
+                                  } : null)
+                                }}
+                                className="w-full mt-1 px-2 py-1 border border-da-gray-300 rounded text-xs"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-da-yellow-600">
+                            MQTT Broker is optional but recommended for vehicle communication.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -984,7 +1622,7 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
                       : 'bg-da-primary-500 text-white hover:bg-da-primary-600'
                   }`}
                 >
-                  <span>{deploymentStep === 4 ? 'Review & Deploy' : 'Next'}</span>
+                  <span>{deploymentStep === 5 ? 'Review & Deploy' : 'Next'}</span>
                   <TbArrowRight className="w-4 h-4" />
                 </button>
               ) : (
