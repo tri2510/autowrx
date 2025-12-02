@@ -487,10 +487,36 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
     }
   }
 
-  const DeploymentWizard = () => (
-    <div className="space-y-6">
-      {/* Quick Deploy CTA - Only show when not in deployment flow */}
-      {!showDeploymentFlow && (
+  const DeploymentWizard = () => {
+    const onlineDevices = devices.filter(d => d.status === 'online')
+
+    return (
+      <div className="space-y-6">
+        {/* Device Requirement Alert */}
+        {onlineDevices.length === 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <TbAlertTriangle className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-800 mb-1">No Devices Connected</h3>
+                <p className="text-sm text-amber-700 mb-3">
+                  You need at least one connected device before deploying applications.
+                </p>
+                <button
+                  onClick={() => setActiveTab('devices')}
+                  className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
+                >
+                  Connect a Device
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Deploy CTA - Only show when not in deployment flow */}
+        {!showDeploymentFlow && onlineDevices.length > 0 && (
         <div className="bg-gradient-to-r from-da-primary-500 to-da-blue-600 text-white rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -509,7 +535,7 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
       )}
 
       {/* Enhanced Deployment Flow */}
-      {showDeploymentFlow && (
+      {showDeploymentFlow && onlineDevices.length > 0 && (
         <div className="bg-white border border-da-gray-200 rounded-lg p-6">
           {/* Progress Header */}
           <div className="mb-8">
@@ -1032,7 +1058,7 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
         </div>
       )}
     </div>
-  )
+  )}
 
   const ConflictsTab = () => (
     <div className="space-y-4">
@@ -1432,18 +1458,49 @@ const DaUDADashboard: FC<DaUDADashboardProps> = ({ onClose }) => {
   const OverviewTab = () => (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-da-primary-500 to-da-blue-600 text-white rounded-lg p-8">
+      <div className="bg-da-primary-500 text-white rounded-lg p-8">
         <h2 className="text-2xl font-bold mb-4">Welcome to Universal Deployment Agent</h2>
-        <p className="text-lg mb-6 text-white text-opacity-90">
+        <p className="text-lg mb-6 text-white">
           Deploy and manage Python vehicle applications with intelligent VSS signal conflict detection and resolution
         </p>
         <button
-          onClick={() => setActiveTab('deployment-wizard')}
+          onClick={() => setActiveTab('devices')}
           className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center space-x-2"
         >
-          <TbRocket className="w-5 h-5" />
-          <span>Deploy Your First App</span>
+          <TbDeviceDesktop className="w-5 h-5" />
+          <span>Connect Your First Device</span>
         </button>
+      </div>
+
+      {/* Device Status */}
+      <div className="bg-white border border-da-gray-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              devices.filter(d => d.status === 'online').length > 0
+                ? 'bg-green-100'
+                : 'bg-gray-100'
+            }`}>
+              {devices.filter(d => d.status === 'online').length > 0 ? (
+                <TbCheck className="w-5 h-5 text-green-600" />
+              ) : (
+                <TbAlertTriangle className="w-5 h-5 text-gray-600" />
+              )}
+            </div>
+            <div>
+              <h3 className="font-semibold text-da-gray-900">Device Connection Status</h3>
+              <p className="text-sm text-da-gray-600">
+                {devices.filter(d => d.status === 'online').length} of {devices.length} devices connected
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveTab('devices')}
+            className="text-da-primary-500 hover:text-da-primary-600 text-sm font-medium"
+          >
+            Manage Devices →
+          </button>
+        </div>
       </div>
 
       {/* Key Features */}
