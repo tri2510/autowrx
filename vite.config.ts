@@ -22,5 +22,14 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-  }
+  },
+  optimizeDeps: {
+    exclude: ['@monaco-editor/react', 'monaco-editor'],
+    force: true,
+  },
+  server: {
+    fs: {
+      strict: false,
+    },
+  },
 })
