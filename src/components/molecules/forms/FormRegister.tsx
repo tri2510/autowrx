@@ -15,8 +15,6 @@ import { useState } from 'react'
 import { TbLoader } from 'react-icons/tb'
 import { usePolicy } from '@/hooks/useInstanceCfg'
 import { addLog } from '@/services/log.service'
-import useAuthStore from '@/stores/authStore'
-import { useNavigate } from 'react-router-dom'
 
 interface FormRegisterProps {
   setAuthType: (type: 'sign-in' | 'register' | 'forgot') => void
@@ -25,10 +23,6 @@ interface FormRegisterProps {
 const FormRegister = ({ setAuthType }: FormRegisterProps) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
-  const setAccess = useAuthStore((state) => state.setAccess)
-  const setUser = useAuthStore((state) => state.setUser)
-  const setOpenLoginDialog = useAuthStore((state) => state.setOpenLoginDialog)
-  const navigate = useNavigate()
 
   const policy_url = usePolicy()
 
@@ -67,15 +61,7 @@ const FormRegister = ({ setAuthType }: FormRegisterProps) => {
       }
 
       // Register
-      const response = await registerService(name, email, password)
-
-      // Store the authentication token and user data
-      setAccess(response.tokens.access)
-      setUser(response.user, response.tokens.access)
-
-      // Close the login dialog
-      setOpenLoginDialog(false)
-
+      await registerService(name, email, password)
       // await addLog({
       //   name: `User registered`,
       //   description: `User registered with email: ${email}`,
@@ -83,9 +69,8 @@ const FormRegister = ({ setAuthType }: FormRegisterProps) => {
       //   create_by: email,
       // })
       setError('')
-
-      // Navigate to home page instead of page reload
-      navigate('/')
+      // eslint-disable-next-line no-self-assign
+      window.location.href = window.location.href
     } catch (error) {
       if (isAxiosError(error)) {
         setError(error.response?.data.message || 'Something went wrong')

@@ -46,12 +46,6 @@ const QueryProvider = ({ children }: QueryProviderProps) => {
         queryCache: new QueryCache({
           onError: async (error, query) => {
             if (isAxiosError(error) && error?.response?.status === 401) {
-              // Skip token refresh in development mode to allow manual login
-              if (import.meta.env.DEV_MODE || import.meta.env.VITE_DEV_MODE) {
-                console.warn('Development mode: Skipping token refresh, please log in manually')
-                return
-              }
-
               try {
                 await refreshAuthToken()
                 queryClient.invalidateQueries({ queryKey: query.queryKey })
@@ -77,7 +71,7 @@ const QueryProvider = ({ children }: QueryProviderProps) => {
       refreshingToken.current = true
 
       const response = await serverAxios.post<AuthToken>('/auth/refresh-tokens')
-      setAccess(response.data.tokens.access)
+      setAccess(response.data.access)
     } catch (error) {
       logOut()
       throw error

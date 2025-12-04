@@ -8,13 +8,10 @@
 
 export type Token = {
   token: string
-  expires: string | Date
+  expires: string
 }
 
 export type AuthToken = {
-  user: any
-  tokens: {
-    access: Token
-    refresh: Token
-  }
+  access: Token
+  tokens: any
 }
