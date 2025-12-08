@@ -697,12 +697,13 @@ npm start`,
         </div>
 
         {/* Desktop: Full step indicators */}
-        <div className="hidden sm:flex items-center justify-center">
-          <div className="flex items-center space-x-2 md:space-x-4">
+        <div className="hidden sm:block">
+          {/* Compact horizontal layout */}
+          <div className="flex items-center justify-center space-x-1">
             {setupSteps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 {/* Step Circle */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors flex-shrink-0 ${
                   step.status === 'completed'
                     ? 'bg-da-primary-500 text-white'
                     : step.status === 'in_progress'
@@ -712,37 +713,65 @@ npm start`,
                     : 'bg-da-gray-200 text-da-gray-600'
                 }`}>
                   {step.status === 'completed' || index < currentStep ? (
-                    <TbCheck className="w-4 h-4" />
+                    <TbCheck className="w-3 h-3" />
                   ) : step.status === 'in_progress' ? (
-                    <step.icon className="w-4 h-4" />
+                    <step.icon className="w-3 h-3" />
                   ) : (
                     <span>{index + 1}</span>
                   )}
                 </div>
 
-                {/* Step Label - Only show for current and adjacent steps */}
-                {(index === currentStep ||
-                  index === currentStep - 1 ||
-                  index === currentStep + 1 ||
-                  setupSteps.length <= 5) && (
-                  <div className="ml-2 md:ml-3">
-                    <h4 className={`text-xs md:text-sm font-medium whitespace-nowrap ${
-                      index === currentStep ? 'text-da-primary-600' : 'text-da-gray-900'
-                    }`}>
-                      {step.title}
-                    </h4>
-                  </div>
-                )}
+                {/* Step Label */}
+                <div className="ml-2 mr-3">
+                  <h4 className={`text-xs font-medium ${
+                    index === currentStep ? 'text-da-primary-600' : 'text-da-gray-900'
+                  }`}>
+                    {step.title}
+                  </h4>
+                </div>
 
                 {/* Connector Line */}
                 {index < setupSteps.length - 1 && (
-                  <div className={`w-6 md:w-8 h-0.5 mx-2 md:mx-3 ${
+                  <div className={`w-4 h-0.5 ${
                     index < currentStep ? 'bg-da-primary-500' : 'bg-da-gray-300'
                   }`} />
                 )}
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Mobile: Vertical step list */}
+        <div className="sm:hidden mt-3 space-y-2">
+          {setupSteps.map((step, index) => (
+            <div key={step.id} className="flex items-center space-x-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors flex-shrink-0 ${
+                step.status === 'completed'
+                  ? 'bg-da-primary-500 text-white'
+                  : step.status === 'in_progress'
+                  ? 'bg-da-primary-100 text-da-primary-600 border-2 border-da-primary-500'
+                  : index < currentStep
+                  ? 'bg-da-primary-500 text-white'
+                  : 'bg-da-gray-200 text-da-gray-600'
+              }`}>
+                {step.status === 'completed' || index < currentStep ? (
+                  <TbCheck className="w-3 h-3" />
+                ) : step.status === 'in_progress' ? (
+                  <step.icon className="w-3 h-3" />
+                ) : (
+                  <span>{index + 1}</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <h4 className={`text-xs font-medium ${
+                  index === currentStep ? 'text-da-primary-600' : 'text-da-gray-900'
+                }`}>
+                  {step.title}
+                </h4>
+                <p className="text-xs text-da-gray-600 mt-0.5">{step.description}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
