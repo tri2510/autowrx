@@ -39,10 +39,15 @@ export class NetworkDiscovery {
     const totalIps = ranges.length * 20 // Limit scan to first 20 IPs per range for performance
     let checkedIps = 0
 
-    // Add localhost for development
+    // Add localhost for development and simulation
     try {
+      // Check simulation endpoints (Vehicle Edge Runtime and Kit Manager)
       await this.checkDevice('localhost', 3002, foundDevices)
       await this.checkDevice('localhost', 3090, foundDevices)
+
+      // Also check 127.0.0.1 for completeness
+      await this.checkDevice('127.0.0.1', 3002, foundDevices)
+      await this.checkDevice('127.0.0.1', 3090, foundDevices)
     } catch (error) {
       // Localhost might not be running, that's okay
     }

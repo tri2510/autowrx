@@ -195,53 +195,49 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
 
   const generateInstallationCommand = () => {
     const commands: Record<string, string> = {
-      'raspberry-pi': `# Method 1: Automated Installation (Recommended)
+      'raspberry-pi': `# Method 1: Quick Start with Simulation (Recommended for Testing)
+git clone https://github.com/tri2510/vehicle-edge-runtime.git
+cd vehicle-edge-runtime/simulation
+./0-start-pi-ci.sh        # Start Raspberry Pi simulation container
+./1-install-runtime.sh     # Install Node.js 18+ and dependencies
+./2b-start-native.sh       # Start Vehicle Edge Runtime (fast)
+# OR: ./2a-start-docker.sh  # Start with Docker containers
+
+# Method 2: Manual Production Installation
 # Download and run the official installation script
 curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh | bash
-
-# Method 2: Manual Installation
-# 1. Download the script first
-curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh -o install.sh
-chmod +x install.sh
-
-# 2. Review the script (optional but recommended)
-nano install.sh
-
-# 3. Run the installation
-./install.sh
 
 # The script will automatically:
-# - Detect your Raspberry Pi and apply optimizations
-# - Install Node.js 18+ if not present
-# - Install Docker and Docker Compose
+# - Detect your Raspberry Pi and apply ARM64 optimizations
+# - Install Node.js 18+ using binary distribution
+# - Install Docker and Docker Compose if needed
 # - Clone the Vehicle Edge Runtime repository
-# - Install all dependencies
-# - Create optimized configuration for ARM64
-# - Set up proper permissions and directories`,
-      'linux-pc': `# Method 1: Automated Installation (Recommended)
+# - Install all npm dependencies
+# - Create optimized configuration for ARM64 (3 concurrent apps, 128MB memory limit)
+# - Set up proper user permissions and directories
+# - Initialize data directories and environment files`,
+      'linux-pc': `# Method 1: Quick Start with Simulation (Recommended for Testing)
+git clone https://github.com/tri2510/vehicle-edge-runtime.git
+cd vehicle-edge-runtime/simulation
+./0-start-pi-ci.sh        # Start simulation container (works on Linux too)
+./1-install-runtime.sh     # Install Node.js 18+ and dependencies
+./2b-start-native.sh       # Start Vehicle Edge Runtime (fast)
+# OR: ./2a-start-docker.sh  # Start with Docker containers
+
+# Method 2: Manual Production Installation
 # Download and run the official installation script
 curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh | bash
-
-# Method 2: Manual Installation
-# 1. Download the script first
-curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh -o install.sh
-chmod +x install.sh
-
-# 2. Review the script (optional but recommended)
-nano install.sh
-
-# 3. Run the installation
-./install.sh
 
 # The script will automatically:
 # - Detect your Linux distribution and version
-# - Install Node.js 18+ if not present
-# - Install Docker and Docker Compose
+# - Install Node.js 18+ using binary distribution
+# - Install Docker and Docker Compose if needed
 # - Clone the Vehicle Edge Runtime repository
-# - Install all dependencies
-# - Create proper configuration for x86_64
-# - Set up permissions and directories`,
-      'existing': '# Skip installation - go to next step to discover your existing runtime'
+# - Install all npm dependencies
+# - Create optimized configuration for x86_64 (10 concurrent apps, 512MB memory limit)
+# - Set up proper user permissions and directories
+# - Initialize data directories and environment files`,
+      'existing': '# Skip installation - go to next step to discover your existing runtime\n\n# Or use the simulation framework:\ngit clone https://github.com/tri2510/vehicle-edge-runtime.git\ncd vehicle-edge-runtime/simulation\n./0-start-pi-ci.sh  # Start simulation container\n./1-install-runtime.sh  # Install dependencies\n./2b-start-native.sh  # Start in native mode (fast)\n# Or: ./2a-start-docker.sh  # Start in Docker mode\n\nThen discover at localhost:3002'
     }
 
     setInstallationCommand(commands[selectedDeviceType.id] || '')
@@ -460,6 +456,26 @@ nano install.sh
                   </div>
                 </div>
 
+                {(selectedDeviceType.id === 'raspberry-pi' || selectedDeviceType.id === 'linux-pc') && (
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">🚀 Simulation Quick Start (Perfect for Testing)</h4>
+                    <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
+                      <div className="font-mono bg-green-100 dark:bg-green-900 p-2 rounded text-xs">
+                        <div>git clone https://github.com/tri2510/vehicle-edge-runtime.git</div>
+                        <div>cd vehicle-edge-runtime/simulation</div>
+                        <div>./0-start-pi-ci.sh        # Start simulation container</div>
+                        <div>./1-install-runtime.sh     # Install Node.js & deps</div>
+                        <div>./2b-start-native.sh       # Start runtime (fast)</div>
+                        <div># OR: ./2a-start-docker.sh  # Docker mode</div>
+                        <div>./4-check-status.sh       # Verify everything works</div>
+                      </div>
+                      <p className="text-xs">
+                        <strong>Benefits:</strong> No hardware required, works on any system, instant setup, perfect for development and testing!
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">What the script does:</h4>
                   <ol className="list-decimal list-inside text-blue-800 dark:text-blue-200 space-y-1">
@@ -644,19 +660,47 @@ nano install.sh
 
             <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Connection Details</h4>
+
+              {/* Simulation-specific info */}
+              {(selectedDevice?.ip === 'localhost' || selectedDevice?.ip?.includes('127.0.0.1')) && (
+                <div className="bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
+                  <h5 className="font-medium text-green-800 dark:text-green-200 mb-1">🎯 Simulation Detected!</h5>
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    Using simulation container - services run on standard ports (3002, 3003, 3090)
+                  </p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">WebSocket URL:</span>
+                  <span className="font-medium">WebSocket API:</span>
                   <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
-                    ws://{selectedDevice?.ip}:{selectedDevice?.port}/runtime
+                    ws://{selectedDevice?.ip}:3002/runtime
                   </div>
                 </div>
                 <div>
-                  <span className="font-medium">Kit Manager URL:</span>
+                  <span className="font-medium">Health Check:</span>
+                  <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
+                    http://{selectedDevice?.ip}:3003/health
+                  </div>
+                </div>
+                <div>
+                  <span className="font-medium">Kit Manager:</span>
                   <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
                     ws://{selectedDevice?.ip}:3090
                   </div>
                 </div>
+                <div>
+                  <span className="font-medium">API Endpoint:</span>
+                  <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
+                    http://{selectedDevice?.ip}:3090/listAllKits
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 text-xs text-muted-foreground">
+                <p><strong>Simulation Status Check:</strong> <code className="bg-muted px-1 rounded">./4-check-status.sh</code></p>
+                <p><strong>Manual Test:</strong> <code className="bg-muted px-1 rounded">curl http://{selectedDevice?.ip}:3003/health</code></p>
               </div>
             </div>
           </div>
