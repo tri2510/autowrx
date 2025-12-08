@@ -678,14 +678,31 @@ npm start`,
 
       {/* Progress Steps */}
       <div className="flex-shrink-0 bg-white border-b border-da-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between overflow-x-auto">
-          {setupSteps.map((step, index) => (
+        {/* Mobile: Compact indicator */}
+        <div className="sm:hidden">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-da-gray-900">
+              Step {currentStep + 1} of {setupSteps.length}
+            </span>
+            <span className="text-sm text-da-primary-600 font-medium">
+              {setupSteps[currentStep].title}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              key={step.id}
-              className="flex items-center flex-1 min-w-0"
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              className="bg-da-primary-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentStep + 1) / setupSteps.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Desktop: Full step indicators */}
+        <div className="hidden sm:flex items-center justify-center">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            {setupSteps.map((step, index) => (
+              <div key={step.id} className="flex items-center">
+                {/* Step Circle */}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                   step.status === 'completed'
                     ? 'bg-da-primary-500 text-white'
                     : step.status === 'in_progress'
@@ -694,32 +711,38 @@ npm start`,
                     ? 'bg-da-primary-500 text-white'
                     : 'bg-da-gray-200 text-da-gray-600'
                 }`}>
-                  {step.status === 'completed' ? (
-                    <TbCheck className="w-5 h-5" />
+                  {step.status === 'completed' || index < currentStep ? (
+                    <TbCheck className="w-4 h-4" />
                   ) : step.status === 'in_progress' ? (
-                    <step.icon className="w-5 h-5" />
-                  ) : index < currentStep ? (
-                    <TbCheck className="w-5 h-5" />
+                    <step.icon className="w-4 h-4" />
                   ) : (
                     <span>{index + 1}</span>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className={`text-sm font-medium truncate ${
-                    index === currentStep ? 'text-da-primary-600' : 'text-da-gray-900'
-                  }`}>
-                    {step.title}
-                  </h4>
-                  <p className="text-xs text-da-gray-600 hidden sm:block truncate">{step.description}</p>
-                </div>
+
+                {/* Step Label - Only show for current and adjacent steps */}
+                {(index === currentStep ||
+                  index === currentStep - 1 ||
+                  index === currentStep + 1 ||
+                  setupSteps.length <= 5) && (
+                  <div className="ml-2 md:ml-3">
+                    <h4 className={`text-xs md:text-sm font-medium whitespace-nowrap ${
+                      index === currentStep ? 'text-da-primary-600' : 'text-da-gray-900'
+                    }`}>
+                      {step.title}
+                    </h4>
+                  </div>
+                )}
+
+                {/* Connector Line */}
+                {index < setupSteps.length - 1 && (
+                  <div className={`w-6 md:w-8 h-0.5 mx-2 md:mx-3 ${
+                    index < currentStep ? 'bg-da-primary-500' : 'bg-da-gray-300'
+                  }`} />
+                )}
               </div>
-              {index < setupSteps.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-4 ${
-                  index < currentStep ? 'bg-da-primary-500' : 'bg-da-gray-200'
-                }`} />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
