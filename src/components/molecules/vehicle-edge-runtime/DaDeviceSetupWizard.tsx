@@ -69,6 +69,8 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
 
   const socket = useSocketIO()
 
+  const websocketTestCommand = `echo '{"type":"ping"}' | websocat ws://localhost:3002/runtime`
+
   const setupSteps: SetupStep[] = [
     {
       id: 'welcome',
@@ -118,28 +120,49 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
     {
       id: 'raspberry-pi',
       name: 'Raspberry Pi',
-      description: 'Raspberry Pi 4/5 with Ubuntu Server 22.04+',
+      description: 'Raspberry Pi 4/5 with Ubuntu, Debian, or Raspberry Pi OS (64-bit)',
       icon: TbCpu,
-      requirements: ['Ubuntu 22.04+', '2GB RAM minimum', '16GB storage', 'Network connection'],
+      requirements: [
+        'Ubuntu 22.04+, Debian 11+, or Raspberry Pi OS 64-bit',
+        'ARM64 (aarch64) architecture',
+        '2GB RAM minimum (4GB+ recommended)',
+        '16GB+ storage (SD card or SSD)',
+        'Network connection (Ethernet or WiFi)',
+        'User account with sudo privileges'
+      ],
       installationSteps: [
-        'Update system packages',
-        'Install Node.js 18+',
-        'Install Docker',
-        'Clone Vehicle Edge Runtime repository',
-        'Install dependencies and start service'
+        'Download official installation script',
+        'Script auto-detects Raspberry Pi and applies optimizations',
+        'Installs Node.js 18+ if not present',
+        'Installs Docker and Docker Compose',
+        'Optimizes configuration for ARM64 (3 concurrent apps, 128MB memory limit)',
+        'Creates required directories and permissions',
+        'Installs Vehicle Edge Runtime with all dependencies',
+        'Provides clear next steps for starting services'
       ]
     },
     {
       id: 'linux-pc',
       name: 'Linux PC/Server',
-      description: 'Any Linux system with Ubuntu 20.04+',
+      description: 'Ubuntu, Debian, or compatible Linux distributions (x86_64)',
       icon: TbDeviceDesktop,
-      requirements: ['Ubuntu 20.04+', '4GB RAM recommended', 'Docker installed', 'Network access'],
+      requirements: [
+        'Ubuntu 20.04+, Debian 11+, or compatible',
+        'x86_64 (Intel/AMD) architecture',
+        '4GB RAM minimum (8GB+ recommended)',
+        '20GB+ available disk space',
+        'Network connection',
+        'User account with sudo privileges'
+      ],
       installationSteps: [
-        'Install Docker if not present',
-        'Clone Vehicle Edge Runtime repository',
-        'Configure environment',
-        'Start the runtime service'
+        'Download official installation script',
+        'Script auto-detects Linux distribution',
+        'Installs Node.js 18+ if not present',
+        'Installs Docker and Docker Compose',
+        'Configures settings for x86_64 (10 concurrent apps, 512MB memory limit)',
+        'Sets up proper user permissions and directories',
+        'Installs Vehicle Edge Runtime with all dependencies',
+        'Provides startup commands for both Docker and native modes'
       ]
     },
     {
@@ -147,11 +170,19 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
       name: 'Existing Runtime',
       description: 'I already have a running Vehicle Edge Runtime',
       icon: TbNetwork,
-      requirements: ['Runtime already installed and running', 'Network accessible from this machine'],
+      requirements: [
+        'Runtime already installed and running',
+        'Network accessible from this machine',
+        'WebSocket API available (port 3002)',
+        'Health check endpoint available (port 3003)'
+      ],
       installationSteps: [
-        'Skip to device discovery',
-        'Connect to existing runtime',
-        'Verify connection and capabilities'
+        'Skip installation step',
+        'Go to device discovery',
+        'Automatic network scanning to find your runtime',
+        'Manual IP addition if auto-discovery fails',
+        'Connection testing and validation',
+        'Verify runtime capabilities and status'
       ]
     }
   ]
@@ -164,44 +195,52 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
 
   const generateInstallationCommand = () => {
     const commands: Record<string, string> = {
-      'raspberry-pi': `# Update system
-sudo apt update && sudo apt upgrade -y
+      'raspberry-pi': `# Method 1: Automated Installation (Recommended)
+# Download and run the official installation script
+curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh | bash
 
-# Install Node.js 18
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
+# Method 2: Manual Installation
+# 1. Download the script first
+curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh -o install.sh
+chmod +x install.sh
 
-# Install Docker
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker $USER
+# 2. Review the script (optional but recommended)
+nano install.sh
 
-# Clone and setup Vehicle Edge Runtime
-git clone https://github.com/tri2510/vehicle-edge-runtime.git
-cd vehicle-edge-runtime
-npm install
+# 3. Run the installation
+./install.sh
 
-# Copy environment file
-cp .env.example .env
+# The script will automatically:
+# - Detect your Raspberry Pi and apply optimizations
+# - Install Node.js 18+ if not present
+# - Install Docker and Docker Compose
+# - Clone the Vehicle Edge Runtime repository
+# - Install all dependencies
+# - Create optimized configuration for ARM64
+# - Set up proper permissions and directories`,
+      'linux-pc': `# Method 1: Automated Installation (Recommended)
+# Download and run the official installation script
+curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh | bash
 
-# Start the runtime
-npm start`,
-      'linux-pc': `# Install Docker if not present
-if ! command -v docker &> /dev/null; then
-  curl -fsSL https://get.docker.com | sudo sh
-  sudo usermod -aG docker $USER
-fi
+# Method 2: Manual Installation
+# 1. Download the script first
+curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh -o install.sh
+chmod +x install.sh
 
-# Clone and setup Vehicle Edge Runtime
-git clone https://github.com/tri2510/vehicle-edge-runtime.git
-cd vehicle-edge-runtime
-npm install
+# 2. Review the script (optional but recommended)
+nano install.sh
 
-# Copy and configure environment
-cp .env.example .env
-# Edit .env to set your preferences
+# 3. Run the installation
+./install.sh
 
-# Start the runtime
-npm start`,
+# The script will automatically:
+# - Detect your Linux distribution and version
+# - Install Node.js 18+ if not present
+# - Install Docker and Docker Compose
+# - Clone the Vehicle Edge Runtime repository
+# - Install all dependencies
+# - Create proper configuration for x86_64
+# - Set up permissions and directories`,
       'existing': '# Skip installation - go to next step to discover your existing runtime'
     }
 
@@ -408,7 +447,7 @@ npm start`,
                 </div>
 
                 <div className="bg-da-blue-50 border border-da-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-da-blue-900 mb-2">Step-by-step breakdown:</h4>
+                  <h4 className="font-medium text-da-blue-900 mb-2">What the script does:</h4>
                   <ol className="list-decimal list-inside text-da-blue-800 space-y-1">
                     {selectedDeviceType.installationSteps.map((step, idx) => (
                       <li key={idx}>{step}</li>
@@ -416,15 +455,50 @@ npm start`,
                   </ol>
                 </div>
 
+                <div className="bg-da-purple-50 border border-da-purple-200 rounded-lg p-4">
+                  <h4 className="font-medium text-da-purple-900 mb-2">After Installation:</h4>
+                  <div className="space-y-3 text-sm text-da-purple-800">
+                    <div>
+                      <strong>1. Apply Docker Group Changes:</strong>
+                      <div className="bg-purple-100 p-2 rounded mt-1 font-mono text-xs">
+                        newgrp docker
+                      </div>
+                      <p className="text-xs mt-1">OR log out and log back in to apply group changes</p>
+                    </div>
+                    <div>
+                      <strong>2. Start Vehicle Edge Runtime:</strong>
+                      <div className="bg-purple-100 p-2 rounded mt-1 font-mono text-xs">
+                        cd vehicle-edge-runtime<br/>
+                        # Docker deployment (recommended):<br/>
+                        ./7-start-separate-services.sh<br/><br/>
+                        # Or alternative Docker setup:<br/>
+                        ./docker-setup.sh prod
+                      </div>
+                    </div>
+                    <div>
+                      <strong>3. Verify Installation:</strong>
+                      <div className="bg-purple-100 p-2 rounded mt-1 font-mono text-xs">
+                        # Health check:<br/>
+                        curl http://localhost:3003/health<br/><br/>
+                        # Test WebSocket:<br/>
+                        {websocketTestCommand}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="bg-da-yellow-50 border border-da-yellow-200 rounded-lg p-4">
                   <div className="flex items-start space-x-2">
                     <TbInfoCircle className="w-5 h-5 text-da-yellow-600 mt-0.5" />
                     <div className="text-da-yellow-800">
-                      <h4 className="font-medium mb-1">Pro Tip:</h4>
-                      <p className="text-sm">
-                        After running these commands, you should see "Vehicle Edge Runtime started on port 3002".
-                        If you encounter any errors, check that all prerequisites are installed.
-                      </p>
+                      <h4 className="font-medium mb-2">Important Notes:</h4>
+                      <ul className="text-sm space-y-1">
+                        <li>• The script automatically detects your system and applies appropriate optimizations</li>
+                        <li>• Raspberry Pi gets ARM64-specific settings (3 concurrent apps, 128MB memory limit)</li>
+                        <li>• Linux PCs get x86_64 settings (10 concurrent apps, 512MB memory limit)</li>
+                        <li>• All services start on different ports: WebSocket API (3002), Health Check (3003), Kit Manager (3090)</li>
+                        <li>• Configuration can be customized in <code className="bg-yellow-100 px-1 rounded">vehicle-edge-runtime/.env</code></li>
+                      </ul>
                     </div>
                   </div>
                 </div>
