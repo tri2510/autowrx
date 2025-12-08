@@ -142,6 +142,11 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
       handleKitMessage(message)
     })
 
+    // Listen for broadcast messages (console output, etc.)
+    kitManagerService.onBroadcast((message) => {
+      handleBroadcastMessage(message)
+    })
+
     // Listen for connection events
     kitManagerService.onConnect(() => {
       setIsConnected(true)
@@ -178,7 +183,35 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
 
     // Add console output if available
     if (message.data?.output) {
-      setConsoleOutput(prev => [...prev, message.data.output])
+      setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message.data.output}`])
+    }
+  }
+
+  // Handle broadcast messages from kits (console output, logs, etc.)
+  const handleBroadcastMessage = (message: any) => {
+    const timestamp = new Date().toLocaleTimeString()
+
+    // Add console output
+    if (message.data?.output || message.data?.log) {
+      const output = message.data?.output || message.data?.log
+      setConsoleOutput(prev => [...prev, `[${timestamp}] ${output}`])
+    }
+
+    // Handle application status updates
+    if (message.cmd === 'app_status' && message.data) {
+      const { appId, status } = message.data
+      setRunningApps(prev =>
+        prev.map(app =>
+          app.id === appId ? { ...app, status, lastSeen: new Date() } : app
+        )
+      )
+    }
+
+    // Handle application output
+    if (message.cmd === 'app_output' && message.data) {
+      const { appId, output } = message.data
+      const appName = runningApps.find(app => app.id === appId)?.name || 'Unknown App'
+      setConsoleOutput(prev => [...prev, `[${timestamp}] [${appName}] ${output}`])
     }
   }
 
@@ -211,8 +244,13 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
     setDeploymentResult(null)
 
     try {
-      // Add deployment start message to console
-      setConsoleOutput(prev => [...prev, `Deploying ${deploymentConfig.type} app to ${selectedKit.name}...`])
+      // Add deployment start message to console with timestamp
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [...prev,
+        `[${timestamp}] 🚀 Starting deployment of ${deploymentConfig.type} app to ${selectedKit.name}...`,
+        `[${timestamp}] 📦 App name: ${prototype?.name || 'New App'}`,
+        `[${timestamp}] 📝 Code length: ${finalCode.length} characters`
+      ])
 
       let finalCode = deploymentConfig.code
 
@@ -222,10 +260,10 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
           const convertResponse = await kitManagerService.convertCode({ code: finalCode })
           if (convertResponse.status === 'OK') {
             finalCode = convertResponse.content
-            setConsoleOutput(prev => [...prev, 'Code converted to Vehicle App format'])
+            setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ Code converted to Vehicle App format`])
           }
         } catch (convertError) {
-          setConsoleOutput(prev => [...prev, 'Warning: Code conversion failed, using original code'])
+          setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Code conversion failed, using original code`])
           console.warn('Code conversion failed:', convertError)
         }
       }
@@ -238,14 +276,15 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
       )
 
       // The deployment result will be handled by the event listener
-      setConsoleOutput(prev => [...prev, 'Deployment request sent successfully'])
+      setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 📤 Deployment request sent successfully to ${selectedKit.name}`])
     } catch (error) {
       console.error('Deployment failed:', error)
+      const timestamp = new Date().toLocaleTimeString()
       setDeploymentResult({
         status: 'error',
         message: error instanceof Error ? error.message : 'Deployment failed'
       })
-      setConsoleOutput(prev => [...prev, `Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`])
+      setConsoleOutput(prev => [...prev, `[${timestamp}] ❌ Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`])
     } finally {
       setIsDeploying(false)
     }
@@ -320,6 +359,10 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
     } catch (error) {
       setConnectionError(error instanceof Error ? error.message : 'Failed to reconnect')
     }
+  }
+
+  const clearConsole = () => {
+    setConsoleOutput([])
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -872,7 +915,7 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setConsoleOutput([])}
+                    onClick={clearConsole}
                   >
                     <TbTrash className="w-4 h-4 mr-1" />
                     Clear
@@ -901,12 +944,34 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                     )}
                   </div>
                 ) : (
-                  <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
-                    {consoleOutput.map((line, index) => (
-                      <div key={index} className="mb-1">
-                        <span className="text-gray-500">[{new Date().toLocaleTimeString()}]</span> {line}
-                      </div>
-                    ))}
+                  <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
+                    {consoleOutput.map((line, index) => {
+                      // Parse timestamp if it exists at the start
+                      const timestampMatch = line.match(/^\[([\d:]+\s*[AP]M)\]\s*(.+)/)
+                      if (timestampMatch) {
+                        return (
+                          <div key={index} className="mb-1">
+                            <span className="text-gray-500">[{timestampMatch[1]}]</span>{' '}
+                            <span className={
+                              // Color coding based on content
+                              timestampMatch[2].includes('🚀') ? 'text-blue-400' :
+                              timestampMatch[2].includes('✅') ? 'text-green-400' :
+                              timestampMatch[2].includes('❌') || timestampMatch[2].includes('⚠️') ? 'text-yellow-400' :
+                              timestampMatch[2].includes('📦') || timestampMatch[2].includes('📝') ? 'text-blue-300' :
+                              timestampMatch[2].includes('📤') ? 'text-cyan-400' :
+                              'text-green-300'
+                            }>{timestampMatch[2]}</span>
+                          </div>
+                        )
+                      } else {
+                        // Fallback for lines without timestamp
+                        return (
+                          <div key={index} className="mb-1 text-green-300">
+                            {line}
+                          </div>
+                        )
+                      }
+                    })}
                     <div ref={consoleEndRef} />
                   </div>
                 )}
