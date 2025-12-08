@@ -32,7 +32,9 @@ import {
   TbCloud,
   TbArrowRight,
   TbTool,
-  TbWifi
+  TbWifi,
+  TbWifiOff,
+  TbTerminal2
 } from 'react-icons/tb'
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
@@ -68,13 +70,16 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   onClose,
   prototype
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'deploy' | 'apps' | 'console' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'deploy' | 'apps' | 'console' | 'runtime' | 'settings'>('overview')
   const [showSetupWizard, setShowSetupWizard] = useState(false)
   const [runtimes, setRuntimes] = useState<VehicleEdgeRuntime[]>([])
   const [selectedRuntime, setSelectedRuntime] = useState<VehicleEdgeRuntime | null>(null)
   const [runningApps, setRunningApps] = useState<RunningApp[]>([])
   const [selectedApp, setSelectedApp] = useState<RunningApp | null>(null)
   const [consoleOutput, setConsoleOutput] = useState<string[]>([])
+  const [runtimeConsoleOutput, setRuntimeConsoleOutput] = useState<string[]>([])
+  const [runtimeCommand, setRuntimeCommand] = useState('')
+  const [isSubscribedToRuntimeLogs, setIsSubscribedToRuntimeLogs] = useState(false)
   const [isDeploying, setIsDeploying] = useState(false)
   const [deploymentConfig, setDeploymentConfig] = useState({
     type: 'python' as 'python' | 'binary',
@@ -250,6 +255,103 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
     }
   }
 
+  // Runtime console methods
+  const handleSubscribeToRuntimeLogs = () => {
+    if (!selectedRuntime || isSubscribedToRuntimeLogs) return
+
+    socket?.emit('messageToKit', {
+      cmd: 'subscribe_runtime_logs',
+      to_kit_id: selectedRuntime.id
+    })
+
+    setIsSubscribedToRuntimeLogs(true)
+    setRuntimeConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔔 Subscribed to runtime logs`])
+  }
+
+  const handleUnsubscribeFromRuntimeLogs = () => {
+    if (!selectedRuntime || !isSubscribedToRuntimeLogs) return
+
+    socket?.emit('messageToKit', {
+      cmd: 'unsubscribe_runtime_logs',
+      to_kit_id: selectedRuntime.id
+    })
+
+    setIsSubscribedToRuntimeLogs(false)
+    setRuntimeConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔕 Unsubscribed from runtime logs`])
+  }
+
+  const handleRuntimeCommand = () => {
+    if (!selectedRuntime || !runtimeCommand.trim()) return
+
+    const command = runtimeCommand.trim()
+    setRuntimeConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] > ${command}`])
+
+    socket?.emit('messageToKit', {
+      cmd: 'execute_runtime_command',
+      to_kit_id: selectedRuntime.id,
+      data: {
+        command: command,
+        args: command.split(' ').slice(1)
+      }
+    })
+
+    setRuntimeCommand('')
+  }
+
+  const handleRuntimeHealthCheck = async () => {
+    if (!selectedRuntime) return
+
+    setRuntimeConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🏥 Checking runtime health...`])
+
+    try {
+      const response = await fetch(`http://localhost:3003/health`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const healthData = await response.json()
+        setRuntimeConsoleOutput(prev => [...prev,
+          `[${new Date().toLocaleTimeString()}] ✅ Runtime is healthy`,
+          `[${new Date().toLocaleTimeString()}] 📊 Status: ${JSON.stringify(healthData, null, 2)}`
+        ])
+      } else {
+        setRuntimeConsoleOutput(prev => [...prev,
+          `[${new Date().toLocaleTimeString()}] ❌ Runtime health check failed: ${response.status} ${response.statusText}`
+        ])
+      }
+    } catch (error) {
+      setRuntimeConsoleOutput(prev => [...prev,
+        `[${new Date().toLocaleTimeString()}] ❌ Runtime health check error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
+    }
+  }
+
+  const handleClearRuntimeConsole = () => {
+    setRuntimeConsoleOutput([])
+  }
+
+  // Parse console output for color coding
+  const parseConsoleOutput = (output: string) => {
+    const timestamp = output.match(/^\[\d{2}:\d{2}:\d{2}\]/)?.[0] || ''
+    const message = output.substring(timestamp.length).trim()
+
+    let colorClass = 'text-gray-300'
+    if (message.toLowerCase().includes('error') || message.toLowerCase().includes('failed') || message.toLowerCase().includes('❌')) {
+      colorClass = 'text-red-400'
+    } else if (message.toLowerCase().includes('warning') || message.toLowerCase().includes('warn') || message.toLowerCase().includes('⚠️')) {
+      colorClass = 'text-yellow-400'
+    } else if (message.toLowerCase().includes('success') || message.toLowerCase().includes('completed') || message.toLowerCase().includes('✅')) {
+      colorClass = 'text-green-400'
+    } else if (message.toLowerCase().includes('info') || message.toLowerCase().includes('🏥') || message.toLowerCase().includes('📊')) {
+      colorClass = 'text-blue-400'
+    }
+
+    return { timestamp, message, colorClass }
+  }
+
   return (
     <div className="w-full h-full flex flex-col bg-da-gray-50">
       {/* Header */}
@@ -279,6 +381,7 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
             { id: 'deploy', label: 'Deploy', icon: TbRocket },
             { id: 'apps', label: 'Applications', icon: TbCode, count: runningApps.length },
             { id: 'console', label: 'Console', icon: TbTerminal },
+            { id: 'runtime', label: 'Runtime Console', icon: TbActivity },
             { id: 'settings', label: 'Settings', icon: TbSettings }
           ].map((tab) => (
             <button
@@ -798,6 +901,156 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'runtime' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg border border-da-gray-200">
+              <div className="px-6 py-4 border-b border-da-gray-200 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-da-gray-900">Runtime Console</h3>
+                  {selectedRuntime && (
+                    <p className="text-sm text-da-gray-600">{selectedRuntime.name} - Runtime System Console</p>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleClearRuntimeConsole}
+                    className="flex items-center space-x-1 px-3 py-1 text-sm border border-da-gray-300 rounded hover:bg-da-gray-50"
+                  >
+                    <TbTrash className="w-4 h-4" />
+                    <span>Clear</span>
+                  </button>
+                  <button
+                    onClick={handleRuntimeHealthCheck}
+                    disabled={!selectedRuntime}
+                    className="flex items-center space-x-1 px-3 py-1 text-sm border border-da-gray-300 rounded hover:bg-da-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <TbActivity className="w-4 h-4" />
+                    <span>Health Check</span>
+                  </button>
+                  {!isSubscribedToRuntimeLogs ? (
+                    <button
+                      onClick={handleSubscribeToRuntimeLogs}
+                      disabled={!selectedRuntime}
+                      className="flex items-center space-x-1 px-3 py-1 text-sm bg-da-primary-500 text-white rounded hover:bg-da-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <TbWifi className="w-4 h-4" />
+                      <span>Subscribe Logs</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleUnsubscribeFromRuntimeLogs}
+                      className="flex items-center space-x-1 px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      <TbWifiOff className="w-4 h-4" />
+                      <span>Unsubscribe</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Console Output */}
+              <div className="p-6">
+                {runtimeConsoleOutput.length === 0 ? (
+                  <div className="text-center py-12">
+                    <TbTerminal className="w-12 h-12 text-da-gray-400 mx-auto mb-4" />
+                    <p className="text-da-gray-600">No runtime console output</p>
+                    <p className="text-sm text-da-gray-500 mt-2">
+                      {selectedRuntime
+                        ? "Subscribe to runtime logs or execute commands to see output"
+                        : "Select a runtime to use the console"
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
+                    {runtimeConsoleOutput.map((line, index) => {
+                      const { timestamp, message, colorClass } = parseConsoleOutput(line)
+                      return (
+                        <div key={index} className="mb-1">
+                          <span className="text-gray-500">{timestamp}</span>
+                          <span className={colorClass}> {message}</span>
+                        </div>
+                      )
+                    })}
+                    <div ref={consoleEndRef} />
+                  </div>
+                )}
+              </div>
+
+              {/* Command Input */}
+              <div className="border-t border-da-gray-200 p-6">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="text"
+                    value={runtimeCommand}
+                    onChange={(e) => setRuntimeCommand(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleRuntimeCommand()}
+                    placeholder="Enter runtime command (e.g., 'ps aux', 'tail -f /var/log/app.log')"
+                    disabled={!selectedRuntime}
+                    className="flex-1 px-4 py-2 border border-da-gray-300 rounded-lg focus:ring-2 focus:ring-da-primary-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  />
+                  <button
+                    onClick={handleRuntimeCommand}
+                    disabled={!selectedRuntime || !runtimeCommand.trim()}
+                    className="flex items-center space-x-2 px-4 py-2 bg-da-primary-500 text-white rounded-lg hover:bg-da-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <TbTerminal2 className="w-4 h-4" />
+                    <span>Execute</span>
+                  </button>
+                </div>
+                <p className="text-sm text-da-gray-600 mt-2">
+                  Execute commands directly on the Vehicle Edge Runtime system. Available commands may include:
+                  ps, top, htop, ls, cat, grep, tail, journalctl, systemctl status, docker ps, etc.
+                </p>
+              </div>
+            </div>
+
+            {/* Runtime Info Card */}
+            {selectedRuntime && (
+              <div className="bg-white rounded-lg border border-da-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-da-gray-900 mb-4">Runtime Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium text-da-gray-700 mb-2">System Status</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Connection:</span>
+                        <span className={`font-medium ${getStatusColor(selectedRuntime.status)}`}>
+                          {selectedRuntime.status}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Version:</span>
+                        <span className="font-medium">{selectedRuntime.version || 'Unknown'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Last Seen:</span>
+                        <span className="font-medium">{selectedRuntime.lastSeen.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-da-gray-700 mb-2">Log Subscription</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Runtime Logs:</span>
+                        <span className={`font-medium ${isSubscribedToRuntimeLogs ? 'text-green-600' : 'text-gray-600'}`}>
+                          {isSubscribedToRuntimeLogs ? 'Subscribed' : 'Not Subscribed'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-da-gray-600">Console Lines:</span>
+                        <span className="font-medium">{runtimeConsoleOutput.length}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
