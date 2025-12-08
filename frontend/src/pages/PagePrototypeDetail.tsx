@@ -42,6 +42,7 @@ import PrototypeTabInfo from '../components/organisms/PrototypeTabInfo'
 import TemplateForm from '@/components/organisms/TemplateForm'
 import PrototypeTabJourney from '@/components/organisms/PrototypeTabJourney'
 import PrototypeTabs, { getTabConfig } from '@/components/molecules/PrototypeTabs'
+import DaVehicleEdgeRuntimeDashboard from '@/components/molecules/vehicle-edge-runtime/DaVehicleEdgeRuntimeDashboard'
 
 interface ViewPrototypeProps {
   display?: 'tree' | 'list'
@@ -89,7 +90,7 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
     } else {
       setIsDefaultTab(false)
     }
-    setShowRt(['code', 'dashboard'].includes(tab || ''))
+    setShowRt(['code', 'dashboard', 'vehicle-edge-runtime'].includes(tab || ''))
   }, [tab])
 
   useEffect(() => {
@@ -281,6 +282,12 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
           {tab == 'journey' && <PrototypeTabJourney prototype={prototype} />}
           {tab == 'code' && <PrototypeTabCode />}
           {tab == 'dashboard' && <PrototypeTabDashboard />}
+          {tab == 'vehicle-edge-runtime' && (
+            <DaVehicleEdgeRuntimeDashboard
+              onClose={() => {/* Navigate to another tab or handle close if needed */}}
+              prototype={prototype}
+            />
+          )}
           {tab == 'feedback' && <PrototypeTabFeedback />}
           {tab == 'plug' && <PagePrototypePlugin key={pluginId || 'no-plugin'} />}
         </div>

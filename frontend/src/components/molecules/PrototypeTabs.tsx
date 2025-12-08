@@ -14,6 +14,7 @@ import {
   TbGauge,
   TbMapPin,
   TbRoute,
+  TbServer,
 } from 'react-icons/tb'
 import { TabConfig } from '@/components/organisms/CustomTabEditor'
 
@@ -27,6 +28,7 @@ const DEFAULT_BUILTIN_TABS: TabConfig[] = [
   { type: 'builtin', key: 'journey', label: 'Customer Journey' },
   { type: 'builtin', key: 'code', label: 'SDV Code' },
   { type: 'builtin', key: 'dashboard', label: 'Dashboard' },
+  { type: 'builtin', key: 'vehicle-edge-runtime', label: 'Vehicle Edge Runtime' },
 ]
 
 // Migration helper: convert old format to new format
@@ -95,6 +97,11 @@ const PrototypeTabs: FC<PrototypeTabsProps> = ({ tabs }) => {
               icon = <TbGauge className="w-5 h-5 mr-2" />
               dataId = 'tab-dashboard'
               break
+            case 'vehicle-edge-runtime':
+              route = `/model/${model_id}/library/prototype/${prototype_id}/vehicle-edge-runtime`
+              icon = <TbServer className="w-5 h-5 mr-2" />
+              dataId = 'tab-vehicle-edge-runtime'
+              break
             default:
               return null
           }
@@ -102,7 +109,8 @@ const PrototypeTabs: FC<PrototypeTabsProps> = ({ tabs }) => {
           // Determine if tab is active
           const isActive =
             (key === 'overview' && (!tab || tab === 'view')) ||
-            (tab === key)
+            (tab === key) ||
+            (key === 'vehicle-edge-runtime' && tab === 'vehicle-edge-runtime')
 
           return (
             <DaTabItem
