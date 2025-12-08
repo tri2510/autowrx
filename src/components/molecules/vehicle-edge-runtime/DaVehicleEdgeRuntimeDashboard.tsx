@@ -30,9 +30,12 @@ import {
   TbCode,
   TbBinary,
   TbCloud,
-  TbArrowRight
+  TbArrowRight,
+  TbTool,
+  TbWifi
 } from 'react-icons/tb'
 import useSocketIO from '@/hooks/useSocketIO'
+import DaDeviceSetupWizard from './DaDeviceSetupWizard'
 
 interface VehicleEdgeRuntime {
   id: string
@@ -61,11 +64,12 @@ interface VehicleEdgeRuntimeDashboardProps {
   prototype?: any
 }
 
-const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({ 
-  onClose, 
-  prototype 
+const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
+  onClose,
+  prototype
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'deploy' | 'apps' | 'console' | 'settings'>('overview')
+  const [showSetupWizard, setShowSetupWizard] = useState(false)
   const [runtimes, setRuntimes] = useState<VehicleEdgeRuntime[]>([])
   const [selectedRuntime, setSelectedRuntime] = useState<VehicleEdgeRuntime | null>(null)
   const [runningApps, setRunningApps] = useState<RunningApp[]>([])
@@ -96,30 +100,28 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
     }
   }, [consoleOutput])
 
-  useEffect(() => {
-    // Initialize with mock data (replace with actual API calls)
-    const mockRuntimes: VehicleEdgeRuntime[] = [
-      {
-        id: 'vehicle-runtime-001',
-        name: 'Local Vehicle Runtime',
-        status: 'online',
-        lastSeen: new Date(),
-        version: '1.0.0',
-        capabilities: ['run_python_app', 'run_binary_app', 'console_subscribe', 'stop_app', 'get_app_status']
-      },
-      {
-        id: 'cloud-runtime-002',
-        name: 'Cloud Vehicle Runtime',
-        status: 'online',
-        lastSeen: new Date(),
-        version: '1.0.0',
-        capabilities: ['run_python_app', 'run_binary_app', 'console_subscribe', 'stop_app', 'get_app_status']
-      }
-    ]
-    setRuntimes(mockRuntimes)
-    setSelectedRuntime(mockRuntimes[0])
+  const handleSetupWizardComplete = (deviceInfo: VehicleEdgeRuntime) => {
+    setRuntimes(prev => [...prev, deviceInfo])
+    setSelectedRuntime(deviceInfo)
+    setShowSetupWizard(false)
+    setActiveTab('overview')
+  }
 
-    // Mock running apps
+  useEffect(() => {
+    // Check if we have any runtimes, if not show empty state
+    if (runtimes.length === 0) {
+      // Will show empty state in overview
+      return
+    }
+
+    // Auto-select first runtime if none selected
+    if (!selectedRuntime && runtimes.length > 0) {
+      setSelectedRuntime(runtimes[0])
+    }
+  }, [runtimes, selectedRuntime])
+
+  // Initialize mock running apps when component mounts
+  useEffect(() => {
     const mockApps: RunningApp[] = [
       {
         id: 'app-001',
@@ -306,87 +308,137 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
           <div className="space-y-6">
             {/* Runtime Selection */}
             <div className="bg-white rounded-lg border border-da-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-da-gray-900 mb-4">Connected Runtimes</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {runtimes.map((runtime) => (
-                  <div
-                    key={runtime.id}
-                    onClick={() => setSelectedRuntime(runtime)}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      selectedRuntime?.id === runtime.id
-                        ? 'border-da-primary-500 bg-da-primary-50'
-                        : 'border-da-gray-200 hover:border-da-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <TbDeviceDesktop className="w-5 h-5 text-da-primary-500" />
-                        <h4 className="font-medium text-da-gray-900">{runtime.name}</h4>
-                      </div>
-                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(runtime.status)}`}>
-                        {getStatusIcon(runtime.status)}
-                        <span>{runtime.status}</span>
-                      </div>
-                    </div>
-                    <div className="space-y-1 text-sm text-da-gray-600">
-                      <p>Version: {runtime.version}</p>
-                      <p>ID: {runtime.id}</p>
-                      <p>Last seen: {runtime.lastSeen.toLocaleTimeString()}</p>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {runtime.capabilities.slice(0, 3).map((cap) => (
-                        <span key={cap} className="text-xs bg-da-gray-100 text-da-gray-700 px-2 py-1 rounded">
-                          {cap}
-                        </span>
-                      ))}
-                      {runtime.capabilities.length > 3 && (
-                        <span className="text-xs bg-da-gray-100 text-da-gray-700 px-2 py-1 rounded">
-                          +{runtime.capabilities.length - 3} more
-                        </span>
-                      )}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-da-gray-900">Connected Runtimes</h3>
+                <button
+                  onClick={() => setShowSetupWizard(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-da-primary-500 text-white rounded-lg hover:bg-da-primary-600"
+                >
+                  <TbPlus className="w-4 h-4" />
+                  <span>Add Device</span>
+                </button>
+              </div>
+
+              {runtimes.length === 0 ? (
+                <div className="text-center py-12">
+                  <TbWifi className="w-16 h-16 text-da-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-da-gray-900 mb-2">No Vehicle Edge Runtimes Connected</h3>
+                  <p className="text-da-gray-600 mb-6 max-w-md mx-auto">
+                    Get started by adding your first Vehicle Edge Runtime device. Our setup wizard will guide you through the entire process.
+                  </p>
+                  <div className="space-y-3 max-w-sm mx-auto">
+                    <button
+                      onClick={() => setShowSetupWizard(true)}
+                      className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-da-primary-500 text-white rounded-lg hover:bg-da-primary-600 font-medium"
+                    >
+                      <TbTool className="w-5 h-5" />
+                      <span>Setup Your First Device</span>
+                    </button>
+                    <div className="text-xs text-da-gray-500">
+                      Works with Raspberry Pi, Linux PCs, and existing runtimes
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {runtimes.map((runtime) => (
+                    <div
+                      key={runtime.id}
+                      onClick={() => setSelectedRuntime(runtime)}
+                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedRuntime?.id === runtime.id
+                          ? 'border-da-primary-500 bg-da-primary-50'
+                          : 'border-da-gray-200 hover:border-da-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <TbDeviceDesktop className="w-5 h-5 text-da-primary-500" />
+                          <h4 className="font-medium text-da-gray-900">{runtime.name}</h4>
+                        </div>
+                        <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(runtime.status)}`}>
+                          {getStatusIcon(runtime.status)}
+                          <span>{runtime.status}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1 text-sm text-da-gray-600">
+                        <p>Version: {runtime.version}</p>
+                        <p>ID: {runtime.id}</p>
+                        <p>Last seen: {runtime.lastSeen.toLocaleTimeString()}</p>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1">
+                        {runtime.capabilities.slice(0, 3).map((cap) => (
+                          <span key={cap} className="text-xs bg-da-gray-100 text-da-gray-700 px-2 py-1 rounded">
+                            {cap}
+                          </span>
+                        ))}
+                        {runtime.capabilities.length > 3 && (
+                          <span className="text-xs bg-da-gray-100 text-da-gray-700 px-2 py-1 rounded">
+                            +{runtime.capabilities.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-lg border border-da-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-da-gray-600">Running Apps</p>
-                    <p className="text-2xl font-bold text-da-gray-900">{runningApps.filter(app => app.status === 'running').length}</p>
+            {/* Quick Stats - Only show if we have runtimes */}
+            {runtimes.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white rounded-lg border border-da-gray-200 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-da-gray-600">Running Apps</p>
+                      <p className="text-2xl font-bold text-da-gray-900">{runningApps.filter(app => app.status === 'running').length}</p>
+                    </div>
+                    <TbActivity className="w-8 h-8 text-green-500" />
                   </div>
-                  <TbActivity className="w-8 h-8 text-green-500" />
+                </div>
+                <div className="bg-white rounded-lg border border-da-gray-200 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-da-gray-600">Total Deployments</p>
+                      <p className="text-2xl font-bold text-da-gray-900">{runningApps.length}</p>
+                    </div>
+                    <TbRocket className="w-8 h-8 text-blue-500" />
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-da-gray-200 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-da-gray-600">Active Runtimes</p>
+                      <p className="text-2xl font-bold text-da-gray-900">{runtimes.filter(rt => rt.status === 'online').length}</p>
+                    </div>
+                    <TbServer className="w-8 h-8 text-purple-500" />
+                  </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg border border-da-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-da-gray-600">Total Deployments</p>
-                    <p className="text-2xl font-bold text-da-gray-900">{runningApps.length}</p>
-                  </div>
-                  <TbRocket className="w-8 h-8 text-blue-500" />
-                </div>
-              </div>
-              <div className="bg-white rounded-lg border border-da-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-da-gray-600">Active Runtimes</p>
-                    <p className="text-2xl font-bold text-da-gray-900">{runtimes.filter(rt => rt.status === 'online').length}</p>
-                  </div>
-                  <TbServer className="w-8 h-8 text-purple-500" />
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
         {activeTab === 'deploy' && (
           <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bg-white rounded-lg border border-da-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-da-gray-900 mb-4">Deploy New Application</h3>
+            {runtimes.length === 0 ? (
+              <div className="bg-white rounded-lg border border-da-gray-200 p-6 text-center">
+                <TbServer className="w-16 h-16 text-da-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-da-gray-900 mb-2">No Runtime Available</h3>
+                <p className="text-da-gray-600 mb-6">
+                  You need to connect a Vehicle Edge Runtime before deploying applications.
+                </p>
+                <button
+                  onClick={() => setShowSetupWizard(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-da-primary-500 text-white rounded-lg hover:bg-da-primary-600 mx-auto"
+                >
+                  <TbTool className="w-4 h-4" />
+                  <span>Setup Vehicle Edge Runtime</span>
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-da-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-da-gray-900 mb-4">Deploy New Application</h3>
               
               {/* Application Type */}
               <div className="mb-6">
@@ -596,15 +648,32 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                 </button>
               </div>
             </div>
+            )}
           </div>
         )}
 
         {activeTab === 'apps' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg border border-da-gray-200">
-              <div className="px-6 py-4 border-b border-da-gray-200">
-                <h3 className="text-lg font-semibold text-da-gray-900">Running Applications</h3>
+            {runtimes.length === 0 ? (
+              <div className="bg-white rounded-lg border border-da-gray-200 p-6 text-center">
+                <TbCode className="w-16 h-16 text-da-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-da-gray-900 mb-2">No Runtime Available</h3>
+                <p className="text-da-gray-600 mb-6">
+                  You need to connect a Vehicle Edge Runtime before viewing applications.
+                </p>
+                <button
+                  onClick={() => setShowSetupWizard(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-da-primary-500 text-white rounded-lg hover:bg-da-primary-600 mx-auto"
+                >
+                  <TbTool className="w-4 h-4" />
+                  <span>Setup Vehicle Edge Runtime</span>
+                </button>
               </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-da-gray-200">
+                <div className="px-6 py-4 border-b border-da-gray-200">
+                  <h3 className="text-lg font-semibold text-da-gray-900">Running Applications</h3>
+                </div>
               <div className="divide-y divide-da-gray-200">
                 {runningApps.length === 0 ? (
                   <div className="px-6 py-12 text-center">
@@ -672,7 +741,8 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                   ))
                 )}
               </div>
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -800,6 +870,20 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Setup Wizard Modal */}
+      {showSetupWizard && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50">
+          <div className="w-full h-full flex items-center justify-center p-4">
+            <div className="w-full max-w-6xl max-h-full bg-white rounded-lg shadow-xl overflow-hidden">
+              <DaDeviceSetupWizard
+                onClose={() => setShowSetupWizard(false)}
+                onComplete={handleSetupWizardComplete}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
