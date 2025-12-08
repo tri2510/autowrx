@@ -658,7 +658,7 @@ npm start`,
   return (
     <div className="w-full h-full flex flex-col bg-da-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-da-gray-200 px-6 py-4">
+      <div className="flex-shrink-0 bg-white border-b border-da-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <TbTool className="w-8 h-8 text-da-primary-500" />
@@ -677,15 +677,15 @@ npm start`,
       </div>
 
       {/* Progress Steps */}
-      <div className="bg-white border-b border-da-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="flex-shrink-0 bg-white border-b border-da-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between overflow-x-auto">
           {setupSteps.map((step, index) => (
             <div
               key={step.id}
-              className="flex items-center flex-1"
+              className="flex items-center flex-1 min-w-0"
             >
               <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                   step.status === 'completed'
                     ? 'bg-da-primary-500 text-white'
                     : step.status === 'in_progress'
@@ -704,13 +704,13 @@ npm start`,
                     <span>{index + 1}</span>
                   )}
                 </div>
-                <div className="flex-1">
-                  <h4 className={`text-sm font-medium ${
+                <div className="flex-1 min-w-0">
+                  <h4 className={`text-sm font-medium truncate ${
                     index === currentStep ? 'text-da-primary-600' : 'text-da-gray-900'
                   }`}>
                     {step.title}
                   </h4>
-                  <p className="text-xs text-da-gray-600 hidden sm:block">{step.description}</p>
+                  <p className="text-xs text-da-gray-600 hidden sm:block truncate">{step.description}</p>
                 </div>
               </div>
               {index < setupSteps.length - 1 && (
@@ -723,13 +723,15 @@ npm start`,
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {renderStepContent()}
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6 min-h-full">
+          {renderStepContent()}
+        </div>
       </div>
 
       {/* Navigation */}
-      <div className="bg-white border-t border-da-gray-200 px-6 py-4">
+      <div className="flex-shrink-0 bg-white border-t border-da-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <button
             onClick={handleBack}

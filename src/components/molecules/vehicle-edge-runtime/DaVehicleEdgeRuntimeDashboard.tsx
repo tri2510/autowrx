@@ -875,7 +875,7 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
       {showSetupWizard && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50">
           <div className="w-full h-full flex items-center justify-center p-4">
-            <div className="w-full max-w-6xl max-h-full bg-white rounded-lg shadow-xl overflow-hidden">
+            <div className="w-full max-w-6xl h-[90vh] max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden">
               <DaDeviceSetupWizard
                 onClose={() => setShowSetupWizard(false)}
                 onComplete={handleSetupWizardComplete}
