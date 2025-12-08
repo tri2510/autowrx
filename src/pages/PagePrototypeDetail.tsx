@@ -25,6 +25,7 @@ import {
   TbScale,
   TbTargetArrow,
   TbListTree,
+  TbServer,
 } from 'react-icons/tb'
 import { saveRecentPrototype } from '@/services/prototype.service'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
@@ -33,6 +34,7 @@ import DaPopup from '@/components/atoms/DaPopup'
 import { TbMessage } from 'react-icons/tb'
 import DaDiscussions from '@/components/molecules/DaDiscussions'
 import { DaUDADashboard } from '@/components/molecules/uda'
+import DaVehicleEdgeRuntimeDashboard from '@/components/molecules/vehicle-edge-runtime/DaVehicleEdgeRuntimeDashboard'
 import DaStaging from '@/components/molecules/staging/DaStaging'
 import PrototypeTabJourney from '@/components/organisms/PrototypeTabJourney'
 import PrototypeTabArchitecture from '@/components/organisms/PrototypeTabArchitecture'
@@ -65,6 +67,7 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
   const [isDefaultTab, setIsDefaultTab] = useState(false)
   const [openStagingDialog, setOpenStagingDialog] = useState(false)
   const [openUDADialog, setOpenUDADialog] = useState(false)
+  const [openVERDialog, setOpenVERDialog] = useState(false)
   const [showRt, setShowRt] = useState(false)
 
   useEffect(() => {
@@ -184,6 +187,23 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
             className="w-full h-[90vh] p-4 overflow-hidden"
           >
             <DaUDADashboard onClose={() => setOpenUDADialog(false)} />
+          </DaPopup>
+          <DaPopup
+            trigger={
+              <div className="flex h-full da-label-small-bold items-center justify-center min-w-20 cursor-pointer hover:opacity-80 border-b-2 border-transparent py-1 px-4 text-da-gray-medium hover:text-da-primary-500">
+                <TbServer className="w-5 h-5 mr-2" />
+                Vehicle Edge Runtime
+              </div>
+            }
+            state={[openVERDialog, setOpenVERDialog]}
+            onClose={() => {
+              setOpenVERDialog(false)
+            }}
+            closeBtnClassName="top-5 size-5"
+            width="1200px"
+            className="w-full h-[90vh] p-4 overflow-hidden"
+          >
+            <DaVehicleEdgeRuntimeDashboard onClose={() => setOpenVERDialog(false)} prototype={prototype} />
           </DaPopup>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
