@@ -30,6 +30,7 @@ import {
   TbCode,
   TbBinary,
   TbArrowRight,
+  TbArrowUp,
   TbTool,
   TbWifi,
   TbPlug,
@@ -801,11 +802,58 @@ if __name__ == "__main__":
     <div className="w-full h-full flex flex-col bg-background">
       {/* Header */}
       <div className="border-b border-border px-6 py-4">
-        <div className="flex items-center space-x-3">
-          <TbServer className="w-8 h-8 text-primary" />
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Vehicle Edge Runtime</h2>
-            <p className="text-muted-foreground">Deploy and manage vehicle applications</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <TbServer className="w-8 h-8 text-primary" />
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Vehicle Edge Runtime</h2>
+              <p className="text-muted-foreground">Deploy and manage vehicle applications</p>
+            </div>
+          </div>
+
+          {/* Persistent Runtime Selector */}
+          <div className="flex items-center space-x-4">
+            {kits.length > 0 ? (
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-muted-foreground">Runtime:</span>
+                <select
+                  value={selectedKit?.kit_id || ''}
+                  onChange={(e) => {
+                    const kit = kits.find(k => k.kit_id === e.target.value)
+                    setSelectedKit(kit || null)
+                  }}
+                  className="px-3 py-2 border border-border rounded-md bg-background text-sm focus:ring-2 focus:ring-primary focus:border-transparent min-w-[200px]"
+                >
+                  <option value="">Select Runtime...</option>
+                  {kits.map((kit) => (
+                    <option key={kit.kit_id} value={kit.kit_id}>
+                      {kit.name} ({kit.is_online ? 'Online' : 'Offline'})
+                    </option>
+                  ))}
+                </select>
+                {selectedKit && (
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${selectedKit.is_online ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className={`text-sm font-medium ${selectedKit.is_online ? 'text-green-600' : 'text-red-600'}`}>
+                      {selectedKit.is_online ? 'Online' : 'Offline'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <TbAlertTriangle className="w-4 h-4 text-yellow-500" />
+                <span>No runtimes available</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab('overview')}
+                  className="ml-2"
+                >
+                  Setup Runtime
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1301,8 +1349,20 @@ if __name__ == "__main__":
               </div>
             </div>
 
-            {/* Runtime Selection for Deployment */}
-            {!selectedKit && filteredKits.length === 0 ? (
+            {/* Runtime Check */}
+            {!selectedKit && kits.length > 0 ? (
+              <div className="rounded-lg border border-border p-6 text-center bg-yellow-50 border-yellow-200">
+                <TbAlertTriangle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No Runtime Selected</h3>
+                <p className="text-muted-foreground mb-6">
+                  Please select a Vehicle Edge Runtime from the header to deploy apps from the marketplace.
+                </p>
+                <div className="flex items-center justify-center space-x-4 text-sm text-muted-foreground">
+                  <TbArrowUp className="w-4 h-4" />
+                  <span>Select a runtime from the dropdown in the header above</span>
+                </div>
+              </div>
+            ) : !selectedKit && kits.length === 0 ? (
               <div className="rounded-lg border border-border p-6 text-center bg-yellow-50 border-yellow-200">
                 <TbAlertTriangle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">No Runtime Available</h3>
@@ -1319,34 +1379,6 @@ if __name__ == "__main__":
               </div>
             ) : (
               <>
-                {/* Selected Runtime Info */}
-                {selectedKit && (
-                  <div className="rounded-lg border border-border p-4 bg-green-50 border-green-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <TbDeviceDesktop className="w-5 h-5 text-green-600" />
-                        <div>
-                          <p className="font-medium text-foreground">Deploying to: {selectedKit.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedKit.is_online ? (
-                              <span className="text-green-600">Online and ready</span>
-                            ) : (
-                              <span className="text-red-600">Offline - apps may not deploy</span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setActiveTab('overview')}
-                      >
-                        Change Runtime
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
                 {/* Apps Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredMarketplaceApps.map((app) => (
