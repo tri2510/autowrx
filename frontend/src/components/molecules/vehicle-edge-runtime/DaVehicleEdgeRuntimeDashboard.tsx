@@ -92,9 +92,13 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
       cpu: 50
     }
   })
+  const [showOfflineDevices, setShowOfflineDevices] = useState(false)
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
 
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize Kit Manager connection and fetch kits
   useEffect(() => {
@@ -237,6 +241,34 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
     }
   }, [kits, selectedKit])
 
+  // Auto-refresh mechanism
+  useEffect(() => {
+    if (autoRefreshEnabled && isConnected) {
+      // Set up auto-refresh every 30 seconds
+      autoRefreshIntervalRef.current = setInterval(() => {
+        handleRefreshKits()
+      }, 30000)
+
+      // Initial refresh when enabled
+      handleRefreshKits()
+    } else {
+      // Clear interval when disabled
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current)
+        autoRefreshIntervalRef.current = null
+      }
+    }
+
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current)
+      }
+    }
+  }, [autoRefreshEnabled, isConnected])
+
+  // Filter kits based on showOfflineDevices setting
+  const filteredKits = showOfflineDevices ? kits : kits.filter(kit => kit.is_online)
+
   const handleDeployApp = async () => {
     if (!selectedKit) return
 
@@ -332,7 +364,8 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
 
   const handleRefreshKits = async () => {
     try {
-      setConsoleOutput(prev => [...prev, 'Refreshing kits list...'])
+      // Update last refresh time
+      setLastRefreshTime(new Date())
 
       // Request fresh kits list via WebSocket
       kitManagerService.requestKits()
@@ -341,13 +374,9 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
       const kitsResponse = await kitManagerService.listKits()
       if (kitsResponse.status === 'OK') {
         setKits(kitsResponse.content)
-        setConsoleOutput(prev => [...prev, `Found ${kitsResponse.content.length} kits`])
-      } else {
-        setConsoleOutput(prev => [...prev, `Failed to fetch kits: ${kitsResponse.message}`])
       }
     } catch (error) {
       console.error('Failed to refresh kits:', error)
-      setConsoleOutput(prev => [...prev, `Failed to refresh kits: ${error instanceof Error ? error.message : 'Unknown error'}`])
     }
   }
 
@@ -459,6 +488,11 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-foreground">
                   Vehicle Edge Runtimes {isConnected ? <TbPlugConnected className="w-5 h-5 text-green-500 ml-2" /> : <TbPlug className="w-5 h-5 text-yellow-500 ml-2" />}
+                  {lastRefreshTime && (
+                    <span className="text-sm text-muted-foreground ml-2">
+                      Last refresh: {lastRefreshTime.toLocaleTimeString()}
+                    </span>
+                  )}
                 </h3>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -468,6 +502,22 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                     title="Refresh kits"
                   >
                     <TbRefresh className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                    variant={autoRefreshEnabled ? "default" : "outline"}
+                    size="sm"
+                    title={autoRefreshEnabled ? "Disable auto-refresh" : "Enable auto-refresh"}
+                  >
+                    {autoRefreshEnabled ? "Auto-refresh ON" : "Auto-refresh OFF"}
+                  </Button>
+                  <Button
+                    onClick={() => setShowOfflineDevices(!showOfflineDevices)}
+                    variant={showOfflineDevices ? "default" : "outline"}
+                    size="sm"
+                    title={showOfflineDevices ? "Hide offline devices" : "Show offline devices"}
+                  >
+                    {showOfflineDevices ? "Show All" : "Online Only"}
                   </Button>
                   {connectionError && (
                     <Button
@@ -507,12 +557,17 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                     </Button>
                   </div>
                 </div>
-              ) : kits.length === 0 ? (
+              ) : filteredKits.length === 0 ? (
                 <div className="text-center py-12">
                   <TbWifi className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">No Vehicle Edge Runtimes Connected</h3>
+                  <h3 className="text-lg font-medium text-foreground mb-2">
+                    {showOfflineDevices ? "No Vehicle Edge Runtimes Connected" : "No Online Vehicle Edge Runtimes"}
+                  </h3>
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    Get started by adding your first Vehicle Edge Runtime device. Our setup wizard will guide you through the entire process.
+                    {showOfflineDevices
+                      ? "Get started by adding your first Vehicle Edge Runtime device. Our setup wizard will guide you through the entire process."
+                      : "All connected devices are currently offline. Click 'Show All' to view offline devices or add new devices."
+                    }
                   </p>
                   <div className="space-y-3 max-w-sm mx-auto">
                     <Button
@@ -525,11 +580,20 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                     <div className="text-xs text-muted-foreground">
                       Works with Raspberry Pi, Linux PCs, and existing runtimes
                     </div>
+                    {!showOfflineDevices && kits.length > 0 && (
+                      <Button
+                        onClick={() => setShowOfflineDevices(true)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Show Offline Devices ({kits.length})
+                      </Button>
+                    )}
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {kits.map((kit) => (
+                  {filteredKits.map((kit) => (
                     <div
                       key={kit.kit_id}
                       onClick={() => setSelectedKit(kit)}
@@ -580,7 +644,14 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Running Apps</p>
-                      <p className="text-2xl font-bold text-foreground">{kits.reduce((sum, kit) => sum + kit.noRunner, 0)}</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {filteredKits.reduce((sum, kit) => sum + kit.noRunner, 0)}
+                        {!showOfflineDevices && kits.filter(kit => !kit.is_online).length > 0 && (
+                          <span className="text-xs text-muted-foreground block">
+                            +{kits.filter(kit => !kit.is_online).reduce((sum, kit) => sum + kit.noRunner, 0)} offline
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <TbActivity className="w-8 h-8 text-green-500" />
                   </div>
@@ -589,7 +660,14 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Active Subscribers</p>
-                      <p className="text-2xl font-bold text-foreground">{kits.reduce((sum, kit) => sum + kit.noSubscriber, 0)}</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {filteredKits.reduce((sum, kit) => sum + kit.noSubscriber, 0)}
+                        {!showOfflineDevices && kits.filter(kit => !kit.is_online).length > 0 && (
+                          <span className="text-xs text-muted-foreground block">
+                            +{kits.filter(kit => !kit.is_online).reduce((sum, kit) => sum + kit.noSubscriber, 0)} offline
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <TbRocket className="w-8 h-8 text-blue-500" />
                   </div>
@@ -597,8 +675,17 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                 <div className="rounded-lg border border-border p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Online Runtimes</p>
-                      <p className="text-2xl font-bold text-foreground">{kits.filter(kit => kit.is_online).length}/{kits.length}</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {showOfflineDevices ? "Total Runtimes" : "Online Runtimes"}
+                      </p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {showOfflineDevices ? kits.length : kits.filter(kit => kit.is_online).length}
+                        {showOfflineDevices && (
+                          <span className="text-xs text-muted-foreground block">
+                            {kits.filter(kit => kit.is_online).length} online
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <TbServer className="w-8 h-8 text-purple-500" />
                   </div>
