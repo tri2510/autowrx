@@ -265,10 +265,17 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   }
 
   useEffect(() => {
-    // Auto-select first kit if none selected
-    if (!selectedKit && kits.length > 0) {
-      const onlineKit = kits.find(kit => kit.is_online) || kits[0]
-      setSelectedKit(onlineKit)
+    // Auto-select first online kit if none selected or if current selection is offline
+    const onlineKits = kits.filter(kit => kit.is_online)
+
+    if (!selectedKit && onlineKits.length > 0) {
+      setSelectedKit(onlineKits[0])
+    } else if (selectedKit && !selectedKit.is_online && onlineKits.length > 0) {
+      // If selected kit goes offline, switch to an online one
+      setSelectedKit(onlineKits[0])
+    } else if (selectedKit && !selectedKit.is_online && onlineKits.length === 0) {
+      // If no online kits available and selected one is offline, clear selection
+      setSelectedKit(null)
     }
   }, [kits, selectedKit])
 
@@ -825,9 +832,9 @@ if __name__ == "__main__":
                   className="px-3 py-2 border border-border rounded-md bg-background text-sm focus:ring-2 focus:ring-primary focus:border-transparent min-w-[200px]"
                 >
                   <option value="">Select Runtime...</option>
-                  {kits.map((kit) => (
+                  {kits.filter(kit => kit.is_online).map((kit) => (
                     <option key={kit.kit_id} value={kit.kit_id}>
-                      {kit.name} ({kit.is_online ? 'Online' : 'Offline'})
+                      {kit.name} [{kit.kit_id.substring(0, 4).toUpperCase()}]
                     </option>
                   ))}
                 </select>
