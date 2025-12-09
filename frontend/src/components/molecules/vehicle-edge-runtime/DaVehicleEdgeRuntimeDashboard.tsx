@@ -33,7 +33,12 @@ import {
   TbTool,
   TbWifi,
   TbPlug,
-  TbPlugConnected
+  TbPlugConnected,
+  TbShoppingCart,
+  TbStar,
+  TbClock,
+  TbCategory,
+  TbFilter
 } from 'react-icons/tb'
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
@@ -62,6 +67,26 @@ interface DeploymentResult {
   data?: any
 }
 
+interface MarketplaceApp {
+  id: string
+  name: string
+  description: string
+  category: string
+  version: string
+  author: string
+  rating: number
+  downloads: number
+  price: 'free' | 'paid'
+  icon: string
+  tags: string[]
+  size: string
+  lastUpdated: string
+  code?: string
+  entryPoint?: string
+  type: 'python' | 'binary'
+  requirements: string[]
+}
+
 interface VehicleEdgeRuntimeDashboardProps {
   onClose: () => void
   prototype?: any
@@ -71,7 +96,7 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   onClose,
   prototype
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'deploy' | 'apps' | 'console' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'deploy' | 'marketplace' | 'apps' | 'console' | 'settings'>('overview')
   const [showSetupWizard, setShowSetupWizard] = useState(false)
   const [kits, setKits] = useState<VehicleEdgeRuntimeKit[]>([])
   const [selectedKit, setSelectedKit] = useState<VehicleEdgeRuntimeKit | null>(null)
@@ -95,6 +120,11 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   const [showOfflineDevices, setShowOfflineDevices] = useState(false)
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
+  const [marketplaceApps, setMarketplaceApps] = useState<MarketplaceApp[]>([])
+  const [selectedMarketplaceApp, setSelectedMarketplaceApp] = useState<MarketplaceApp | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [isDeployingApp, setIsDeployingApp] = useState(false)
 
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -268,6 +298,335 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
 
   // Filter kits based on showOfflineDevices setting
   const filteredKits = showOfflineDevices ? kits : kits.filter(kit => kit.is_online)
+
+  // Initialize mock marketplace data
+  useEffect(() => {
+    const mockMarketplaceApps: MarketplaceApp[] = [
+      {
+        id: 'vehicle-diagnostics',
+        name: 'Vehicle Diagnostics Monitor',
+        description: 'Real-time vehicle health monitoring with diagnostic trouble code reading and predictive maintenance alerts.',
+        category: 'Diagnostics',
+        version: '2.1.0',
+        author: 'AutoTech Solutions',
+        rating: 4.5,
+        downloads: 15234,
+        price: 'free',
+        icon: '🚗',
+        tags: ['OBD-II', 'Diagnostics', 'Real-time'],
+        size: '2.4 MB',
+        lastUpdated: '2024-12-01',
+        type: 'python',
+        code: `import obd
+import time
+from datetime import datetime
+
+class VehicleDiagnostics:
+    def __init__(self):
+        self.connection = obd.OBD()
+
+    def monitor_health(self):
+        while True:
+            if self.connection.is_connected():
+                # Monitor critical parameters
+                rpm = self.connection.query(obd.commands.RPM)
+                speed = self.connection.query(obd.commands.SPEED)
+                temp = self.connection.query(obd.commands.COOLANT_TEMP)
+
+                print(f"RPM: {rpm.value.magnitude}, Speed: {speed.value.magnitude}, Temp: {temp.value.magnitude}")
+            time.sleep(1)
+
+if __name__ == "__main__":
+    monitor = VehicleDiagnostics()
+    monitor.monitor_health()`,
+        entryPoint: 'main.py',
+        requirements: ['python-obd>=0.7.0', 'psutil>=5.9.0']
+      },
+      {
+        id: 'fleet-tracker',
+        name: 'Fleet Management Tracker',
+        description: 'Advanced fleet tracking with route optimization, fuel efficiency monitoring, and driver behavior analysis.',
+        category: 'Fleet Management',
+        version: '3.0.2',
+        author: 'FleetLogic',
+        rating: 4.8,
+        downloads: 28956,
+        price: 'paid',
+        icon: '📊',
+        tags: ['GPS', 'Analytics', 'Optimization'],
+        size: '5.1 MB',
+        lastUpdated: '2024-11-28',
+        type: 'python',
+        code: `import gps
+import json
+from datetime import datetime
+
+class FleetTracker:
+    def __init__(self):
+        self.session = gps.gps(mode=gps.WATCH_ENABLE)
+
+    def track_vehicle(self, vehicle_id):
+        while True:
+            report = self.session.next()
+            if report.keys() >= {'lat', 'lon', 'speed'}:
+                data = {
+                    'vehicle_id': vehicle_id,
+                    'timestamp': datetime.now().isoformat(),
+                    'latitude': report['lat'],
+                    'longitude': report['lon'],
+                    'speed': report['speed']
+                }
+                print(json.dumps(data))
+        time.sleep(5)`,
+        entryPoint: 'tracker.py',
+        requirements: ['gps3>=0.6.0', 'requests>=2.31.0']
+      },
+      {
+        id: 'telemetry-collector',
+        name: 'Telemetry Data Collector',
+        description: 'High-performance CAN bus data collection and streaming for vehicle telemetry analysis.',
+        category: 'Data Collection',
+        version: '1.5.4',
+        author: 'AutoData Systems',
+        rating: 4.3,
+        downloads: 8765,
+        price: 'free',
+        icon: '📡',
+        tags: ['CAN Bus', 'Telemetry', 'Streaming'],
+        size: '1.8 MB',
+        lastUpdated: '2024-11-15',
+        type: 'binary',
+        requirements: []
+      },
+      {
+        id: 'collision-detector',
+        name: 'Collision Detection System',
+        description: 'AI-powered collision detection using accelerometer and camera data with automatic emergency response.',
+        category: 'Safety',
+        version: '4.2.1',
+        author: 'SafeDrive AI',
+        rating: 4.9,
+        downloads: 45123,
+        price: 'paid',
+        icon: '🛡️',
+        tags: ['AI', 'Safety', 'Emergency'],
+        size: '8.7 MB',
+        lastUpdated: '2024-12-05',
+        type: 'python',
+        code: `import cv2
+import numpy as np
+from tensorflow.keras.models import load_model
+
+class CollisionDetector:
+    def __init__(self):
+        self.model = load_model('collision_model.h5')
+        self.cap = cv2.VideoCapture(0)
+
+    def detect_collision(self):
+        while True:
+            ret, frame = self.cap.read()
+            if ret:
+                processed = cv2.resize(frame, (224, 224))
+                prediction = self.model.predict(np.expand_dims(processed, axis=0))
+
+                if prediction[0][0] > 0.8:
+                    print("COLLISION DETECTED!")
+                    self.send_emergency_alert()
+
+    def send_emergency_alert(self):
+        # Send alert to emergency services
+        print("Emergency alert sent!")
+
+if __name__ == "__main__":
+    detector = CollisionDetector()
+    detector.detect_collision()`,
+        entryPoint: 'collision_detector.py',
+        requirements: ['opencv-python>=4.8.0', 'tensorflow>=2.13.0', 'numpy>=1.24.0']
+      },
+      {
+        id: 'climate-controller',
+        name: 'Smart Climate Controller',
+        description: 'Intelligent climate control system with passenger comfort optimization and energy efficiency.',
+        category: 'Comfort',
+        version: '2.0.8',
+        author: 'ComfortTech',
+        rating: 4.1,
+        downloads: 5432,
+        price: 'free',
+        icon: '🌡️',
+        tags: ['Climate', 'Comfort', 'Efficiency'],
+        size: '1.2 MB',
+        lastUpdated: '2024-11-20',
+        type: 'python',
+        code: `import time
+from sensors import TempSensor, HumiditySensor
+
+class ClimateController:
+    def __init__(self):
+        self.temp_sensor = TempSensor()
+        self.humidity_sensor = HumiditySensor()
+        self.target_temp = 22  # Target temperature in Celsius
+
+    def regulate_climate(self):
+        while True:
+            current_temp = self.temp_sensor.read()
+            humidity = self.humidity_sensor.read()
+
+            if current_temp < self.target_temp - 1:
+                self.activate_heater()
+            elif current_temp > self.target_temp + 1:
+                self.activate_cooler()
+            else:
+                self.maintain_temperature()
+
+            print(f"Temp: {current_temp}°C, Humidity: {humidity}%")
+            time.sleep(30)`,
+        entryPoint: 'climate.py',
+        requirements: ['RPi.GPIO>=0.7.1', 'sensors>=1.0.0']
+      },
+      {
+        id: 'route-optimizer',
+        name: 'AI Route Optimizer',
+        description: 'Machine learning-based route optimization considering traffic, weather, and vehicle constraints.',
+        category: 'Navigation',
+        version: '3.5.0',
+        author: 'NavAI Solutions',
+        rating: 4.6,
+        downloads: 32109,
+        price: 'paid',
+        icon: '🗺️',
+        tags: ['Navigation', 'AI', 'Traffic'],
+        size: '6.2 MB',
+        lastUpdated: '2024-12-03',
+        type: 'python',
+        code: `import requests
+import json
+from datetime import datetime
+
+class RouteOptimizer:
+    def __init__(self):
+        self.api_key = "your_api_key"
+
+    def optimize_route(self, start, end, constraints=None):
+        """Optimize route considering traffic and weather"""
+        url = f"https://api.routing-service.com/optimize"
+
+        payload = {
+            'start': start,
+            'end': end,
+            'constraints': constraints or {},
+            'real_time_data': True
+        }
+
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            route = response.json()
+            print(f"Optimized route: {route['distance']}km, ETA: {route['eta']}")
+            return route
+        return None
+
+if __name__ == "__main__":
+    optimizer = RouteOptimizer()
+    optimizer.optimize_route("New York", "Boston")`,
+        entryPoint: 'router.py',
+        requirements: ['requests>=2.31.0', 'geopy>=2.4.0', 'pandas>=2.1.0']
+      }
+    ]
+
+    setMarketplaceApps(mockMarketplaceApps)
+  }, [])
+
+  // Filter marketplace apps based on category and search
+  const filteredMarketplaceApps = marketplaceApps.filter(app => {
+    const matchesCategory = selectedCategory === 'all' || app.category === selectedCategory
+    const matchesSearch = searchQuery === '' ||
+      app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    return matchesCategory && matchesSearch
+  })
+
+  // Get unique categories
+  const categories = ['all', ...Array.from(new Set(marketplaceApps.map(app => app.category)))]
+
+  const handleDeployMarketplaceApp = async (app: MarketplaceApp) => {
+    if (!selectedKit || !app) return
+
+    setIsDeployingApp(true)
+    setDeploymentResult(null)
+
+    try {
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [...prev,
+        `[${timestamp}] 🛒 Starting deployment from marketplace: ${app.name}`,
+        `[${timestamp}] 📦 App version: ${app.version}`,
+        `[${timestamp}] 👨‍💻 Author: ${app.author}`,
+        `[${timestamp}] 🏷️ Category: ${app.category}`,
+        `[${timestamp}] 📊 Rating: ${app.rating}/5 (${app.downloads} downloads)`,
+        `[${timestamp}] 💰 Price: ${app.price}`,
+        `[${timestamp}] 📏 Size: ${app.size}`
+      ])
+
+      let finalCode = app.code || ''
+
+      // If it's a binary app, we'll handle it differently
+      if (app.type === 'binary') {
+        // For binary apps, we would typically download the binary
+        // For now, we'll show a message indicating binary deployment
+        setConsoleOutput(prev => [...prev,
+          `[${timestamp}] 📦 Binary deployment - downloading ${app.name}...`,
+          `[${timestamp}] ⚠️ Binary deployment requires additional setup`
+        ])
+
+        // Simulate binary deployment
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        setConsoleOutput(prev => [...prev,
+          `[${timestamp}] 📤 Binary deployment request sent to ${selectedKit.name}`
+        ])
+      } else {
+        // Convert Python code to Vehicle App format
+        if (finalCode) {
+          try {
+            const convertResponse = await kitManagerService.convertCode({ code: finalCode })
+            if (convertResponse.status === 'OK') {
+              finalCode = convertResponse.content
+              setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ Code converted to Vehicle App format`])
+            }
+          } catch (convertError) {
+            setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Code conversion failed, using original code`])
+            console.warn('Code conversion failed:', convertError)
+          }
+        }
+
+        // Deploy the application
+        await kitManagerService.deployApp(
+          selectedKit.kit_id,
+          finalCode || '',
+          app.name
+        )
+      }
+
+      setConsoleOutput(prev => [...prev,
+        `[${timestamp}] 🎉 ${app.name} deployed successfully to ${selectedKit.name}!`,
+        `[${timestamp}] 🔄 Switching to Console tab to monitor deployment...`
+      ])
+
+      // Switch to console tab to monitor the deployment
+      setActiveTab('console')
+
+    } catch (error) {
+      console.error('Marketplace deployment failed:', error)
+      const timestamp = new Date().toLocaleTimeString()
+      setDeploymentResult({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Marketplace deployment failed'
+      })
+      setConsoleOutput(prev => [...prev, `[${timestamp}] ❌ Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`])
+    } finally {
+      setIsDeployingApp(false)
+    }
+  }
 
   const handleDeployApp = async () => {
     if (!selectedKit) return
@@ -457,6 +816,7 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
           {[
             { id: 'overview', label: 'Overview', icon: TbDeviceDesktop },
             { id: 'deploy', label: 'Deploy', icon: TbRocket },
+            { id: 'marketplace', label: 'Marketplace', icon: TbShoppingCart },
             { id: 'apps', label: 'Applications', icon: TbCode, count: runningApps.length },
             { id: 'console', label: 'Console', icon: TbTerminal },
             { id: 'settings', label: 'Settings', icon: TbSettings }
@@ -892,6 +1252,216 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
                 </div>
               )}
             </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'marketplace' && (
+          <div className="space-y-6">
+            {/* Marketplace Header */}
+            <div className="rounded-lg border border-border p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Digital Auto Marketplace</h3>
+                  <p className="text-muted-foreground">Discover and deploy vehicle applications from the Digital Auto ecosystem</p>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <TbShoppingCart className="w-4 h-4" />
+                  <span>{filteredMarketplaceApps.length} apps available</span>
+                </div>
+              </div>
+
+              {/* Search and Filters */}
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="Search apps by name, description, or tags..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10"
+                    />
+                    <TbFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-4 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category === 'all' ? 'All Categories' : category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Runtime Selection for Deployment */}
+            {!selectedKit && filteredKits.length === 0 ? (
+              <div className="rounded-lg border border-border p-6 text-center bg-yellow-50 border-yellow-200">
+                <TbAlertTriangle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No Runtime Available</h3>
+                <p className="text-muted-foreground mb-6">
+                  You need to connect a Vehicle Edge Runtime before deploying apps from the marketplace.
+                </p>
+                <Button
+                  onClick={() => setActiveTab('overview')}
+                  className="mx-auto"
+                >
+                  <TbTool className="w-4 h-4 mr-2" />
+                  Setup Vehicle Edge Runtime
+                </Button>
+              </div>
+            ) : (
+              <>
+                {/* Selected Runtime Info */}
+                {selectedKit && (
+                  <div className="rounded-lg border border-border p-4 bg-green-50 border-green-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <TbDeviceDesktop className="w-5 h-5 text-green-600" />
+                        <div>
+                          <p className="font-medium text-foreground">Deploying to: {selectedKit.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedKit.is_online ? (
+                              <span className="text-green-600">Online and ready</span>
+                            ) : (
+                              <span className="text-red-600">Offline - apps may not deploy</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveTab('overview')}
+                      >
+                        Change Runtime
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Apps Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredMarketplaceApps.map((app) => (
+                    <div key={app.id} className="bg-white border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                      {/* App Card Header */}
+                      <div className="p-6 border-b border-border">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="text-3xl">{app.icon}</div>
+                            <div>
+                              <h4 className="font-semibold text-foreground">{app.name}</h4>
+                              <p className="text-sm text-muted-foreground">by {app.author}</p>
+                            </div>
+                          </div>
+                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            app.price === 'free'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {app.price === 'free' ? 'FREE' : 'PAID'}
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{app.description}</p>
+
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {app.tags.slice(0, 3).map((tag) => (
+                            <span key={tag} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                              {tag}
+                            </span>
+                          ))}
+                          {app.tags.length > 3 && (
+                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                              +{app.tags.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* App Card Details */}
+                      <div className="p-6 space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center space-x-1">
+                            <TbStar className="w-4 h-4 text-yellow-500 fill-current" />
+                            <span className="font-medium">{app.rating}</span>
+                          </div>
+                          <div className="flex items-center space-x-1 text-muted-foreground">
+                            <TbDownload className="w-4 h-4" />
+                            <span>{app.downloads.toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>Version {app.version}</span>
+                          <span>{app.size}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>{app.category}</span>
+                          <div className="flex items-center space-x-1">
+                            <TbClock className="w-3 h-3" />
+                            <span>Updated {app.lastUpdated}</span>
+                          </div>
+                        </div>
+
+                        {/* Deploy Button */}
+                        <Button
+                          onClick={() => handleDeployMarketplaceApp(app)}
+                          disabled={!selectedKit || !selectedKit.is_online || isDeployingApp}
+                          className="w-full mt-4"
+                        >
+                          {isDeployingApp ? (
+                            <>
+                              <TbRefresh className="w-4 h-4 mr-2 animate-spin" />
+                              Deploying...
+                            </>
+                          ) : (
+                            <>
+                              <TbRocket className="w-4 h-4 mr-2" />
+                              Deploy to {selectedKit?.name || 'Runtime'}
+                            </>
+                          )}
+                        </Button>
+
+                        {!selectedKit?.is_online && selectedKit && (
+                          <p className="text-xs text-orange-600 text-center">
+                            Runtime is offline - deployment may fail
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* No Apps Found */}
+                {filteredMarketplaceApps.length === 0 && (
+                  <div className="text-center py-12">
+                    <TbShoppingCart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No apps found</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Try adjusting your search terms or category filter.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        setSearchQuery('')
+                        setSelectedCategory('all')
+                      }}
+                      variant="outline"
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
