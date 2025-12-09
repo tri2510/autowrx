@@ -1021,7 +1021,10 @@ if __name__ == "__main__":
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center space-x-2">
                           <TbDeviceDesktop className="w-5 h-5 text-primary" />
-                          <h4 className="font-medium text-foreground">{kit.name}</h4>
+                          <div>
+                            <h4 className="font-medium text-foreground">{kit.name}</h4>
+                            <p className="text-xs text-muted-foreground">ID: [{kit.kit_id.substring(0, 4).toUpperCase()}]</p>
+                          </div>
                         </div>
                         <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(kit.is_online ? 'online' : 'offline')}`}>
                           {getStatusIcon(kit.is_online ? 'online' : 'offline')}
@@ -1029,7 +1032,6 @@ if __name__ == "__main__":
                         </div>
                       </div>
                       <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>ID: {kit.kit_id}</p>
                         <p>Apps: {kit.noRunner}</p>
                         <p>Subscribers: {kit.noSubscriber}</p>
                         <p>Last seen: {new Date(kit.last_seen).toLocaleTimeString()}</p>
