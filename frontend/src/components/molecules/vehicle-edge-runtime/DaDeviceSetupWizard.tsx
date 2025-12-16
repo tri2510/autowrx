@@ -36,8 +36,7 @@ import {
   TbShield,
   TbTool
 } from 'react-icons/tb'
-import useSocketIO from '@/hooks/useSocketIO'
-import NetworkDiscovery, { DetectedDevice } from '@/utils/networkDiscovery'
+import kitManagerService, { VehicleEdgeRuntimeKit } from '@/services/kitManager.service'
 import { Button } from '@/components/atoms/button'
 import { Input } from '@/components/atoms/input'
 
@@ -58,59 +57,49 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
   const [currentStep, setCurrentStep] = useState(0)
   const [isScanning, setIsScanning] = useState(false)
   const [scanProgress, setScanProgress] = useState(0)
-  const [currentScanningIP, setCurrentScanningIP] = useState('')
-  const [detectedDevices, setDetectedDevices] = useState<DetectedDevice[]>([])
-  const [selectedDevice, setSelectedDevice] = useState<DetectedDevice | null>(null)
+  const [detectedKits, setDetectedKits] = useState<VehicleEdgeRuntimeKit[]>([])
+  const [selectedKit, setSelectedKit] = useState<VehicleEdgeRuntimeKit | null>(null)
   const [connectionTest, setConnectionTest] = useState<{ testing: boolean; success?: boolean; message?: string }>({
     testing: false
   })
   const [installationCommand, setInstallationCommand] = useState('')
   const [copiedCommand, setCopiedCommand] = useState(false)
-
-  const socket = useSocketIO()
-
-  const websocketTestCommand = `echo '{"type":"ping"}' | websocat ws://localhost:3002/runtime`
+  const [kitManagerConnected, setKitManagerConnected] = useState(false)
+  const [showOfflineDevices, setShowOfflineDevices] = useState(false)
 
   const setupSteps: SetupStep[] = [
     {
       id: 'welcome',
-      title: 'Welcome to Vehicle Edge Runtime',
-      description: 'Let\'s set up your first Vehicle Edge Runtime device',
+      title: 'Welcome to Vehicle Edge Runtime Setup',
+      description: 'Deploy Vehicle Edge Runtime devices using our automated setup script',
       icon: TbDeviceDesktop,
       status: 'completed'
     },
     {
-      id: 'device_type',
-      title: 'Choose Device Type',
-      description: 'Select the type of device you want to set up',
+      id: 'kit_manager',
+      title: 'Connect to Kit Manager',
+      description: 'Verify connection to the kit-manager service',
       icon: TbServer,
       status: currentStep > 0 ? 'completed' : 'in_progress'
     },
     {
       id: 'installation',
-      title: 'Install Vehicle Edge Runtime',
-      description: 'Install the runtime software on your device',
+      title: 'Install Runtime Device',
+      description: 'Set up your Vehicle Edge Runtime device',
       icon: TbTerminal,
       status: currentStep > 1 ? 'completed' : 'pending'
     },
     {
       id: 'discovery',
-      title: 'Discover Device',
-      description: 'Find your Vehicle Edge Runtime on the network',
+      title: 'Discover Devices',
+      description: 'Find Vehicle Edge Runtime devices via kit-manager',
       icon: TbWifi,
       status: currentStep > 2 ? 'completed' : 'pending'
     },
     {
-      id: 'connection',
-      title: 'Connect & Test',
-      description: 'Establish connection and verify everything works',
-      icon: TbCheck,
-      status: currentStep > 3 ? 'completed' : 'pending'
-    },
-    {
       id: 'complete',
       title: 'Setup Complete',
-      description: 'Your Vehicle Edge Runtime is ready to use',
+      description: 'Your Vehicle Edge Runtime devices are ready to use',
       icon: TbRocket,
       status: 'pending'
     }
@@ -123,22 +112,24 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
       description: 'Raspberry Pi 4/5 with Ubuntu, Debian, or Raspberry Pi OS (64-bit)',
       icon: TbCpu,
       requirements: [
-        'Ubuntu 22.04+, Debian 11+, or Raspberry Pi OS 64-bit',
-        'ARM64 (aarch64) architecture',
-        '2GB RAM minimum (4GB+ recommended)',
-        '16GB+ storage (SD card or SSD)',
-        'Network connection (Ethernet or WiFi)',
-        'User account with sudo privileges'
+        'Ubuntu 18.04+, Debian 10+, CentOS 7+, RHEL 7+, Fedora 30+, or Raspberry Pi OS',
+        'Any architecture: x86_64, arm64, armv7 (auto-detected)',
+        '1GB RAM minimum (2GB+ recommended)',
+        '2GB free disk space minimum',
+        'Network connection for package downloads',
+        'User account with sudo privileges (or root access)'
       ],
       installationSteps: [
-        'Download official installation script',
-        'Script auto-detects Raspberry Pi and applies optimizations',
-        'Installs Node.js 18+ if not present',
-        'Installs Docker and Docker Compose',
-        'Optimizes configuration for ARM64 (3 concurrent apps, 128MB memory limit)',
-        'Creates required directories and permissions',
-        'Installs Vehicle Edge Runtime with all dependencies',
-        'Provides clear next steps for starting services'
+        'Clone the Vehicle Edge Runtime repository with setup scripts',
+        'Run automated setup script (./scripts/setup-runtime.sh)',
+        'Script auto-detects system and architecture',
+        'Installs all dependencies: Node.js, Python, Docker, etc.',
+        'Creates Python virtual environment with required packages',
+        'Builds and configures the Vehicle Edge Runtime application',
+        'Sets up systemd service for auto-start on boot',
+        'Configures firewall rules for security',
+        'Creates management scripts and test applications',
+        'Provides complete setup summary with next steps'
       ]
     },
     {
@@ -147,42 +138,42 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
       description: 'Ubuntu, Debian, or compatible Linux distributions (x86_64)',
       icon: TbDeviceDesktop,
       requirements: [
-        'Ubuntu 20.04+, Debian 11+, or compatible',
-        'x86_64 (Intel/AMD) architecture',
-        '4GB RAM minimum (8GB+ recommended)',
-        '20GB+ available disk space',
-        'Network connection',
+        'Ubuntu 20.04+, Debian 11+, CentOS 7+, RHEL 7+, Fedora 30+, or compatible',
+        'x86_64 (Intel/AMD) architecture (auto-detected)',
+        '1GB RAM minimum (4GB+ recommended)',
+        '2GB free disk space minimum',
+        'Network connection for package downloads',
         'User account with sudo privileges'
       ],
       installationSteps: [
-        'Download official installation script',
+        'Clone the Vehicle Edge Runtime repository with setup scripts',
+        'Run automated setup script (./scripts/setup-runtime.sh)',
         'Script auto-detects Linux distribution',
-        'Installs Node.js 18+ if not present',
-        'Installs Docker and Docker Compose',
-        'Configures settings for x86_64 (10 concurrent apps, 512MB memory limit)',
-        'Sets up proper user permissions and directories',
-        'Installs Vehicle Edge Runtime with all dependencies',
-        'Provides startup commands for both Docker and native modes'
+        'Installs all dependencies: Node.js, Python, Docker, etc.',
+        'Creates Python virtual environment with required packages',
+        'Builds and configures the Vehicle Edge Runtime application',
+        'Sets up systemd service for auto-start on boot',
+        'Configures firewall rules and security',
+        'Creates management scripts and test applications',
+        'Provides complete setup with performance optimizations'
       ]
     },
     {
       id: 'existing',
-      name: 'Existing Runtime',
-      description: 'I already have a running Vehicle Edge Runtime',
+      name: 'Existing Runtime Devices',
+      description: 'I already have Vehicle Edge Runtime devices connected',
       icon: TbNetwork,
       requirements: [
-        'Runtime already installed and running',
-        'Network accessible from this machine',
-        'WebSocket API available (port 3002)',
-        'Health check endpoint available (port 3003)'
+        'Kit Manager service running (docker ps | grep kit-manager)',
+        'Vehicle Edge Runtime devices already connected to kit-manager',
+        'Network access to kit-manager on port 3090'
       ],
       installationSteps: [
         'Skip installation step',
-        'Go to device discovery',
-        'Automatic network scanning to find your runtime',
-        'Manual IP addition if auto-discovery fails',
-        'Connection testing and validation',
-        'Verify runtime capabilities and status'
+        'Verify kit-manager connection',
+        'Discover existing devices through kit-manager',
+        'Test device connectivity and status',
+        'Ready for deployment and management'
       ]
     }
   ]
@@ -195,49 +186,61 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
 
   const generateInstallationCommand = () => {
     const commands: Record<string, string> = {
-      'raspberry-pi': `# Method 1: Quick Start with Simulation (Recommended for Testing)
-git clone https://github.com/tri2510/vehicle-edge-runtime.git
-cd vehicle-edge-runtime/simulation
-./0-start-pi-ci.sh        # Start Raspberry Pi simulation container
-./1-install-runtime.sh     # Install Node.js 18+ and dependencies
-./2b-start-native.sh       # Start Vehicle Edge Runtime (fast)
-# OR: ./2a-start-docker.sh  # Start with Docker containers
+      'raspberry-pi': `# Automated Vehicle Edge Runtime Setup (Recommended)
+# This script will automatically install everything needed on your Raspberry Pi
 
-# Method 2: Manual Production Installation
-# Download and run the official installation script
-curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh | bash
+# Step 1: Clone the repository with setup scripts
+git clone https://github.com/your-org/vehicle-edge-runtime.git
+cd vehicle-edge-runtime
 
-# The script will automatically:
-# - Detect your Raspberry Pi and apply ARM64 optimizations
-# - Install Node.js 18+ using binary distribution
-# - Install Docker and Docker Compose if needed
-# - Clone the Vehicle Edge Runtime repository
-# - Install all npm dependencies
-# - Create optimized configuration for ARM64 (3 concurrent apps, 128MB memory limit)
-# - Set up proper user permissions and directories
-# - Initialize data directories and environment files`,
-      'linux-pc': `# Method 1: Quick Start with Simulation (Recommended for Testing)
-git clone https://github.com/tri2510/vehicle-edge-runtime.git
-cd vehicle-edge-runtime/simulation
-./0-start-pi-ci.sh        # Start simulation container (works on Linux too)
-./1-install-runtime.sh     # Install Node.js 18+ and dependencies
-./2b-start-native.sh       # Start Vehicle Edge Runtime (fast)
-# OR: ./2a-start-docker.sh  # Start with Docker containers
+# Step 2: Run the automated setup script (does everything!)
+chmod +x scripts/setup-runtime.sh
+./scripts/setup-runtime.sh
 
-# Method 2: Manual Production Installation
-# Download and run the official installation script
-curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/install.sh | bash
+# The setup script automatically handles:
+# ✅ System detection and requirements checking
+# ✅ Installs Node.js, Python, Docker, and all dependencies
+# ✅ Sets up Python virtual environment with required packages
+# ✅ Creates and configures the Vehicle Edge Runtime application
+# ✅ Sets up systemd service for auto-start on boot
+# ✅ Configures firewall rules
+# ✅ Creates management scripts (start.sh, stop.sh)
+# ✅ Optimizes for Raspberry Pi (ARM64 architecture)
 
-# The script will automatically:
-# - Detect your Linux distribution and version
-# - Install Node.js 18+ using binary distribution
-# - Install Docker and Docker Compose if needed
-# - Clone the Vehicle Edge Runtime repository
-# - Install all npm dependencies
-# - Create optimized configuration for x86_64 (10 concurrent apps, 512MB memory limit)
-# - Set up proper user permissions and directories
-# - Initialize data directories and environment files`,
-      'existing': '# Skip installation - go to next step to discover your existing runtime\n\n# Or use the simulation framework:\ngit clone https://github.com/tri2510/vehicle-edge-runtime.git\ncd vehicle-edge-runtime/simulation\n./0-start-pi-ci.sh  # Start simulation container\n./1-install-runtime.sh  # Install dependencies\n./2b-start-native.sh  # Start in native mode (fast)\n# Or: ./2a-start-docker.sh  # Start in Docker mode\n\nThen discover at localhost:3002'
+# After setup completes:
+# 🚀 Runtime will be available at: http://localhost:3090
+# 📊 Health check: http://localhost:3090/health
+# 🔌 WebSocket: ws://localhost:3090
+# 🔧 Management: sudo systemctl start/stop/status vehicle-edge-runtime`,
+
+      'linux-pc': `# Automated Vehicle Edge Runtime Setup (Recommended)
+# This script will automatically install everything needed on your Linux PC
+
+# Step 1: Clone the repository with setup scripts
+git clone https://github.com/your-org/vehicle-edge-runtime.git
+cd vehicle-edge-runtime
+
+# Step 2: Run the automated setup script (does everything!)
+chmod +x scripts/setup-runtime.sh
+./scripts/setup-runtime.sh
+
+# The setup script automatically handles:
+# ✅ System detection (Ubuntu, Debian, CentOS, RHEL, Fedora)
+# ✅ Installs Node.js, Python, Docker, and all dependencies
+# ✅ Sets up Python virtual environment with required packages
+# ✅ Creates and configures the Vehicle Edge Runtime application
+# ✅ Sets up systemd service for auto-start on boot
+# ✅ Configures firewall rules for security
+# ✅ Creates management scripts and test applications
+# ✅ Optimizes for your specific architecture (x86_64/ARM64)
+
+# After setup completes:
+# 🚀 Runtime will be available at: http://localhost:3090
+# 📊 Health check: http://localhost:3090/health
+# 🔌 WebSocket: ws://localhost:3090
+# 🔧 Management: sudo systemctl start/stop/status vehicle-edge-runtime`,
+
+      'existing': '# Skip installation - kit-manager should already be connected\n\n# If kit-manager is not running:\ndocker ps | grep kit-manager  # Check if running\n# If not running, start it:\ndocker run -d --name kit-manager -p 3090:3090 kit-manager:sim\n\n# Verify connection:\ncurl http://localhost:3090/listAllKits\n\n# Check device status:\ncurl http://localhost:3090/listAllClient\n\n# To add new devices to existing setup:\ncd /path/to/vehicle-edge-runtime\n./scripts/setup-runtime.sh'
     }
 
     setInstallationCommand(commands[selectedDeviceType.id] || '')
@@ -253,60 +256,71 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
     }
   }
 
-  const scanNetwork = async () => {
+  const scanForKits = async () => {
     setIsScanning(true)
-    setDetectedDevices([])
+    setDetectedKits([])
     setScanProgress(0)
 
     try {
-      const foundDevices = await NetworkDiscovery.scanForDevices(
-        (progress, currentIP) => {
-          setScanProgress(progress)
-          setCurrentScanningIP(currentIP)
-        }
-      )
+      // Simulate progress for better UX
+      for (let i = 0; i <= 100; i += 20) {
+        setScanProgress(i)
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
 
-      setDetectedDevices(foundDevices)
+      const kitsResponse = await kitManagerService.listKits()
+      setDetectedKits(kitsResponse.content || [])
     } catch (error) {
-      console.error('Network scan failed:', error)
+      console.error('Failed to discover kits:', error)
+      throw error
     } finally {
       setIsScanning(false)
       setScanProgress(0)
-      setCurrentScanningIP('')
     }
   }
 
-  const testConnection = async (device: DetectedDevice) => {
+  const testKitConnection = async (kit: VehicleEdgeRuntimeKit) => {
     setConnectionTest({ testing: true })
 
     try {
-      const success = await NetworkDiscovery.testConnection(device)
+      // Test if the kit is responding by checking its last_seen status
+      const isResponsive = kit.is_online && (Date.now() - kit.last_seen < 60000) // Online and seen within last minute
 
       setConnectionTest({
         testing: false,
-        success,
-        message: success
-          ? 'Successfully connected to Vehicle Edge Runtime!'
-          : 'Failed to connect - check if runtime is running on the device'
+        success: isResponsive,
+        message: isResponsive
+          ? `Successfully connected to ${kit.name}! Device is online and responsive.`
+          : `Device ${kit.name} is ${kit.is_online ? 'online but not responding' : 'offline'}. Last seen: ${kit.last_seen ? new Date(kit.last_seen).toLocaleString() : 'Never'}`
       })
     } catch (error) {
       setConnectionTest({
         testing: false,
         success: false,
-        message: 'Connection test failed - please verify the device is accessible'
+        message: 'Failed to test kit connection'
       })
     }
   }
 
-  const addDeviceManually = () => {
-    const ip = prompt('Enter Vehicle Edge Runtime IP address:', '192.168.1.100')
-    if (ip) {
-      try {
-        const manualDevice = NetworkDiscovery.addDeviceManually(ip, 3002)
-        setDetectedDevices([...detectedDevices, manualDevice])
-      } catch (error) {
-        alert('Invalid IP address format. Please enter a valid IP address.')
-      }
+  const testKitManagerConnection = async () => {
+    setConnectionTest({ testing: true })
+
+    try {
+      await kitManagerService.connect()
+      setKitManagerConnected(true)
+
+      setConnectionTest({
+        testing: false,
+        success: true,
+        message: 'Successfully connected to kit-manager service!'
+      })
+    } catch (error) {
+      setKitManagerConnected(false)
+      setConnectionTest({
+        testing: false,
+        success: false,
+        message: `Failed to connect to kit-manager: ${error instanceof Error ? error.message : 'Unknown error'}`
+      })
     }
   }
 
@@ -323,14 +337,12 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
   }
 
   const handleComplete = () => {
-    if (selectedDevice) {
+    if (detectedKits.length > 0) {
       onComplete({
-        id: `vehicle-runtime-${selectedDevice.ip}`,
-        name: selectedDevice.hostname || `Vehicle Runtime (${selectedDevice.ip})`,
-        status: 'online',
-        lastSeen: new Date(),
-        version: '1.0.0',
-        capabilities: ['run_python_app', 'run_binary_app', 'console_subscribe', 'stop_app', 'get_app_status']
+        kits: detectedKits,
+        kitManagerConnected: true,
+        totalKits: detectedKits.length,
+        onlineKits: detectedKits.filter(kit => kit.is_online).length
       })
     }
     onClose()
@@ -341,9 +353,8 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
       case 0: return true
       case 1: return !!selectedDeviceType
       case 2: return selectedDeviceType.id === 'existing' || true // Installation is manual
-      case 3: return detectedDevices.length > 0 || selectedDeviceType.id === 'existing'
-      case 4: return selectedDevice && connectionTest.success
-      case 5: return true
+      case 3: return detectedKits.length > 0 || selectedDeviceType.id === 'existing'
+      case 4: return true // Discovery step is complete
       default: return false
     }
   }
@@ -356,65 +367,109 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
             <TbDeviceDesktop className="w-16 h-16 mx-auto mb-4 text-primary" />
             <h3 className="text-xl font-semibold mb-2">Welcome to Vehicle Edge Runtime Setup</h3>
             <p className="text-muted-foreground mb-6">
-              This wizard will guide you through setting up your first Vehicle Edge Runtime device.
+              This wizard will guide you through deploying Vehicle Edge Runtime on any Linux device using our automated setup script.
             </p>
             <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-left max-w-2xl mx-auto">
-              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">What you'll need:</h4>
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">🚀 What this wizard provides:</h4>
               <ul className="list-disc list-inside text-blue-800 dark:text-blue-200 space-y-1">
-                <li>A device (Raspberry Pi, Linux PC, or existing runtime)</li>
-                <li>Network connection between this device and your computer</li>
-                <li>Basic command line knowledge</li>
-                <li>Admin/sudo access on the target device</li>
+                <li><strong>Automated Setup:</strong> One-command installation for all requirements</li>
+                <li><strong>Universal Support:</strong> Works on Raspberry Pi, Linux PC, and servers</li>
+                <li><strong>Zero Configuration:</strong> Everything is installed and configured automatically</li>
+                <li><strong>Production Ready:</strong> Includes systemd service for reliable operation</li>
+                <li><strong>Developer Friendly:</strong> Includes test applications and examples</li>
+              </ul>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 text-left max-w-2xl mx-auto">
+              <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">✨ What you'll need:</h4>
+              <ul className="list-disc list-inside text-green-800 dark:text-green-200 space-y-1">
+                <li><strong>Target Device:</strong> Raspberry Pi, Ubuntu/Debian/CentOS/RHEL/Fedora Linux system</li>
+                <li><strong>Minimum Specs:</strong> 1GB RAM, 2GB free disk space, sudo access</li>
+                <li><strong>Network:</strong> Internet connection for package downloads</li>
+                <li><strong>Optional:</strong> Vehicle hardware (CAN bus, GPS, sensors) for vehicle integration</li>
               </ul>
             </div>
           </div>
         )
 
-      case 1: // Device Type
+      case 1: // Kit Manager Connection
         return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold mb-4">What type of device are you setting up?</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {deviceTypes.map((type) => (
-                <div
-                  key={type.id}
-                  onClick={() => setSelectedDeviceType(type)}
-                  className={`relative cursor-pointer rounded-lg border-2 transition-all overflow-hidden ${
-                    selectedDeviceType.id === type.id
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-border hover:border-primary/50 hover:bg-accent/50'
-                  }`}
-                >
-                  <div className="p-4 h-full">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <type.icon className={`w-6 h-6 flex-shrink-0 ${
-                        selectedDeviceType.id === type.id ? 'text-primary' : 'text-muted-foreground'
-                      }`} />
-                      <h4 className={`font-semibold text-base ${
-                        selectedDeviceType.id === type.id ? 'text-primary' : 'text-foreground'
-                      }`}>{type.name}</h4>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{type.description}</p>
-                    <div className="text-xs">
-                      <p className={`font-medium mb-2 ${
-                        selectedDeviceType.id === type.id ? 'text-primary' : 'text-foreground'
-                      }`}>Requirements:</p>
-                      <ul className="space-y-1">
-                        {type.requirements.map((req, idx) => (
-                          <li key={idx} className="text-muted-foreground leading-relaxed">
-                            • {req}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  {selectedDeviceType.id === type.id && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                      <TbCheck className="w-4 h-4 text-primary-foreground" />
-                    </div>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Connect to Kit Manager</h3>
+              <p className="text-muted-foreground">
+                Verify that the kit-manager service is running and accessible.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">About Kit Manager</h4>
+              <p className="text-blue-800 dark:text-blue-200 text-sm">
+                The kit-manager service acts as the central hub for managing Vehicle Edge Runtime devices.
+                It handles device discovery, application deployment, and real-time communication.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <Button
+                onClick={testKitManagerConnection}
+                disabled={connectionTest.testing}
+              >
+                <TbRefresh className={`w-4 h-4 mr-2 ${connectionTest.testing ? 'animate-spin' : ''}`} />
+                {connectionTest.testing ? 'Testing...' : 'Test Connection'}
+              </Button>
+            </div>
+
+            {connectionTest.message && (
+              <div className={`p-4 rounded-lg ${
+                connectionTest.success
+                  ? 'bg-green-100 border border-green-200 text-green-800 dark:bg-green-900 dark:border-green-800 dark:text-green-200'
+                  : 'bg-red-100 border border-red-200 text-red-800 dark:bg-red-900 dark:border-red-800 dark:text-red-200'
+              }`}>
+                <div className="flex items-start space-x-3">
+                  {connectionTest.success ? (
+                    <TbCheck className="w-5 h-5 mt-0.5" />
+                  ) : (
+                    <TbAlertTriangle className="w-5 h-5 mt-0.5" />
                   )}
+                  <div>
+                    <p className="font-medium mb-2">
+                      {connectionTest.success ? 'Connection Successful' : 'Connection Failed'}
+                    </p>
+                    <p className="text-sm">{connectionTest.message}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-muted border border-border rounded-lg p-4">
+                <h4 className="font-medium mb-2">Kit Manager Endpoint</h4>
+                <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
+                  ws://localhost:3090
+                </div>
+              </div>
+              <div className="bg-muted border border-border rounded-lg p-4">
+                <h4 className="font-medium mb-2">HTTP API</h4>
+                <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
+                  http://localhost:3090/listAllKits
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <div className="flex items-start space-x-2">
+                <TbInfoCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                <div className="text-yellow-800 dark:text-yellow-200">
+                  <h4 className="font-medium mb-2">Troubleshooting</h4>
+                  <ul className="text-sm space-y-1">
+                    <li>• Check if kit-manager is running: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">docker ps | grep kit-manager</code></li>
+                    <li>• If not running, start it: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">docker run -d --name kit-manager -p 3090:3090 kit-manager:sim</code></li>
+                    <li>• Ensure port 3090 is accessible and not blocked by firewall</li>
+                    <li>• Check Docker is running and has sufficient resources</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         )
@@ -423,9 +478,9 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Installation Instructions</h3>
+              <h3 className="text-lg font-semibold mb-2">Set Up Your Vehicle Edge Runtime Device</h3>
               <p className="text-muted-foreground">
-                Connect to your device terminal and run these commands:
+                Use our automated setup script to configure your Vehicle Edge Runtime device.
               </p>
             </div>
 
@@ -433,8 +488,8 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
               <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-6">
                 <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">⏭️ Skip Installation</h4>
                 <p className="text-green-800 dark:text-green-200">
-                  Since you already have a running Vehicle Edge Runtime, let's skip to device discovery.
-                  Click "Next" to continue.
+                  Since you already have Vehicle Edge Runtime devices connected to kit-manager,
+                  let's skip to device discovery. Click "Next" to continue.
                 </p>
               </div>
             ) : (
@@ -457,45 +512,80 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
                 </div>
 
                 {(selectedDeviceType.id === 'raspberry-pi' || selectedDeviceType.id === 'linux-pc') && (
-                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">🚀 Simulation Quick Start (Perfect for Testing)</h4>
-                    <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
-                      <div className="font-mono bg-green-100 dark:bg-green-900 p-2 rounded text-xs">
-                        <div>git clone https://github.com/tri2510/vehicle-edge-runtime.git</div>
-                        <div>cd vehicle-edge-runtime/simulation</div>
-                        <div>./0-start-pi-ci.sh        # Start simulation container</div>
-                        <div>./1-install-runtime.sh     # Install Node.js & deps</div>
-                        <div>./2b-start-native.sh       # Start runtime (fast)</div>
-                        <div># OR: ./2a-start-docker.sh  # Docker mode</div>
-                        <div>./4-check-status.sh       # Verify everything works</div>
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">🚀 Fully Automated Setup (Zero-Configuration)</h4>
+                    <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+                      <div className="font-mono bg-blue-100 dark:bg-blue-900 p-2 rounded text-xs">
+                        <div>git clone https://github.com/your-org/vehicle-edge-runtime.git</div>
+                        <div>cd vehicle-edge-runtime</div>
+                        <div>chmod +x scripts/setup-runtime.sh</div>
+                        <div>./scripts/setup-runtime.sh  # One-command setup!</div>
+                        <div># Everything installed and configured automatically</div>
                       </div>
-                      <p className="text-xs">
-                        <strong>Benefits:</strong> No hardware required, works on any system, instant setup, perfect for development and testing!
-                      </p>
+                      <div className="text-xs space-y-1">
+                        <p><strong>✨ What the script does automatically:</strong></p>
+                        <ul className="list-disc list-inside ml-4 space-y-1">
+                          <li>Detects your system and architecture</li>
+                          <li>Installs Node.js, Python, Docker, and all dependencies</li>
+                          <li>Sets up Python virtual environment with required packages</li>
+                          <li>Creates and configures the Vehicle Edge Runtime application</li>
+                          <li>Sets up systemd service for auto-start on boot</li>
+                          <li>Configures firewall rules for security</li>
+                          <li>Creates management scripts and test applications</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">What the script does:</h4>
-                  <ol className="list-decimal list-inside text-blue-800 dark:text-blue-200 space-y-1">
-                    {selectedDeviceType.installationSteps.map((step, idx) => (
-                      <li key={idx}>{step}</li>
-                    ))}
-                  </ol>
+                  <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+                    <p><strong>🔧 System Configuration:</strong></p>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>Detects operating system, architecture, and system requirements</li>
+                      <li>Installs package manager dependencies (apt, dnf, yum, etc.)</li>
+                      <li>Sets up Docker with proper user permissions</li>
+                      <li>Creates necessary directories and file permissions</li>
+                    </ul>
+
+                    <p><strong>🐍 Runtime Environment:</strong></p>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>Installs Node.js (latest stable version)</li>
+                      <li>Sets up Python virtual environment with all required packages</li>
+                      <li>Installs Vehicle Edge Runtime dependencies (Flask, Socket.IO, etc.)</li>
+                      <li>Creates optimized configuration based on device specifications</li>
+                    </ul>
+
+                    <p><strong>🚀 Service Setup:</strong></p>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>Creates and configures the Vehicle Edge Runtime application</li>
+                      <li>Sets up systemd service for automatic startup</li>
+                      <li>Configures firewall rules for secure operation</li>
+                      <li>Creates management scripts (start.sh, stop.sh)</li>
+                      <li>Includes test applications and examples</li>
+                    </ul>
+
+                    <p><strong>📋 Platform Optimization:</strong></p>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>Raspberry Pi: ARM64 optimizations, resource limits for embedded systems</li>
+                      <li>Linux PC/Server: Performance optimizations for production workloads</li>
+                      <li>Universal: Works on any supported Linux distribution</li>
+                    </ul>
+                  </div>
                 </div>
 
                 <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                   <div className="flex items-start space-x-2">
                     <TbInfoCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                     <div className="text-yellow-800 dark:text-yellow-200">
-                      <h4 className="font-medium mb-2">Important Notes:</h4>
+                      <h4 className="font-medium mb-2">Setup Process:</h4>
                       <ul className="text-sm space-y-1">
-                        <li>• The script automatically detects your system and applies appropriate optimizations</li>
-                        <li>• Raspberry Pi gets ARM64-specific settings (3 concurrent apps, 128MB memory limit)</li>
-                        <li>• Linux PCs get x86_64 settings (10 concurrent apps, 512MB memory limit)</li>
-                        <li>• All services start on different ports: WebSocket API (3002), Health Check (3003), Kit Manager (3090)</li>
-                        <li>• Configuration can be customized in <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">vehicle-edge-runtime/.env</code></li>
+                        <li>• <strong>Time Required:</strong> 5-15 minutes depending on internet speed</li>
+                        <li>• <strong>Internet Required:</strong> For downloading packages and dependencies</li>
+                        <li>• <strong>Interactive Setup:</strong> Script provides progress updates and asks for confirmation</li>
+                        <li>• <strong>Automatic Reboot:</strong> Some configurations may require system restart</li>
+                        <li>• <strong>Service Start:</strong> Runtime starts automatically after setup completion</li>
                       </ul>
                     </div>
                   </div>
@@ -509,42 +599,44 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Discover Your Vehicle Edge Runtime</h3>
+              <h3 className="text-lg font-semibold mb-2">Discover Vehicle Edge Runtime Devices</h3>
               <p className="text-muted-foreground">
-                Let's find your Vehicle Edge Runtime device on the network.
+                Find all Vehicle Edge Runtime devices connected to kit-manager.
               </p>
             </div>
 
-            <div className="flex space-x-4">
-              <Button
-                onClick={scanNetwork}
-                disabled={isScanning}
-              >
-                <TbRefresh className={`w-4 h-4 mr-2 ${isScanning ? 'animate-spin' : ''}`} />
-                {isScanning ? 'Scanning...' : 'Scan Network'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={addDeviceManually}
-              >
-                <TbPlus className="w-4 h-4 mr-2" />
-                Add Manually
-              </Button>
+            <div className="flex items-center justify-between">
+              <div className="flex space-x-4">
+                <Button
+                  onClick={scanForKits}
+                  disabled={isScanning}
+                >
+                  <TbRefresh className={`w-4 h-4 mr-2 ${isScanning ? 'animate-spin' : ''}`} />
+                  {isScanning ? 'Discovering...' : 'Discover Devices'}
+                </Button>
+              </div>
+              {detectedKits.length > 0 && (
+                <Button
+                  onClick={() => setShowOfflineDevices(!showOfflineDevices)}
+                  variant={showOfflineDevices ? "default" : "outline"}
+                  size="sm"
+                  title={showOfflineDevices ? "Hide offline devices" : "Show offline devices"}
+                >
+                  {showOfflineDevices ? "Show All" : "Online Only"}
+                </Button>
+              )}
             </div>
 
             {isScanning && (
               <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-center space-x-3 mb-2">
                   <TbRefresh className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
-                  <span className="font-medium text-blue-900 dark:text-blue-100">Scanning Network...</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-100">Querying Kit Manager...</span>
                 </div>
                 {scanProgress > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-blue-800 dark:text-blue-200">Progress: {scanProgress}%</span>
-                      {currentScanningIP && (
-                        <span className="text-blue-600 dark:text-blue-300">Checking: {currentScanningIP}</span>
-                      )}
                     </div>
                     <div className="w-full bg-blue-100 dark:bg-blue-900 rounded-full h-2">
                       <div
@@ -555,190 +647,178 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
                   </div>
                 )}
                 <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                  Scanning common network ranges for Vehicle Edge Runtime devices...
+                  Contacting kit-manager to discover connected Vehicle Edge Runtime devices...
                 </p>
               </div>
             )}
 
-            {detectedDevices.length > 0 && (
+            {detectedKits.length > 0 && (
               <div className="space-y-3">
-                <h4 className="font-medium">Found Devices:</h4>
-                {detectedDevices.map((device, idx) => (
-                  <Button
-                    key={idx}
-                    variant={selectedDevice?.ip === device.ip ? 'default' : 'outline'}
-                    onClick={() => setSelectedDevice(device)}
-                    className="w-full p-4 h-auto flex items-center justify-between"
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">
+                    Discovered Devices ({showOfflineDevices ? detectedKits.length : detectedKits.filter(kit => kit.is_online).length}):
+                  </h4>
+                  {!showOfflineDevices && detectedKits.filter(kit => !kit.is_online).length > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                      {detectedKits.filter(kit => !kit.is_online).length} offline devices hidden
+                    </span>
+                  )}
+                </div>
+                {detectedKits
+                  .filter(kit => showOfflineDevices || kit.is_online)
+                  .map((kit, idx) => (
+                  <div
+                    key={kit.kit_id}
+                    className={`p-4 border rounded-lg flex items-center justify-between ${
+                      selectedKit?.kit_id === kit.kit_id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border'
+                    }`}
                   >
                     <div className="flex items-center space-x-3">
                       <TbServer className="w-5 h-5 text-primary" />
                       <div className="text-left">
-                        <h4 className="font-medium">{device.hostname || device.ip}</h4>
+                        <h4 className="font-medium">{kit.name}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {device.ip}:{device.port}
+                          Kit ID: {kit.kit_id.substring(0, 8)}...
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {kit.desc || 'No description'}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        device.status === 'online'
+                        kit.is_online
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                       }`}>
-                        {device.status}
+                        {kit.is_online ? 'Online' : 'Offline'}
                       </div>
-                      {selectedDevice?.ip === device.ip && (
-                        <TbCheck className="w-5 h-5 text-primary" />
+                      <div className="text-xs text-muted-foreground">
+                        {kit.last_seen ? `Last seen: ${new Date(kit.last_seen).toLocaleString()}` : 'Never seen'}
+                      </div>
+                      {kit.is_online && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => testKitConnection(kit)}
+                        >
+                          Test
+                        </Button>
                       )}
                     </div>
-                  </Button>
+                  </div>
                 ))}
               </div>
             )}
 
-            {detectedDevices.length === 0 && !isScanning && (
+            {(!showOfflineDevices ? detectedKits.filter(kit => kit.is_online).length : detectedKits.length) === 0 && !isScanning && (
               <div className="text-center py-8 bg-muted rounded-lg">
                 <TbWifi className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No devices found yet</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Make sure your Vehicle Edge Runtime is running and accessible on the network
+                <p className="text-muted-foreground">
+                  {showOfflineDevices ? "No devices found" : "No online devices found"}
                 </p>
-              </div>
-            )}
-          </div>
-        )
-
-      case 4: // Connection Test
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Test Connection</h3>
-              <p className="text-muted-foreground">
-                Let's verify we can connect to your Vehicle Edge Runtime.
-              </p>
-            </div>
-
-            {selectedDevice && (
-              <div className="bg-muted border border-border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <TbServer className="w-6 h-6 text-primary" />
-                    <div>
-                      <h4 className="font-medium">{selectedDevice.hostname}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedDevice.ip}:{selectedDevice.port}
-                      </p>
-                    </div>
-                  </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {showOfflineDevices
+                    ? "Make sure your Vehicle Edge Runtime devices are running and connected to kit-manager"
+                    : "All connected devices are currently offline. Click 'Show All' to view offline devices."
+                  }
+                </p>
+                {!showOfflineDevices && detectedKits.length > 0 && (
                   <Button
-                    onClick={() => testConnection(selectedDevice)}
-                    disabled={connectionTest.testing}
+                    onClick={() => setShowOfflineDevices(true)}
+                    variant="outline"
+                    className="mt-4"
                   >
-                    <TbRefresh className={`w-4 h-4 mr-2 ${connectionTest.testing ? 'animate-spin' : ''}`} />
-                    {connectionTest.testing ? 'Testing...' : 'Test Connection'}
+                    Show Offline Devices ({detectedKits.length})
                   </Button>
-                </div>
-
-                {connectionTest.message && (
-                  <div className={`p-3 rounded-lg ${
-                    connectionTest.success
-                      ? 'bg-green-100 border border-green-200 text-green-800 dark:bg-green-900 dark:border-green-800 dark:text-green-200'
-                      : 'bg-red-100 border border-red-200 text-red-800 dark:bg-red-900 dark:border-red-800 dark:text-red-200'
-                  }`}>
-                    <div className="flex items-start space-x-2">
-                      {connectionTest.success ? (
-                        <TbCheck className="w-5 h-5 mt-0.5" />
-                      ) : (
-                        <TbAlertTriangle className="w-5 h-5 mt-0.5" />
-                      )}
-                      <p className="text-sm">{connectionTest.message}</p>
-                    </div>
-                  </div>
                 )}
               </div>
             )}
 
-            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Connection Details</h4>
-
-              {/* Simulation-specific info */}
-              {(selectedDevice?.ip === 'localhost' || selectedDevice?.ip?.includes('127.0.0.1')) && (
-                <div className="bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
-                  <h5 className="font-medium text-green-800 dark:text-green-200 mb-1">🎯 Simulation Detected!</h5>
-                  <p className="text-xs text-green-700 dark:text-green-300">
-                    Using simulation container - services run on standard ports (3002, 3003, 3090)
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">WebSocket API:</span>
-                  <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
-                    ws://{selectedDevice?.ip}:3002/runtime
-                  </div>
-                </div>
-                <div>
-                  <span className="font-medium">Health Check:</span>
-                  <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
-                    http://{selectedDevice?.ip}:3003/health
-                  </div>
-                </div>
-                <div>
-                  <span className="font-medium">Kit Manager:</span>
-                  <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
-                    ws://{selectedDevice?.ip}:3090
-                  </div>
-                </div>
-                <div>
-                  <span className="font-medium">API Endpoint:</span>
-                  <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
-                    http://{selectedDevice?.ip}:3090/listAllKits
-                  </div>
+            {connectionTest.message && (
+              <div className={`p-3 rounded-lg ${
+                connectionTest.success
+                  ? 'bg-green-100 border border-green-200 text-green-800 dark:bg-green-900 dark:border-green-800 dark:text-green-200'
+                  : 'bg-red-100 border border-red-200 text-red-800 dark:bg-red-900 dark:border-red-800 dark:text-red-200'
+              }`}>
+                <div className="flex items-start space-x-2">
+                  {connectionTest.success ? (
+                    <TbCheck className="w-5 h-5 mt-0.5" />
+                  ) : (
+                    <TbAlertTriangle className="w-5 h-5 mt-0.5" />
+                  )}
+                  <p className="text-sm">{connectionTest.message}</p>
                 </div>
               </div>
-
-              <div className="mt-4 text-xs text-muted-foreground">
-                <p><strong>Simulation Status Check:</strong> <code className="bg-muted px-1 rounded">./4-check-status.sh</code></p>
-                <p><strong>Manual Test:</strong> <code className="bg-muted px-1 rounded">curl http://{selectedDevice?.ip}:3003/health</code></p>
-              </div>
-            </div>
+            )}
           </div>
         )
 
-      case 5: // Complete
+      case 4: // Complete
         return (
           <div className="text-center py-8">
             <TbRocket className="w-16 h-16 mx-auto mb-4 text-green-500" />
             <h3 className="text-xl font-semibold mb-2">Setup Complete!</h3>
             <p className="text-muted-foreground mb-6">
-              Your Vehicle Edge Runtime is now connected and ready to use.
+              Your Vehicle Edge Runtime devices are now connected and ready to use.
             </p>
 
             <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-6 max-w-2xl mx-auto text-left">
-              <h4 className="font-medium text-green-900 dark:text-green-100 mb-3">What's Next?</h4>
-              <ul className="space-y-2 text-green-800 dark:text-green-200">
-                <li className="flex items-start space-x-2">
+              <h4 className="font-medium text-green-900 dark:text-green-100 mb-3">Setup Summary</h4>
+              <div className="space-y-3 text-green-800 dark:text-green-200">
+                <div className="flex items-start space-x-2">
                   <TbCheck className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-400" />
-                  <span>Deploy Python or binary applications to your runtime</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <TbCheck className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-400" />
-                  <span>Monitor application performance and console output</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <TbCheck className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-400" />
-                  <span>Configure resource limits and environment variables</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <TbCheck className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-400" />
-                  <span>Set up additional runtimes for scaling</span>
-                </li>
-              </ul>
+                  <div>
+                    <strong>Kit Manager Connected:</strong> Successfully connected to kit-manager service
+                  </div>
+                </div>
+                {detectedKits.length > 0 && (
+                  <div className="flex items-start space-x-2">
+                    <TbCheck className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-400" />
+                    <div>
+                      <strong>Devices Found:</strong> {detectedKits.length} devices discovered
+                      <div className="text-sm mt-1">
+                        Online: {detectedKits.filter(kit => kit.is_online).length} / {detectedKits.length}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
+            {detectedKits.length > 0 && (
+              <div className="mt-6 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-6 max-w-2xl mx-auto text-left">
+                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3">What's Next?</h4>
+                <ul className="space-y-2 text-blue-800 dark:text-blue-200">
+                  <li className="flex items-start space-x-2">
+                    <TbCheck className="w-5 h-5 mt-0.5 text-blue-600 dark:text-blue-400" />
+                    <span>Deploy applications to your connected runtime devices</span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <TbCheck className="w-5 h-5 mt-0.5 text-blue-600 dark:text-blue-400" />
+                    <span>Monitor device status and application performance</span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <TbCheck className="w-5 h-5 mt-0.5 text-blue-600 dark:text-blue-400" />
+                    <span>Access real-time console output from running applications</span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <TbCheck className="w-5 h-5 mt-0.5 text-blue-600 dark:text-blue-400" />
+                    <span>Manage multiple runtime devices from a single interface</span>
+                  </li>
+                </ul>
+              </div>
+            )}
+
             <div className="mt-6 text-sm text-muted-foreground">
-              <p>Device added: <strong>{selectedDevice?.hostname || selectedDevice?.ip}</strong></p>
+              {detectedKits.length > 0 && (
+                <p>
+                  <strong>Ready devices:</strong> {detectedKits.filter(kit => kit.is_online).length} online,
+                  {detectedKits.filter(kit => !kit.is_online).length} offline
+                </p>
+              )}
             </div>
           </div>
         )
@@ -756,8 +836,8 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
           <div className="flex items-center space-x-3">
             <TbTool className="w-8 h-8 text-primary" />
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Device Setup Wizard</h2>
-              <p className="text-muted-foreground">Add your first Vehicle Edge Runtime device</p>
+              <h2 className="text-2xl font-bold text-foreground">Vehicle Edge Runtime Setup</h2>
+              <p className="text-muted-foreground">Deploy Vehicle Edge Runtime devices with automated setup</p>
             </div>
           </div>
           <Button
@@ -870,7 +950,7 @@ curl -fsSL https://raw.githubusercontent.com/tri2510/vehicle-edge-runtime/main/i
           ) : (
             <Button
               onClick={handleComplete}
-              disabled={!selectedDevice}
+              disabled={detectedKits.length === 0}
               className="bg-green-600 hover:bg-green-700"
             >
               <TbRocket className="w-4 h-4 mr-2" />

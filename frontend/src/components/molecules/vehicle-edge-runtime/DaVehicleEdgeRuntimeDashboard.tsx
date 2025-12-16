@@ -44,6 +44,7 @@ import {
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
 import kitManagerService, { VehicleEdgeRuntimeKit, KitManagerMessage } from '@/services/kitManager.service'
+import vehicleEdgeRuntimeService, { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntime.service'
 import { Button } from '@/components/atoms/button'
 import { Input } from '@/components/atoms/input'
 import { Dialog, DialogContent } from '@/components/atoms/dialog'
@@ -126,6 +127,11 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isDeployingApp, setIsDeployingApp] = useState(false)
+  const [vehicleApps, setVehicleApps] = useState<VehicleApp[]>([])
+  const [runtimeState, setRuntimeState] = useState<RuntimeState | null>(null)
+  const [isRuntimeConnected, setIsRuntimeConnected] = useState(false)
+  const [isKitManagerConnected, setIsKitManagerConnected] = useState(false)
+  const [runtimeConnectionError, setRuntimeConnectionError] = useState<string | null>(null)
 
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -165,6 +171,83 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
     }
   }, [])
 
+  // Initialize Vehicle Edge Runtime connection
+  useEffect(() => {
+    const initializeVehicleRuntime = async () => {
+      if (!selectedKit) return
+
+      try {
+        setRuntimeConnectionError(null)
+        console.log(`Connecting to Vehicle Edge Runtime via kit-manager for kit: ${selectedKit.kit_id}`)
+
+        // Disconnect existing connection if any
+        vehicleEdgeRuntimeService.disconnect()
+
+        // Connect to the runtime through kit-manager
+        await vehicleEdgeRuntimeService.connect(selectedKit.kit_id)
+        vehicleEdgeRuntimeService.setSelectedKit(selectedKit.kit_id)
+
+        const isConnected = vehicleEdgeRuntimeService.isConnected()
+
+        setIsKitManagerConnected(isConnected)
+        // Runtime is only truly connected if kit-manager is connected AND selected device is online
+        setIsRuntimeConnected(isConnected && selectedKit?.is_online || false)
+        setupVehicleRuntimeEventListeners()
+
+        // Show connection status to user
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] ✅ Connected via kit-manager to ${selectedKit.name}`,
+          `[${new Date().toLocaleTimeString()}] 📱 Kit ID: ${selectedKit.kit_id.substring(0, 4).toUpperCase()}`
+        ])
+
+        // Get initial runtime state and apps
+        try {
+          const stateResponse = await vehicleEdgeRuntimeService.getRuntimeState()
+          setRuntimeState(stateResponse.runtimeState)
+        } catch (stateError) {
+          console.warn('Failed to get runtime state:', stateError)
+        }
+
+        try {
+          const appsResponse = await vehicleEdgeRuntimeService.listApps()
+          setVehicleApps(appsResponse.apps)
+        } catch (appsError) {
+          console.warn('Failed to get apps list:', appsError)
+          setVehicleApps([])
+        }
+
+      } catch (error) {
+        console.error('Failed to connect to Vehicle Edge Runtime:', error)
+        setRuntimeConnectionError(
+          error instanceof Error ? error.message : 'Failed to connect to Vehicle Edge Runtime'
+        )
+        setIsRuntimeConnected(false)
+
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] ❌ Failed to connect to Vehicle Edge Runtime`,
+          `[${new Date().toLocaleTimeString()}] 📱 Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        ])
+      }
+    }
+
+    if (selectedKit && selectedKit.is_online) {
+      initializeVehicleRuntime()
+    }
+
+    return () => {
+      vehicleEdgeRuntimeService.removeAllListeners()
+      vehicleEdgeRuntimeService.disconnect()
+    }
+  }, [selectedKit])
+
+  // Update runtime connection status when selected kit changes
+  useEffect(() => {
+    // Runtime is only connected if kit-manager is connected AND selected device is online
+    setIsRuntimeConnected(isKitManagerConnected && selectedKit?.is_online || false)
+  }, [selectedKit, isKitManagerConnected])
+
   // Setup Kit Manager event listeners
   const setupKitManagerEventListeners = () => {
     // Listen for kits updates
@@ -196,6 +279,27 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
     kitManagerService.onConnectError((error) => {
       setConnectionError(error.message)
       setIsConnected(false)
+    })
+  }
+
+  // Setup Vehicle Edge Runtime event listeners
+  const setupVehicleRuntimeEventListeners = () => {
+    // Listen for console output from running apps
+    vehicleEdgeRuntimeService.onConsoleOutput((message) => {
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${timestamp}] [${message.stream.toUpperCase()}] ${message.data}`
+      ])
+    })
+
+    // Listen for signal updates (can be displayed in real-time)
+    vehicleEdgeRuntimeService.onSignalUpdate((message) => {
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${timestamp}] [SIGNAL] ${message.path}: ${message.value}`
+      ])
     })
   }
 
@@ -643,39 +747,62 @@ if __name__ == "__main__":
     setDeploymentResult(null)
 
     try {
-      // Add deployment start message to console with timestamp
       const timestamp = new Date().toLocaleTimeString()
+      const appName = prototype?.name || 'New App'
+      const finalCode = deploymentConfig.code
       setConsoleOutput(prev => [...prev,
-        `[${timestamp}] 🚀 Starting deployment of ${deploymentConfig.type} app to ${selectedKit.name}...`,
-        `[${timestamp}] 📦 App name: ${prototype?.name || 'New App'}`,
-        `[${timestamp}] 📝 Code length: ${finalCode.length} characters`
+        `[${timestamp}] 🚀 Starting deployment of ${deploymentConfig.type} app...`,
+        `[${timestamp}] 📦 App name: ${appName}`,
+        `[${timestamp}] 📝 Code length: ${finalCode.length} characters`,
+        `[${timestamp}] 🔗 Deploying via kit-manager`
       ])
 
-      let finalCode = deploymentConfig.code
+      // Install the application using the kit-manager API
+      const installResponse = await vehicleEdgeRuntimeService.installApp({
+        id: `app-${Date.now()}`,
+        name: appName,
+        version: '1.0.0',
+        type: deploymentConfig.type,
+        code: finalCode,
+        entryPoint: deploymentConfig.entryPoint,
+        python_deps: deploymentConfig.type === 'python' ? [] : undefined
+      })
 
-      // Convert code to Vehicle App format if it's Python
-      if (deploymentConfig.type === 'python' && finalCode) {
-        try {
-          const convertResponse = await kitManagerService.convertCode({ code: finalCode })
-          if (convertResponse.status === 'OK') {
-            finalCode = convertResponse.content
-            setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ Code converted to Vehicle App format`])
-          }
-        } catch (convertError) {
-          setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Code conversion failed, using original code`])
-          console.warn('Code conversion failed:', convertError)
-        }
-      }
+      setConsoleOutput(prev => [...prev,
+        `[${new Date().toLocaleTimeString()}] ✅ App installed successfully: ${installResponse.appId}`,
+        `[${new Date().toLocaleTimeString()}] 📂 App directory: ${installResponse.appDir}`,
+        `[${new Date().toLocaleTimeString()}] 📱 Target kit: ${selectedKit.name} [${selectedKit.kit_id.substring(0, 4).toUpperCase()}]`
+      ])
 
-      // Deploy the application
-      await kitManagerService.deployApp(
-        selectedKit.kit_id,
-        finalCode || '',
-        prototype?.name || 'New App'
-      )
+      // Run the application
+      const runResponse = await vehicleEdgeRuntimeService.runApp(installResponse.appId, {
+        env: deploymentConfig.envVars,
+        workingDir: deploymentConfig.entryPoint.includes('/') ? deploymentConfig.entryPoint.split('/').slice(0, -1).join('/') : '/app'
+      })
 
-      // The deployment result will be handled by the event listener
-      setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 📤 Deployment request sent successfully to ${selectedKit.name}`])
+      setConsoleOutput(prev => [...prev,
+        `[${new Date().toLocaleTimeString()}] 🚀 App started with execution ID: ${runResponse.executionId}`
+      ])
+
+      // Subscribe to console output for the running app
+      await vehicleEdgeRuntimeService.subscribeConsole(runResponse.executionId)
+      setConsoleOutput(prev => [...prev,
+        `[${new Date().toLocaleTimeString()}] 📡 Subscribed to console output for ${runResponse.executionId}`
+      ])
+
+      // Update app list to show the new running app
+      const appsResponse = await vehicleEdgeRuntimeService.listApps()
+      setVehicleApps(appsResponse.apps)
+
+      setDeploymentResult({
+        status: 'success',
+        message: `App ${appName} deployed and started successfully`,
+        data: { appId: installResponse.appId, executionId: runResponse.executionId }
+      })
+
+      // Switch to console tab to monitor the app
+      setActiveTab('console')
+
     } catch (error) {
       console.error('Deployment failed:', error)
       const timestamp = new Date().toLocaleTimeString()
@@ -683,49 +810,46 @@ if __name__ == "__main__":
         status: 'error',
         message: error instanceof Error ? error.message : 'Deployment failed'
       })
-      setConsoleOutput(prev => [...prev, `[${timestamp}] ❌ Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`])
+      setConsoleOutput(prev => [...prev,
+        `[${timestamp}] ❌ Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
     } finally {
       setIsDeploying(false)
     }
   }
 
-  const handleStopApp = async (appId: string) => {
-    if (!selectedKit) return
+  const handleStopApp = async (appId: string, executionId?: string) => {
+    if (!isRuntimeConnected || !isKitManagerConnected) return
 
     try {
-      setConsoleOutput(prev => [...prev, `Stopping app ${appId}...`])
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [...prev, `[${timestamp}] 🛑 Stopping app ${appId}...`])
 
-      // Send stop command to the kit
-      kitManagerService.sendMessageToKit({
-        to_kit_id: selectedKit.kit_id,
-        cmd: 'stop_app',
-        appId: appId
-      })
+      // Stop the application using the new API
+      await vehicleEdgeRuntimeService.stopApp(appId)
 
-      setRunningApps(prev =>
-        prev.map(app =>
-          app.id === appId
-            ? { ...app, status: 'stopped' as const }
-            : app
-        )
-      )
+      setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ App ${appId} stopped successfully`])
 
-      setConsoleOutput(prev => [...prev, `Stop command sent to ${selectedKit.name}`])
+      // Update app list
+      const appsResponse = await vehicleEdgeRuntimeService.listApps()
+      setVehicleApps(appsResponse.apps)
     } catch (error) {
       console.error('Failed to stop app:', error)
-      setConsoleOutput(prev => [...prev, `Failed to stop app: ${error instanceof Error ? error.message : 'Unknown error'}`])
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [...prev,
+        `[${timestamp}] ❌ Failed to stop ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
     }
   }
 
-  const handleViewConsole = (app: RunningApp) => {
-    setSelectedApp(app)
-    setConsoleOutput([`Console output for ${app.name}:`, ...app.consoleOutput])
+  const handleViewConsole = (app: VehicleApp) => {
+    setConsoleOutput([`Console output for ${app.name}:`, `Status: ${app.status}`, `Type: ${app.type}`])
     setActiveTab('console')
 
-    if (selectedKit) {
-      // Subscribe to real-time console output
-      kitManagerService.subscribeToKit(selectedKit.kit_id)
-      setConsoleOutput(prev => [...prev, `Subscribed to real-time updates from ${selectedKit.name}`])
+    if (app.executionId && isRuntimeConnected) {
+      // Subscribe to console output for this specific app
+      vehicleEdgeRuntimeService.subscribeConsole(app.executionId)
+      setConsoleOutput(prev => [...prev, `Subscribed to console output for ${app.name} (ID: ${app.executionId})`])
     }
   }
 
@@ -818,6 +942,31 @@ if __name__ == "__main__":
             </div>
           </div>
 
+          {/* Connection Status */}
+          <div className="flex items-center space-x-3">
+            {selectedKit && (
+              <div className="flex items-center space-x-2 px-3 py-2 rounded-lg border bg-background">
+                <div className={`w-2 h-2 rounded-full ${
+                  isRuntimeConnected
+                    ? 'bg-green-500'
+                    : isKitManagerConnected && selectedKit && !selectedKit.is_online
+                      ? 'bg-yellow-500'
+                      : 'bg-red-500'
+                }`}></div>
+                <span className="text-sm font-medium">
+                  {isRuntimeConnected
+                    ? 'Device Online'
+                    : isKitManagerConnected && selectedKit && !selectedKit.is_online
+                      ? 'Device Offline'
+                      : isKitManagerConnected
+                        ? 'Kit Manager Connected'
+                        : 'Disconnected'
+                  }
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* Persistent Runtime Selector */}
           <div className="flex items-center space-x-4">
             {kits.length > 0 ? (
@@ -898,6 +1047,44 @@ if __name__ == "__main__":
       <div className="flex-1 overflow-y-auto p-6">
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* Connection Status Message */}
+            {runtimeConnectionError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <div className="flex items-center space-x-2">
+                  <TbAlertTriangle className="w-5 h-5 text-red-600" />
+                  <div>
+                    <h4 className="font-medium text-red-800">Kit-Manager Connection Failed</h4>
+                    <p className="text-sm text-red-700">
+                      The Vehicle Edge Runtime service cannot connect to the kit-manager service on port 3090.
+                      Please ensure the kit-manager Docker container is running: <code className="bg-red-100 px-1 rounded">docker ps | grep kit-manager</code>
+                    </p>
+                    <p className="text-sm text-red-600 mt-1">
+                      Error: {runtimeConnectionError}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Device Status Message */}
+            {!runtimeConnectionError && isKitManagerConnected && selectedKit && !selectedKit.is_online && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                <div className="flex items-center space-x-2">
+                  <TbAlertTriangle className="w-5 h-5 text-yellow-600" />
+                  <div>
+                    <h4 className="font-medium text-yellow-800">Vehicle Edge Runtime Device Offline</h4>
+                    <p className="text-sm text-yellow-700">
+                      The selected Vehicle Edge Runtime device (<strong>{selectedKit.name}</strong>) is currently offline.
+                      Please ensure the device is powered on and connected to the network.
+                    </p>
+                    <p className="text-sm text-yellow-600 mt-1">
+                      Kit ID: {selectedKit.kit_id} | Last seen: {selectedKit.last_seen ? new Date(selectedKit.last_seen).toLocaleString() : 'Never'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Runtime Selection */}
             <div className="rounded-lg border border-border p-6">
               <div className="flex items-center justify-between mb-4">
@@ -1265,7 +1452,18 @@ if __name__ == "__main__":
               <div className="flex justify-end">
                 <Button
                   onClick={handleDeployApp}
-                  disabled={!selectedKit || !deploymentConfig.code || isDeploying || !selectedKit.is_online}
+                  disabled={!selectedKit || !deploymentConfig.code || isDeploying || !selectedKit.is_online || !isRuntimeConnected}
+                  title={
+                    !selectedKit
+                      ? 'Select a runtime first'
+                      : !deploymentConfig.code
+                      ? 'Enter code to deploy'
+                      : !selectedKit.is_online
+                      ? 'Runtime device is offline'
+                      : !isRuntimeConnected
+                      ? 'Runtime device not connected'
+                      : `Deploy application to ${selectedKit.name}`
+                  }
                 >
                   {isDeploying ? (
                     <>
@@ -1275,7 +1473,7 @@ if __name__ == "__main__":
                   ) : (
                     <>
                       <TbRocket className="w-5 h-5 mr-2" />
-                      Deploy to {selectedKit?.name}
+                      Deploy to Runtime
                     </>
                   )}
                 </Button>
@@ -1509,28 +1707,43 @@ if __name__ == "__main__":
 
         {activeTab === 'apps' && (
           <div className="space-y-6">
-            {kits.length === 0 ? (
+            {!selectedKit ? (
               <div className="rounded-lg border border-border p-6 text-center">
                 <TbCode className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No Runtime Available</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">No Runtime Selected</h3>
                 <p className="text-muted-foreground mb-6">
-                  You need to connect a Vehicle Edge Runtime before viewing applications.
+                  Please select a Vehicle Edge Runtime from the header to view applications.
+                </p>
+              </div>
+            ) : !isRuntimeConnected ? (
+              <div className="rounded-lg border border-border p-6 text-center">
+                <TbServer className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">Runtime Not Connected</h3>
+                <p className="text-muted-foreground mb-6">
+                  {runtimeConnectionError || 'Failed to connect to Vehicle Edge Runtime'}
                 </p>
                 <Button
-                  onClick={() => setShowSetupWizard(true)}
+                  onClick={() => window.location.reload()}
                   className="mx-auto"
                 >
-                  <TbTool className="w-4 h-4 mr-2" />
-                  Setup Vehicle Edge Runtime
+                  <TbRefresh className="w-4 h-4 mr-2" />
+                  Reconnect
                 </Button>
               </div>
             ) : (
               <div className="rounded-lg border border-border">
-                <div className="px-6 py-4 border-b border-border">
-                  <h3 className="text-lg font-semibold text-foreground">Running Applications</h3>
+                <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-foreground">Applications ({vehicleApps.length})</h3>
+                  {runtimeState && (
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <span>CPU: {runtimeState.resources.cpu}</span>
+                      <span>Memory: {runtimeState.resources.memory}</span>
+                      <span>Uptime: {Math.floor(runtimeState.uptime / 60)}m</span>
+                    </div>
+                  )}
                 </div>
               <div className="divide-y divide-border">
-                {runningApps.length === 0 ? (
+                {vehicleApps.length === 0 ? (
                   <div className="px-6 py-12 text-center">
                     <TbCode className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">No applications deployed yet</p>
@@ -1542,7 +1755,7 @@ if __name__ == "__main__":
                     </Button>
                   </div>
                 ) : (
-                  runningApps.map((app) => (
+                  vehicleApps.map((app) => (
                     <div key={app.id} className="px-6 py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -1553,7 +1766,8 @@ if __name__ == "__main__":
                             <h4 className="font-medium text-foreground">{app.name}</h4>
                             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                               <span>Type: {app.type}</span>
-                              {app.startTime && <span>Started: {app.startTime.toLocaleTimeString()}</span>}
+                              <span>Version: {app.version}</span>
+                              {app.created_at && <span>Created: {new Date(app.created_at).toLocaleString()}</span>}
                               <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
                                 {getStatusIcon(app.status)}
                                 <span>{app.status}</span>
@@ -1563,14 +1777,18 @@ if __name__ == "__main__":
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className="text-right text-sm">
-                            <div className="flex items-center space-x-1 text-muted-foreground">
-                              <TbCpu className="w-3 h-3" />
-                              <span>{app.resources.cpu}%</span>
-                            </div>
-                            <div className="flex items-center space-x-1 text-muted-foreground">
-                              <TbProgress className="w-3 h-3" />
-                              <span>{app.resources.memory}MB</span>
-                            </div>
+                            {app.vehicle_signals && app.vehicle_signals.length > 0 && (
+                              <div className="flex items-center space-x-1 text-muted-foreground">
+                                <TbActivity className="w-3 h-3" />
+                                <span>{app.vehicle_signals.length} signals</span>
+                              </div>
+                            )}
+                            {app.python_deps && app.python_deps.length > 0 && (
+                              <div className="flex items-center space-x-1 text-muted-foreground">
+                                <TbDownload className="w-3 h-3" />
+                                <span>{app.python_deps.length} deps</span>
+                              </div>
+                            )}
                           </div>
                           <Button
                             variant="ghost"
@@ -1583,8 +1801,9 @@ if __name__ == "__main__":
                           <Button
                             variant={app.status === 'running' ? 'destructive' : 'ghost'}
                             size="icon"
-                            onClick={() => app.status === 'running' ? handleStopApp(app.id) : null}
+                            onClick={() => app.status === 'running' ? handleStopApp(app.id, app.executionId) : null}
                             title={app.status === 'running' ? 'Stop Application' : 'Application already stopped'}
+                            disabled={app.status !== 'running'}
                           >
                             {app.status === 'running' ? <TbPlayerStop className="w-4 h-4" /> : <TbPlayerPlay className="w-4 h-4" />}
                           </Button>
@@ -1623,7 +1842,16 @@ if __name__ == "__main__":
                     size="sm"
                     onClick={() => {
                       if (selectedApp) {
-                        handleViewConsole(selectedApp)
+                        // Convert RunningApp to VehicleApp for console viewing
+                        const vehicleApp: VehicleApp = {
+                          id: selectedApp.id,
+                          name: selectedApp.name,
+                          version: '1.0.0',
+                          type: selectedApp.type as 'python' | 'binary',
+                          status: selectedApp.status as VehicleApp['status'],
+                          created_at: selectedApp.startTime ? selectedApp.startTime.toISOString() : new Date().toISOString()
+                        }
+                        handleViewConsole(vehicleApp)
                       }
                     }}
                   >
