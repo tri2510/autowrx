@@ -158,6 +158,8 @@ print("📊 Application execution finished")`,
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isDeployingApp, setIsDeployingApp] = useState(false)
   const [vehicleApps, setVehicleApps] = useState<VehicleApp[]>([])
+  const [deployedRuntimeApps, setDeployedRuntimeApps] = useState<any[]>([])
+  const [isRefreshingApps, setIsRefreshingApps] = useState(false)
   const [runtimeState, setRuntimeState] = useState<RuntimeState | null>(null)
   const [isRuntimeConnected, setIsRuntimeConnected] = useState(false)
   const [isKitManagerConnected, setIsKitManagerConnected] = useState(false)
@@ -1148,6 +1150,51 @@ if __name__ == "__main__":
     }
   }
 
+  // Refresh applications list
+  const refreshApps = async () => {
+    if (!selectedKit || (!isRuntimeConnected && !isDirectRuntimeConnected)) return
+
+    setIsRefreshingApps(true)
+    try {
+      if (useDirectConnection && isDirectRuntimeConnected) {
+        // Use direct connection service
+        const appsResponse = await vehicleEdgeRuntimeDirectService.getDeployedApps()
+        console.log('Deployed apps from direct service:', appsResponse)
+        console.log('Applications array length:', appsResponse.applications?.length || 0)
+        console.log('Apps array length:', appsResponse.apps?.length || 0)
+
+        // Check both possible response fields
+        const appsArray = appsResponse.applications || appsResponse.apps || []
+        console.log('Using apps array:', appsArray)
+
+        // Convert to VehicleApp format
+        const convertedApps = appsArray.map((app: any) => ({
+          id: app.app_id || app.id,
+          name: app.name || `App ${app.app_id || app.id}`,
+          version: app.version || '1.0.0',
+          type: 'python' as const,
+          status: app.status as VehicleApp['status'] || 'running',
+          created_at: app.deploy_time ? new Date(app.deploy_time).toISOString() : new Date().toISOString(),
+          executionId: app.app_id || app.id || app.executionId
+        }))
+
+        console.log('Converted apps:', convertedApps)
+        setVehicleApps(convertedApps)
+        setDeployedRuntimeApps(appsArray)
+      } else {
+        // Use kit manager service
+        const appsResponse = await vehicleEdgeRuntimeService.listApps()
+        setVehicleApps(appsResponse.apps)
+      }
+    } catch (error) {
+      console.error('Failed to refresh apps:', error)
+      setVehicleApps([])
+      setDeployedRuntimeApps([])
+    } finally {
+      setIsRefreshingApps(false)
+    }
+  }
+
   const handleRefreshKits = async () => {
     try {
       // Update last refresh time
@@ -1710,7 +1757,20 @@ if __name__ == "__main__":
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setDeploymentConfig(prev => ({ ...prev, code: prototype?.code || '' }))}
+                      onClick={() => setDeploymentConfig(prev => ({ ...prev, code: `import time, datetime
+
+DURATION = 1200
+INTERVAL = 30
+
+start = time.time()
+while time.time() - start < DURATION:
+    elapsed = time.time() - start
+    if int(elapsed) % INTERVAL == 0:
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        print(f"[{ts}] Elapsed: {elapsed:.0f}s")
+    time.sleep(1)
+
+print("\\nDone.")` }))}
                     >
                       <TbDownload className="w-4 h-4 mr-1" />
                       Use Prototype Code
@@ -2127,7 +2187,19 @@ if __name__ == "__main__":
             ) : (
               <div className="rounded-lg border border-border">
                 <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-foreground">Applications ({vehicleApps.length})</h3>
+                  <div className="flex items-center space-x-4">
+                    <h3 className="text-lg font-semibold text-foreground">Applications ({vehicleApps.length})</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={refreshApps}
+                      disabled={isRefreshingApps}
+                      title="Refresh applications list"
+                    >
+                      <TbRefresh className={`w-4 h-4 mr-1 ${isRefreshingApps ? 'animate-spin' : ''}`} />
+                      {isRefreshingApps ? 'Refreshing...' : 'Refresh'}
+                    </Button>
+                  </div>
                   {runtimeState && (
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <span>CPU: {runtimeState.resources.cpu}</span>

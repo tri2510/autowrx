@@ -40,35 +40,74 @@ This is a simple test application that demonstrates Vehicle Edge Runtime deploym
 - ✅ Mode-specific deployment logic
 - ✅ Seamless switching between connection types
 
-## Test Python Application
+## Test Python Application (Default)
 
 ```python
-# Simple test application that demonstrates basic functionality
+import time
+import datetime
+
+DURATION = 300
+INTERVAL = 10
+
+start = time.time()
+while time.time() - start < DURATION:
+    elapsed = time.time() - start
+    if int(elapsed) % INTERVAL == 0:
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        print(f"[{ts}] Elapsed: {elapsed:.0f}s")
+    time.sleep(1)
+
+print("\nDone.")
+```
+
+## Test Application with SDV Support (Optional)
+
+```python
+# Vehicle Edge Runtime Test Application with SDV Support
 import time
 import asyncio
+from sdv.vehicle_app import VehicleApp
+from vehicle import Vehicle, vehicle
 
-print("🚗 Vehicle Edge Runtime Test Application")
-print("=" * 50)
+class TestApp(VehicleApp):
+    def __init__(self, vehicle_client: Vehicle):
+        super().__init__()
+        self.Vehicle = vehicle_client
 
-try:
-    for i in range(10):
-        print(f"📡 Processing cycle {i + 1}/10")
-        print(f"⏰ Timestamp: {time.strftime('%H:%M:%S')}")
+    async def on_start(self):
+        print("🚗 Vehicle Edge Runtime Test Application")
+        print("=" * 50)
 
-        # Simulate some work
-        await asyncio.sleep(2)
+        try:
+            for i in range(10):
+                print(f"📡 Processing cycle {i + 1}/10")
+                print(f"⏰ Timestamp: {time.strftime('%H:%M:%S')}")
 
-        print(f"✅ Cycle {i + 1} completed")
-        print("-" * 30)
+                # Toggle headlights (if available)
+                if hasattr(self.Vehicle.Body.Lights.Beam.Low, 'IsOn'):
+                    await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(i % 2 == 0)
+                    light_state = (await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()).value
+                    print(f"💡 Headlights: {'ON' if light_state else 'OFF'}")
 
-    print("🎉 Test application completed successfully!")
-    print("🔗 Connection to Vehicle Edge Runtime working perfectly!")
+                # Simulate some work
+                await asyncio.sleep(2)
 
-except Exception as e:
-    print(f"❌ Error: {e}")
-    print("🔧 Check Vehicle Edge Runtime connection")
+                print(f"✅ Cycle {i + 1} completed")
+                print("-" * 30)
 
-print("📊 Application execution finished")
+            print("🎉 Test application completed successfully!")
+            print("🔗 SDV and Vehicle Edge Runtime working perfectly!")
+
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            print("🔧 Check Vehicle Edge Runtime connection and SDV availability")
+
+async def main():
+    app = TestApp(vehicle)
+    await app.run()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## How to Test
