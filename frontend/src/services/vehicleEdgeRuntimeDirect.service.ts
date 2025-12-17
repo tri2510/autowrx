@@ -11,10 +11,44 @@
 
 import { v4 as uuidv4 } from 'uuid'
 
-// Reuse types from the existing service
+// Essential types moved from vehicleEdgeRuntime.service to avoid circular dependency
+
+// Types based on API specification
+export interface VehicleApp {
+  id: string
+  name: string
+  version: string
+  type: 'python' | 'binary'
+  status: 'installed' | 'running' | 'stopped' | 'paused' | 'error' | 'starting'
+  created_at: string
+  python_deps?: string[]
+  vehicle_signals?: string[]
+  code?: string
+  entryPoint?: string
+  description?: string
+  executionId?: string
+  workingDir?: string
+  env?: Record<string, string>
+}
+
+export interface RuntimeState {
+  runtimeId: string
+  status: string
+  uptime: number
+  version: string
+  runningApplications: Array<{
+    executionId: string
+    appId: string
+    status: string
+    uptime: number
+  }>
+  availableMemory: number
+  totalMemory: number
+  cpuUsage: number
+}
+
+// Reuse additional types from the existing service
 import type {
-  VehicleApp,
-  RuntimeState,
   AppLog,
   ConsoleOutput,
   SignalUpdate,
@@ -27,7 +61,6 @@ import type {
   PauseAppRequest,
   ResumeAppRequest,
   UninstallAppRequest,
-  GetAppStatusRequest,
   GetAppLogsRequest,
   SubscribeConsoleRequest,
   UnsubscribeConsoleRequest,
@@ -41,7 +74,6 @@ import type {
   AppsListResponse,
   PythonAppStartedResponse,
   AppStoppedResponse,
-  AppStatusResponse,
   AppLogsResponse,
   ConsoleSubscribedResponse,
   RuntimeStateResponse,
@@ -623,10 +655,16 @@ class VehicleEdgeRuntimeDirectService {
 
   // Vehicle signal methods
   async subscribeToSignals(signals: string[]): Promise<any> {
+    // Convert string signal names to VehicleSignal format
+    const vehicleSignals: VehicleSignal[] = signals.map(signal => ({
+      path: signal,
+      access: 'read' as const
+    }))
+
     const request: SubscribeSignalsRequest = {
       type: 'subscribe_apis',
       id: 'signal-sub-' + Date.now(),
-      apis: signals // According to spec: send array of signal names
+      apis: vehicleSignals
     }
 
     return this.sendMessage(request)

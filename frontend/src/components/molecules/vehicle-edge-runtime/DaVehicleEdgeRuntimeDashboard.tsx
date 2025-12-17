@@ -50,8 +50,8 @@ import {
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
 import kitManagerService, { VehicleEdgeRuntimeKit, KitManagerMessage } from '@/services/kitManager.service'
-import vehicleEdgeRuntimeService, { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntime.service'
-import vehicleEdgeRuntimeDirectService from '@/services/vehicleEdgeRuntimeDirect.service'
+import vehicleEdgeRuntimeService from '@/services/vehicleEdgeRuntime.service'
+import vehicleEdgeRuntimeDirectService, { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntimeDirect.service'
 
 // Extended VehicleApp interface with additional properties
 interface ExtendedVehicleApp extends VehicleApp {
@@ -172,12 +172,6 @@ print("📊 Application execution finished")`,
   const [runtimeState, setRuntimeState] = useState<RuntimeState | null>(null)
   const [isRuntimeConnected, setIsRuntimeConnected] = useState(false)
   const [isKitManagerConnected, setIsKitManagerConnected] = useState(false)
-  const [runtimeConnectionError, setRuntimeConnectionError] = useState<string | null>(null)
-
-  // Direct connection states
-  const [isDirectRuntimeConnected, setIsDirectRuntimeConnected] = useState(false)
-  const [directConnectionError, setDirectConnectionError] = useState<string | null>(null)
-  const [useDirectConnection, setUseDirectConnection] = useState(true) // Use direct connection by default
 
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -223,7 +217,7 @@ print("📊 Application execution finished")`,
       if (!selectedKit) return
 
       try {
-        setRuntimeConnectionError(null)
+        setConnectionError(null)
         console.log(`Connecting to Vehicle Edge Runtime via kit-manager for kit: ${selectedKit.kit_id}`)
 
         // Disconnect existing connection if any
@@ -249,15 +243,25 @@ print("📊 Application execution finished")`,
 
         // Get initial runtime state and apps
         try {
-          const stateResponse = await vehicleEdgeRuntimeService.getRuntimeState()
-          setRuntimeState(stateResponse.runtimeState)
+          const stateResponse = await vehicleEdgeRuntimeDirectService.getRuntimeState()
+          setRuntimeState(stateResponse.runtimeState as RuntimeState)
         } catch (stateError) {
           console.warn('Failed to get runtime state:', stateError)
         }
 
         try {
-          const appsResponse = await vehicleEdgeRuntimeService.listApps()
-          setVehicleApps(appsResponse.apps)
+          const appsResponse = await vehicleEdgeRuntimeDirectService.getDeployedApps()
+          // Convert the response format to match what the dashboard expects
+          const convertedApps = appsResponse.applications.map(app => ({
+            id: app.app_id,
+            name: app.name,
+            version: '1.0.0',
+            type: 'python' as const,
+            status: app.status as VehicleApp['status'] || 'running',
+            created_at: new Date(app.deploy_time).toISOString(),
+            executionId: app.app_id
+          }))
+          setVehicleApps(convertedApps)
         } catch (appsError) {
           console.warn('Failed to get apps list:', appsError)
           setVehicleApps([])
@@ -265,7 +269,7 @@ print("📊 Application execution finished")`,
 
       } catch (error) {
         console.error('Failed to connect to Vehicle Edge Runtime:', error)
-        setRuntimeConnectionError(
+        setConnectionError(
           error instanceof Error ? error.message : 'Failed to connect to Vehicle Edge Runtime'
         )
         setIsRuntimeConnected(false)
@@ -288,50 +292,49 @@ print("📊 Application execution finished")`,
     }
   }, [selectedKit])
 
-  // Initialize Direct Vehicle Edge Runtime connection
+  // Initialize Vehicle Edge Runtime connection when kit is selected
   useEffect(() => {
-    const initializeDirectRuntime = async () => {
-      if (!useDirectConnection) return
+    const initializeRuntimeConnection = async () => {
+      if (!selectedKit || !isKitManagerConnected) return
 
       try {
-        setDirectConnectionError(null)
-        console.log('Connecting to Vehicle Edge Runtime directly...')
+        setConnectionError(null)
+        console.log('Connecting to Vehicle Edge Runtime through Kit Manager...')
 
         // Disconnect existing connection if any
         vehicleEdgeRuntimeDirectService.disconnect()
 
-        // Connect directly to the runtime
+        // TODO: Connect through Kit Manager proxy
+        // For now, connect directly, but this should use Kit Manager as proxy
         await vehicleEdgeRuntimeDirectService.connect()
 
         const isConnected = vehicleEdgeRuntimeDirectService.isServiceConnected()
+        setIsRuntimeConnected(isConnected)
 
-        setIsDirectRuntimeConnected(isConnected)
-        setupDirectRuntimeEventListeners()
+        if (isConnected) {
+          setupDirectRuntimeEventListeners()
 
-        // Show connection status to user
-        setConsoleOutput(prev => [
-          ...prev,
-          `[${new Date().toLocaleTimeString()}] ✅ Connected directly to Vehicle Edge Runtime`,
-          `[${new Date().toLocaleTimeString()}] 🔗 WebSocket: ws://localhost:3002/runtime`
-        ])
+          // Show connection status to user
+          setConsoleOutput(prev => [
+            ...prev,
+            `[${new Date().toLocaleTimeString()}] ✅ Connected to Vehicle Edge Runtime`,
+            `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit.name}`
+          ])
 
-        // Get initial runtime state and apps
-        try {
-          const appsResponse = await vehicleEdgeRuntimeDirectService.getDeployedApps()
-          console.log('Deployed apps:', appsResponse)
-          // Convert to VehicleApp format if needed
-          setVehicleApps([])
-        } catch (appsError) {
-          console.warn('Failed to get apps list:', appsError)
-          setVehicleApps([])
+          // Get initial apps list
+          try {
+            await refreshApps()
+          } catch (appsError) {
+            console.warn('Failed to get apps list:', appsError)
+          }
         }
 
       } catch (error) {
-        console.error('Failed to connect directly to Vehicle Edge Runtime:', error)
-        setDirectConnectionError(
+        console.error('Failed to connect to Vehicle Edge Runtime:', error)
+        setConnectionError(
           error instanceof Error ? error.message : 'Failed to connect to Vehicle Edge Runtime'
         )
-        setIsDirectRuntimeConnected(false)
+        setIsRuntimeConnected(false)
 
         setConsoleOutput(prev => [
           ...prev,
@@ -341,13 +344,13 @@ print("📊 Application execution finished")`,
       }
     }
 
-    initializeDirectRuntime()
+    initializeRuntimeConnection()
 
     return () => {
       vehicleEdgeRuntimeDirectService.removeAllListeners()
       vehicleEdgeRuntimeDirectService.disconnect()
     }
-  }, [useDirectConnection])
+  }, [selectedKit, isKitManagerConnected])
 
   // Update runtime connection status when selected kit changes
   useEffect(() => {
@@ -359,12 +362,9 @@ print("📊 Application execution finished")`,
   useEffect(() => {
     let refreshInterval: NodeJS.Timeout | null = null
 
-    // Set up auto-refresh if any connection is active
-    if ((isRuntimeConnected || isDirectRuntimeConnected) && selectedKit) {
+    // Set up auto-refresh if connection is active
+    if (isRuntimeConnected && selectedKit) {
       console.log('🔄 Setting up auto-refresh for applications (10s interval)')
-
-      // Initial refresh
-      refreshApps()
 
       // Set up periodic refresh
       refreshInterval = setInterval(() => {
@@ -378,7 +378,7 @@ print("📊 Application execution finished")`,
         console.log('🔄 Stopped auto-refresh for applications')
       }
     }
-  }, [isRuntimeConnected, isDirectRuntimeConnected, selectedKit, useDirectConnection])
+  }, [isRuntimeConnected, selectedKit])
 
   // Setup Kit Manager event listeners
   const setupKitManagerEventListeners = () => {
@@ -438,11 +438,13 @@ print("📊 Application execution finished")`,
   // Setup Direct Vehicle Edge Runtime event listeners
   const setupDirectRuntimeEventListeners = () => {
     // Listen for console output from running apps
-    vehicleEdgeRuntimeDirectService.onConsoleOutput((message) => {
+    vehicleEdgeRuntimeDirectService.onConsoleOutput((message: any) => {
       const timestamp = new Date().toLocaleTimeString()
+      // Handle both ConsoleOutput and ConsoleOutputMessage types
+      const output = message.data || message.output || ''
       setConsoleOutput(prev => [
         ...prev,
-        `[${timestamp}] [STDOUT] ${message.output}`
+        `[${timestamp}] [STDOUT] ${output}`
       ])
 
       // Update current deployment if it matches
@@ -455,17 +457,26 @@ print("📊 Application execution finished")`,
     })
 
     // Listen for signal updates (can be displayed in real-time)
-    vehicleEdgeRuntimeDirectService.onSignalUpdate((message) => {
+    vehicleEdgeRuntimeDirectService.onSignalUpdate((message: any) => {
       const timestamp = new Date().toLocaleTimeString()
 
-      // Display signal updates in console
+      // Handle both SignalUpdate types - single signal or multiple updates
       if (message.updates) {
+        // Multiple updates in one message
         Object.entries(message.updates).forEach(([signal, value]) => {
           setConsoleOutput(prev => [
             ...prev,
             `[${timestamp}] [SIGNAL] ${signal}: ${value}`
           ])
         })
+      } else {
+        // Single signal update
+        const signalName = message.path || 'unknown'
+        const signalValue = message.value
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${timestamp}] [SIGNAL] ${signalName}: ${signalValue}`
+        ])
       }
     })
 
@@ -529,23 +540,22 @@ print("📊 Application execution finished")`,
     })
 
     // Listen for app status updates
-    vehicleEdgeRuntimeDirectService.onAppStatus((response) => {
+    vehicleEdgeRuntimeDirectService.onAppStatus((response: any) => {
       const timestamp = new Date().toLocaleTimeString()
       setConsoleOutput(prev => [
         ...prev,
         `[${timestamp}] [STATUS] App ${response.status.app_id}: ${response.status.state}`
       ])
 
-      // Update running apps
+      // Update running apps - fix response object property access
       setRunningApps(prev => prev.map(app =>
         app.id === response.status.app_id
           ? {
               ...app,
               status: response.status.state as 'running' | 'stopped' | 'error',
-              resources: {
-                cpu: response.status.resources?.cpu || 0,
-                memory: response.status.resources?.memory || 0
-              }
+              // Use the nested resources object if it exists, otherwise use defaults
+              cpu: `${response.status.resources?.cpu || 0}%`,
+              memory: `${response.status.resources?.memory || 0}MB`
             }
           : app
       ))
@@ -999,131 +1009,67 @@ if __name__ == "__main__":
       const finalCode = deploymentConfig.code
       const appId = `app-${Date.now()}`
 
-      // Choose deployment method based on connection type
-      if (useDirectConnection && isDirectRuntimeConnected) {
-        // Direct deployment to Vehicle Edge Runtime
-        setConsoleOutput(prev => [...prev,
-          `[${timestamp}] 🚀 Starting deployment of ${deploymentConfig.type} app...`,
-          `[${timestamp}] 📦 App name: ${appName}`,
-          `[${timestamp}] 📝 Code length: ${finalCode.length} characters`,
-          `[${timestamp}] 🔗 Deploying directly to Vehicle Edge Runtime`
-        ])
-
-        // Set current deployment for tracking
-        setCurrentDeployment({
-          appId: appId,
-          canStop: true
-        })
-
-        // Deploy using direct runtime service
-        const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
-          id: appId,
-          name: appName,
-          description: prototype?.description || 'Deployed from dashboard',
-          version: '1.0.0',
-          code: finalCode,
-          vehicleId: 'default-vehicle'
-        })
-
-        setConsoleOutput(prev => [...prev,
-          `[${new Date().toLocaleTimeString()}] ✅ App deployed and started successfully: ${deployedAppId}`,
-          `[${new Date().toLocaleTimeString()}] 🔗 Direct WebSocket connection established`
-        ])
-
-        // Update current deployment with execution info
-        setCurrentDeployment(prev => prev ? {
-          ...prev,
-          appId: deployedAppId
-        } : null)
-
-        // Refresh the apps list
-        try {
-          await vehicleEdgeRuntimeDirectService.getDeployedApps()
-        } catch (error) {
-          console.warn('Failed to refresh apps list:', error)
-        }
-
-      } else {
-        // Kit Manager deployment (existing logic)
-        if (!selectedKit) {
-          throw new Error('No kit selected for deployment')
-        }
-
-        setConsoleOutput(prev => [...prev,
-          `[${timestamp}] 🚀 Starting deployment of ${deploymentConfig.type} app...`,
-          `[${timestamp}] 📦 App name: ${appName}`,
-          `[${timestamp}] 📝 Code length: ${finalCode.length} characters`,
-          `[${timestamp}] 🔗 Deploying via kit-manager`
-        ])
-
-        // Set current deployment for tracking
-        setCurrentDeployment({
-          appId: appId,
-          canStop: true
-        })
-
-        // Install the application using the kit-manager API
-        const installResponse = await vehicleEdgeRuntimeService.installApp({
-          id: appId,
-          name: appName,
-          version: '1.0.0',
-          type: deploymentConfig.type,
-          code: finalCode,
-          entryPoint: deploymentConfig.entryPoint,
-          python_deps: deploymentConfig.type === 'python' ? [] : undefined
-        })
-
-        setConsoleOutput(prev => [...prev,
-          `[${new Date().toLocaleTimeString()}] ✅ App installed successfully: ${installResponse.appId}`,
-          `[${new Date().toLocaleTimeString()}] 📂 App directory: ${installResponse.appDir}`,
-          `[${new Date().toLocaleTimeString()}] 📱 Target kit: ${selectedKit.name} [${selectedKit.kit_id.substring(0, 4).toUpperCase()}]`
-        ])
-
-        // Update current deployment with execution info
-        setCurrentDeployment(prev => prev ? {
-          ...prev,
-          appId: installResponse.appId
-        } : null)
-
-        // Run the application
-        const runResponse = await vehicleEdgeRuntimeService.runApp(installResponse.appId, {
-          env: deploymentConfig.envVars,
-          workingDir: deploymentConfig.entryPoint.includes('/') ? deploymentConfig.entryPoint.split('/').slice(0, -1).join('/') : '/app'
-        })
-
-        setConsoleOutput(prev => [...prev,
-          `[${new Date().toLocaleTimeString()}] 🚀 App started with execution ID: ${runResponse.executionId}`
-        ])
-
-        // Update current deployment with execution ID
-        setCurrentDeployment(prev => prev ? {
-          ...prev,
-          executionId: runResponse.executionId
-        } : null)
-
-        // Subscribe to console output for the running app
-        await vehicleEdgeRuntimeService.subscribeConsole(runResponse.executionId)
-        setConsoleOutput(prev => [...prev,
-          `[${new Date().toLocaleTimeString()}] 📡 Subscribed to console output for ${runResponse.executionId}`
-        ])
-
-        // Update app list to show the new running app
-        const appsResponse = await vehicleEdgeRuntimeService.listApps()
-        setVehicleApps(appsResponse.apps)
-
-        setDeploymentResult({
-          status: 'success',
-          message: `App ${appName} deployed and started successfully`,
-          data: { appId: installResponse.appId, executionId: runResponse.executionId }
-        })
-
-        // Clear current deployment on success
-        setCurrentDeployment(null)
-
-        // Switch to console tab to monitor the app
-        setActiveTab('console')
+      // Unified deployment using Vehicle Edge Runtime API
+      if (!selectedKit) {
+        throw new Error('No runtime selected for deployment')
       }
 
+      if (!isRuntimeConnected) {
+        throw new Error('Runtime not connected')
+      }
+
+      setConsoleOutput(prev => [...prev,
+        `[${timestamp}] 🚀 Starting deployment of ${deploymentConfig.type} app...`,
+        `[${timestamp}] 📦 App name: ${appName}`,
+        `[${timestamp}] 📝 Code length: ${finalCode.length} characters`,
+        `[${timestamp}] 🚗 Target runtime: ${selectedKit.name}`
+      ])
+
+      // Set current deployment for tracking
+      setCurrentDeployment({
+        appId: appId,
+        canStop: true
+      })
+
+      // Deploy using unified Vehicle Edge Runtime service
+      const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
+        id: appId,
+        name: appName,
+        description: prototype?.description || 'Deployed from dashboard',
+        version: '1.0.0',
+        code: finalCode,
+        vehicleId: 'default-vehicle'
+      })
+
+      setConsoleOutput(prev => [...prev,
+        `[${new Date().toLocaleTimeString()}] ✅ App deployed and started successfully: ${deployedAppId}`,
+        `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit.name}`
+      ])
+
+      // Update current deployment with execution info
+      setCurrentDeployment(prev => prev ? {
+        ...prev,
+        appId: deployedAppId
+      } : null)
+
+      // Refresh the apps list
+      try {
+        await refreshApps()
+      } catch (error) {
+        console.warn('Failed to refresh apps list:', error)
+      }
+
+      setDeploymentResult({
+        status: 'success',
+        message: `App ${appName} deployed and started successfully`,
+        data: { appId: deployedAppId }
+      })
+
+      // Clear current deployment on success
+      setCurrentDeployment(null)
+
+      // Switch to console tab to monitor the app
+      setActiveTab('console')
     } catch (error) {
       console.error('Deployment failed:', error)
       const timestamp = new Date().toLocaleTimeString()
@@ -1206,10 +1152,9 @@ if __name__ == "__main__":
     console.log('🔄 refreshApps called!')
     console.log('📊 selectedKit:', selectedKit)
     console.log('🔌 isRuntimeConnected:', isRuntimeConnected)
-    console.log('⚡ isDirectRuntimeConnected:', isDirectRuntimeConnected)
-    console.log('🔀 useDirectConnection:', useDirectConnection)
+    console.log('⚡ isRuntimeConnected:', isRuntimeConnected)
 
-    if (!selectedKit || (!isRuntimeConnected && !isDirectRuntimeConnected)) {
+    if (!selectedKit || !isRuntimeConnected) {
       console.log('❌ Early return: No selected kit or no connections')
       return
     }
@@ -1217,26 +1162,25 @@ if __name__ == "__main__":
     console.log('✅ Proceeding with app refresh...')
     setIsRefreshingApps(true)
     try {
-      // Always use direct connection for app listing since kit manager doesn't support list_deployed_apps
-      // Kit manager is only for deployment operations
-      if (isDirectRuntimeConnected) {
-        console.log('🚀 Using DIRECT connection path for app listing')
+      // Use direct connection for app listing
+      if (isRuntimeConnected) {
+        console.log('🚀 Getting deployed apps list')
         // Use direct connection service
         const appsResponse = await vehicleEdgeRuntimeDirectService.getDeployedApps()
         console.log('📊 Deployed apps from direct service:', appsResponse)
         console.log('📈 Applications array length:', appsResponse.applications?.length || 0)
 
-        // Check both possible response fields
-        const appsArray = appsResponse.applications || appsResponse.apps || []
+        // Use applications field from response
+        const appsArray = appsResponse.applications || []
         console.log('📋 Using apps array:', appsArray)
 
-        // Extract enhanced statistics from response
+        // Extract statistics from apps array
         const stats = {
-          total: appsResponse.total_count || appsResponse.stats?.total || appsArray.length,
-          running: appsResponse.running_count || appsResponse.stats?.running || appsArray.filter(app => app.status === 'running').length,
-          paused: appsResponse.paused_count || appsResponse.stats?.paused || appsArray.filter(app => app.status === 'paused').length,
-          stopped: appsResponse.stopped_count || appsResponse.stats?.stopped || appsArray.filter(app => app.status === 'stopped').length,
-          error: appsResponse.error_count || appsResponse.stats?.error || appsArray.filter(app => app.status === 'error').length
+          total: appsArray.length,
+          running: appsArray.filter(app => app.status === 'running').length,
+          paused: appsArray.filter(app => app.status === 'paused').length,
+          stopped: appsArray.filter(app => app.status === 'stopped').length,
+          error: appsArray.filter(app => app.status === 'error').length
         }
         console.log('📊 Enhanced stats:', stats)
 
@@ -1299,8 +1243,8 @@ if __name__ == "__main__":
       }
     } catch (error) {
       console.error('❌ ERROR: Failed to refresh apps:', error)
-      console.error('❌ Error details:', error.message)
-      console.error('❌ Error stack:', error.stack)
+      console.error('❌ Error details:', error instanceof Error ? error.message : String(error))
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack available')
       setVehicleApps([])
       setDeployedRuntimeApps([])
     } finally {
@@ -1317,23 +1261,14 @@ if __name__ == "__main__":
         `[${new Date().toLocaleTimeString()}] [ACTION] Starting application: ${appId}`
       ])
 
-      if (useDirectConnection && isDirectRuntimeConnected) {
-        // For direct connection, deploy a new instance since the runtime starts apps automatically
-        const app = vehicleApps.find(a => a.id === appId)
-        if (app && app.type === 'python') {
-          // Use the stored app data to redeploy
-          // For now, just show a message since redeployment needs app data
-          setConsoleOutput(prev => [
-            ...prev,
-            `[${new Date().toLocaleTimeString()}] [INFO] App restart functionality requires stored app data`
-          ])
-        }
-      } else {
-        // Use kit manager service (if start functionality is available)
-        const response = await vehicleEdgeRuntimeService.runApp(appId)
+      // For direct connection, apps start automatically on deployment
+      const app = vehicleApps.find(a => a.id === appId)
+      if (app && app.type === 'python') {
+        // Use the stored app data to redeploy
+        // For now, just show a message since redeployment needs app data
         setConsoleOutput(prev => [
           ...prev,
-          `[${new Date().toLocaleTimeString()}] [RESPONSE] App start response: ${JSON.stringify(response)}`
+          `[${new Date().toLocaleTimeString()}] [INFO] App restart functionality requires stored app data`
         ])
       }
 
@@ -1355,11 +1290,7 @@ if __name__ == "__main__":
         `[${new Date().toLocaleTimeString()}] [ACTION] Stopping application: ${appId}`
       ])
 
-      if (useDirectConnection && isDirectRuntimeConnected) {
-        await vehicleEdgeRuntimeDirectService.stopApp(appId)
-      } else {
-        await vehicleEdgeRuntimeService.stopApp(appId)
-      }
+      await vehicleEdgeRuntimeDirectService.stopApp(appId)
 
       setConsoleOutput(prev => [
         ...prev,
@@ -1389,12 +1320,7 @@ if __name__ == "__main__":
         `[${new Date().toLocaleTimeString()}] [ACTION] Pausing application: ${appId}`
       ])
 
-      if (useDirectConnection && isDirectRuntimeConnected) {
-        await vehicleEdgeRuntimeDirectService.pauseApp(appId)
-      } else {
-        // Kit manager service may not have pause functionality
-        console.warn('Pause not available via kit manager service')
-      }
+      await vehicleEdgeRuntimeDirectService.pauseApp(appId)
 
       setConsoleOutput(prev => [
         ...prev,
@@ -1424,12 +1350,7 @@ if __name__ == "__main__":
         `[${new Date().toLocaleTimeString()}] [ACTION] Resuming application: ${appId}`
       ])
 
-      if (useDirectConnection && isDirectRuntimeConnected) {
-        await vehicleEdgeRuntimeDirectService.resumeApp(appId)
-      } else {
-        // Kit manager service may not have resume functionality
-        console.warn('Resume not available via kit manager service')
-      }
+      await vehicleEdgeRuntimeDirectService.resumeApp(appId)
 
       setConsoleOutput(prev => [
         ...prev,
@@ -1463,12 +1384,7 @@ if __name__ == "__main__":
         `[${new Date().toLocaleTimeString()}] [ACTION] Uninstalling application: ${appId}`
       ])
 
-      if (useDirectConnection && isDirectRuntimeConnected) {
-        await vehicleEdgeRuntimeDirectService.uninstallApp(appId)
-      } else {
-        // Kit manager service may not have uninstall functionality
-        console.warn('Uninstall not available via kit manager service')
-      }
+      await vehicleEdgeRuntimeDirectService.uninstallApp(appId)
 
       setConsoleOutput(prev => [
         ...prev,
@@ -1591,69 +1507,34 @@ if __name__ == "__main__":
             </div>
           </div>
 
-          {/* Connection Mode Selector */}
-          <div className="flex items-center space-x-2 px-3 py-2 rounded-lg border bg-background">
-            <TbWifi className="w-4 h-4 text-muted-foreground" />
-            <label className="text-sm font-medium">Connection:</label>
-            <select
-              value={useDirectConnection ? 'direct' : 'kit-manager'}
-              onChange={(e) => {
-                const isDirect = e.target.value === 'direct'
-                setUseDirectConnection(isDirect)
-                // Update connection status in console
-                setConsoleOutput(prev => [
-                  ...prev,
-                  `[${new Date().toLocaleTimeString()}] 🔗 Switched to ${isDirect ? 'Direct' : 'Kit Manager'} connection mode`
-                ])
-              }}
-              className="text-sm border rounded px-2 py-1 bg-background"
-            >
-              <option value="direct">Direct Runtime</option>
-              <option value="kit-manager">Kit Manager</option>
-            </select>
-          </div>
-
           {/* Connection Status */}
           <div className="flex items-center space-x-3">
-            {useDirectConnection ? (
-              // Direct connection status
+            {selectedKit && (
               <div className="flex items-center space-x-2 px-3 py-2 rounded-lg border bg-background">
                 <TbPlugConnected className="w-4 h-4" />
                 <div className={`w-2 h-2 rounded-full ${
-                  isDirectRuntimeConnected ? 'bg-green-500' : 'bg-red-500'
+                  isRuntimeConnected
+                    ? 'bg-green-500'
+                    : isKitManagerConnected && selectedKit && !selectedKit.is_online
+                      ? 'bg-yellow-500'
+                      : 'bg-red-500'
                 }`}></div>
                 <span className="text-sm font-medium">
-                  Direct Runtime {isDirectRuntimeConnected ? 'Connected' : 'Disconnected'}
+                  {isRuntimeConnected
+                    ? 'Runtime Connected'
+                    : isKitManagerConnected && selectedKit && !selectedKit.is_online
+                      ? 'Runtime Offline'
+                    : isKitManagerConnected
+                      ? 'Kit Manager Connected'
+                      : 'Disconnected'
+                  }
                 </span>
-                {directConnectionError && (
+                {connectionError && (
                   <span className="text-xs text-red-500 ml-2">
-                    ({directConnectionError})
+                    ({connectionError})
                   </span>
                 )}
               </div>
-            ) : (
-              // Kit Manager connection status
-              selectedKit && (
-                <div className="flex items-center space-x-2 px-3 py-2 rounded-lg border bg-background">
-                  <div className={`w-2 h-2 rounded-full ${
-                    isRuntimeConnected
-                      ? 'bg-green-500'
-                      : isKitManagerConnected && selectedKit && !selectedKit.is_online
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                  }`}></div>
-                  <span className="text-sm font-medium">
-                    {isRuntimeConnected
-                      ? 'Device Online'
-                      : isKitManagerConnected && selectedKit && !selectedKit.is_online
-                        ? 'Device Offline'
-                      : isKitManagerConnected
-                        ? 'Kit Manager Connected'
-                        : 'Disconnected'
-                    }
-                  </span>
-                </div>
-              )
             )}
           </div>
 
@@ -1738,7 +1619,7 @@ if __name__ == "__main__":
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Connection Status Message */}
-            {runtimeConnectionError && (
+            {connectionError && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                 <div className="flex items-center space-x-2">
                   <TbAlertTriangle className="w-5 h-5 text-red-600" />
@@ -1749,7 +1630,7 @@ if __name__ == "__main__":
                       Please ensure the kit-manager Docker container is running: <code className="bg-red-100 px-1 rounded">docker ps | grep kit-manager</code>
                     </p>
                     <p className="text-sm text-red-600 mt-1">
-                      Error: {runtimeConnectionError}
+                      Error: {connectionError}
                     </p>
                   </div>
                 </div>
@@ -1757,7 +1638,7 @@ if __name__ == "__main__":
             )}
 
             {/* Device Status Message */}
-            {!runtimeConnectionError && isKitManagerConnected && selectedKit && !selectedKit.is_online && (
+            {!connectionError && isKitManagerConnected && selectedKit && !selectedKit.is_online && (
               <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                 <div className="flex items-center space-x-2">
                   <TbAlertTriangle className="w-5 h-5 text-yellow-600" />
@@ -2192,30 +2073,17 @@ print("\\nDone.")` }))}
                 ) : (
                   <Button
                     onClick={handleDeployApp}
-                    disabled={
-                      (useDirectConnection
-                        ? (!isDirectRuntimeConnected || !deploymentConfig.code || isDeploying)
-                        : (!selectedKit || !deploymentConfig.code || isDeploying || !selectedKit.is_online || !isRuntimeConnected)
-                      )
-                    }
+                    disabled={!selectedKit || !isRuntimeConnected || !deploymentConfig.code || isDeploying || !selectedKit.is_online}
                     title={
-                      useDirectConnection
-                        ? (!deploymentConfig.code
-                          ? 'Enter code to deploy'
-                          : !isDirectRuntimeConnected
-                          ? 'Vehicle Edge Runtime not connected'
-                          : 'Deploy application directly to Vehicle Edge Runtime'
-                        )
-                        : (!selectedKit
-                          ? 'Select a runtime first'
-                          : !deploymentConfig.code
-                          ? 'Enter code to deploy'
-                          : !selectedKit.is_online
-                          ? 'Runtime device is offline'
-                          : !isRuntimeConnected
-                          ? 'Runtime device not connected'
-                          : `Deploy application to ${selectedKit.name}`
-                        )
+                      !deploymentConfig.code
+                        ? 'Enter code to deploy'
+                        : !selectedKit
+                        ? 'Select a runtime to deploy'
+                        : !isRuntimeConnected
+                        ? 'Vehicle Edge Runtime not connected'
+                        : !selectedKit.is_online
+                        ? 'Selected runtime is offline'
+                        : 'Deploy application to Vehicle Edge Runtime'
                     }
                   >
                     <TbRocket className="w-5 h-5 mr-2" />
@@ -2481,7 +2349,7 @@ print("\\nDone.")` }))}
                 <TbServer className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">Runtime Not Connected</h3>
                 <p className="text-muted-foreground mb-6">
-                  {runtimeConnectionError || 'Failed to connect to Vehicle Edge Runtime'}
+                  {connectionError || 'Failed to connect to Vehicle Edge Runtime'}
                 </p>
                 <Button
                   onClick={() => window.location.reload()}
