@@ -412,7 +412,7 @@ class VehicleEdgeRuntimeService {
       throw new Error('Kit-manager is not connected. Please ensure the kit-manager service is running on port 3090.')
     }
 
-    // Deploy through kit-manager
+    // Deploy through kit-manager using WebSocket
     try {
       await kitManagerService.deployApp(this.selectedKitId, appData.code || '', appData.name)
 

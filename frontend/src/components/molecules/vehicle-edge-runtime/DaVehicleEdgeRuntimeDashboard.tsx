@@ -39,7 +39,9 @@ import {
   TbStar,
   TbClock,
   TbCategory,
-  TbFilter
+  TbFilter,
+  TbSquare,
+  TbSquareRotated
 } from 'react-icons/tb'
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
@@ -106,6 +108,11 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   const [selectedApp, setSelectedApp] = useState<RunningApp | null>(null)
   const [consoleOutput, setConsoleOutput] = useState<string[]>([])
   const [isDeploying, setIsDeploying] = useState(false)
+  const [currentDeployment, setCurrentDeployment] = useState<{
+    appId?: string
+    executionId?: string
+    canStop: boolean
+  } | null>(null)
   const [deploymentResult, setDeploymentResult] = useState<DeploymentResult | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState<string | null>(null)
@@ -750,6 +757,8 @@ if __name__ == "__main__":
       const timestamp = new Date().toLocaleTimeString()
       const appName = prototype?.name || 'New App'
       const finalCode = deploymentConfig.code
+      const appId = `app-${Date.now()}`
+
       setConsoleOutput(prev => [...prev,
         `[${timestamp}] 🚀 Starting deployment of ${deploymentConfig.type} app...`,
         `[${timestamp}] 📦 App name: ${appName}`,
@@ -757,9 +766,15 @@ if __name__ == "__main__":
         `[${timestamp}] 🔗 Deploying via kit-manager`
       ])
 
+      // Set current deployment for tracking
+      setCurrentDeployment({
+        appId: appId,
+        canStop: true
+      })
+
       // Install the application using the kit-manager API
       const installResponse = await vehicleEdgeRuntimeService.installApp({
-        id: `app-${Date.now()}`,
+        id: appId,
         name: appName,
         version: '1.0.0',
         type: deploymentConfig.type,
@@ -774,6 +789,12 @@ if __name__ == "__main__":
         `[${new Date().toLocaleTimeString()}] 📱 Target kit: ${selectedKit.name} [${selectedKit.kit_id.substring(0, 4).toUpperCase()}]`
       ])
 
+      // Update current deployment with execution info
+      setCurrentDeployment(prev => prev ? {
+        ...prev,
+        appId: installResponse.appId
+      } : null)
+
       // Run the application
       const runResponse = await vehicleEdgeRuntimeService.runApp(installResponse.appId, {
         env: deploymentConfig.envVars,
@@ -783,6 +804,12 @@ if __name__ == "__main__":
       setConsoleOutput(prev => [...prev,
         `[${new Date().toLocaleTimeString()}] 🚀 App started with execution ID: ${runResponse.executionId}`
       ])
+
+      // Update current deployment with execution ID
+      setCurrentDeployment(prev => prev ? {
+        ...prev,
+        executionId: runResponse.executionId
+      } : null)
 
       // Subscribe to console output for the running app
       await vehicleEdgeRuntimeService.subscribeConsole(runResponse.executionId)
@@ -800,6 +827,9 @@ if __name__ == "__main__":
         data: { appId: installResponse.appId, executionId: runResponse.executionId }
       })
 
+      // Clear current deployment on success
+      setCurrentDeployment(null)
+
       // Switch to console tab to monitor the app
       setActiveTab('console')
 
@@ -813,9 +843,59 @@ if __name__ == "__main__":
       setConsoleOutput(prev => [...prev,
         `[${timestamp}] ❌ Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       ])
+
+      // Clear current deployment on error
+      setCurrentDeployment(null)
     } finally {
       setIsDeploying(false)
     }
+  }
+
+  const handleStopDeployment = async () => {
+    if (!currentDeployment || !currentDeployment.appId) return
+
+    try {
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [...prev, `[${timestamp}] 🛑 Stopping deployment of ${currentDeployment.appId}...`])
+
+      // Stop the current deployment
+      await vehicleEdgeRuntimeService.stopApp(currentDeployment.appId)
+
+      setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ Deployment stopped successfully`])
+
+      // Reset deployment state
+      setIsDeploying(false)
+      setCurrentDeployment(null)
+      setDeploymentResult({
+        status: 'success',
+        message: 'Deployment stopped by user'
+      })
+
+      // Update app list
+      const appsResponse = await vehicleEdgeRuntimeService.listApps()
+      setVehicleApps(appsResponse.apps)
+    } catch (error) {
+      console.error('Failed to stop deployment:', error)
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [...prev,
+        `[${timestamp}] ❌ Failed to stop deployment: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
+
+      // Still reset state even if stop failed
+      setIsDeploying(false)
+      setCurrentDeployment(null)
+      setDeploymentResult({
+        status: 'error',
+        message: `Failed to stop deployment: ${error instanceof Error ? error.message : 'Unknown error'}`
+      })
+    }
+  }
+
+  const handleRetryDeployment = async () => {
+    // Clear previous result and retry deployment
+    setDeploymentResult(null)
+    setCurrentDeployment(null)
+    await handleDeployApp()
   }
 
   const handleStopApp = async (appId: string, executionId?: string) => {
@@ -1448,61 +1528,106 @@ if __name__ == "__main__":
                 </div>
               </div>
 
-              {/* Deploy Button */}
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleDeployApp}
-                  disabled={!selectedKit || !deploymentConfig.code || isDeploying || !selectedKit.is_online || !isRuntimeConnected}
-                  title={
-                    !selectedKit
-                      ? 'Select a runtime first'
-                      : !deploymentConfig.code
-                      ? 'Enter code to deploy'
-                      : !selectedKit.is_online
-                      ? 'Runtime device is offline'
-                      : !isRuntimeConnected
-                      ? 'Runtime device not connected'
-                      : `Deploy application to ${selectedKit.name}`
-                  }
-                >
-                  {isDeploying ? (
-                    <>
-                      <TbRefresh className="w-5 h-5 mr-2 animate-spin" />
-                      Deploying...
-                    </>
-                  ) : (
-                    <>
-                      <TbRocket className="w-5 h-5 mr-2" />
-                      Deploy to Runtime
-                    </>
-                  )}
-                </Button>
+              {/* Deployment Status */}
+              {isDeploying && currentDeployment && (
+                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <TbRefresh className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Deploying application {currentDeployment.appId ? `(${currentDeployment.appId})` : '...'}
+                    </span>
+                    <span className="text-xs text-blue-700 dark:text-blue-300">
+                      You can stop the deployment at any time.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Deploy Button Section */}
+              <div className="flex justify-end items-center space-x-3">
+                {deploymentResult?.status === 'error' && !isDeploying && (
+                  <Button
+                    onClick={handleRetryDeployment}
+                    variant="outline"
+                    disabled={!selectedKit || !deploymentConfig.code || !selectedKit.is_online || !isRuntimeConnected}
+                    title="Retry the deployment"
+                  >
+                    <TbSquareRotated className="w-5 h-5 mr-2" />
+                    Retry Deployment
+                  </Button>
+                )}
+
+                {isDeploying && currentDeployment ? (
+                  <Button
+                    onClick={handleStopDeployment}
+                    variant="destructive"
+                    title="Stop current deployment"
+                  >
+                    <TbSquare className="w-5 h-5 mr-2" />
+                    Stop Deployment
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleDeployApp}
+                    disabled={!selectedKit || !deploymentConfig.code || isDeploying || !selectedKit.is_online || !isRuntimeConnected}
+                    title={
+                      !selectedKit
+                        ? 'Select a runtime first'
+                        : !deploymentConfig.code
+                        ? 'Enter code to deploy'
+                        : !selectedKit.is_online
+                        ? 'Runtime device is offline'
+                        : !isRuntimeConnected
+                        ? 'Runtime device not connected'
+                        : `Deploy application to ${selectedKit.name}`
+                    }
+                  >
+                    <TbRocket className="w-5 h-5 mr-2" />
+                    Deploy to Runtime
+                  </Button>
+                )}
               </div>
 
               {/* Deployment Result */}
               {deploymentResult && (
                 <div className={`mt-4 p-4 rounded-lg border ${
                   deploymentResult.status === 'success'
-                    ? 'bg-green-50 border-green-200 text-green-800'
-                    : 'bg-red-50 border-red-200 text-red-800'
+                    ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-200'
+                    : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-200'
                 }`}>
-                  <div className="flex items-start space-x-2">
-                    {deploymentResult.status === 'success' ? (
-                      <TbCheck className="w-5 h-5 mt-0.5" />
-                    ) : (
-                      <TbAlertTriangle className="w-5 h-5 mt-0.5" />
-                    )}
-                    <div>
-                      <p className="font-medium">
-                        {deploymentResult.status === 'success' ? 'Deployment Successful' : 'Deployment Failed'}
-                      </p>
-                      <p className="text-sm">{deploymentResult.message}</p>
-                      {deploymentResult.data && (
-                        <pre className="mt-2 text-xs bg-black/10 p-2 rounded overflow-x-auto">
-                          {JSON.stringify(deploymentResult.data, null, 2)}
-                        </pre>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-2">
+                      {deploymentResult.status === 'success' ? (
+                        <TbCheck className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <TbAlertTriangle className="w-5 h-5 mt-0.5 text-red-600 dark:text-red-400" />
                       )}
+                      <div className="flex-1">
+                        <p className="font-medium">
+                          {deploymentResult.status === 'success' ? 'Deployment Successful' : 'Deployment Failed'}
+                        </p>
+                        <p className="text-sm mt-1">{deploymentResult.message}</p>
+                        {deploymentResult.data && (
+                          <details className="mt-2">
+                            <summary className="text-xs cursor-pointer hover:underline">View deployment details</summary>
+                            <pre className="mt-1 text-xs bg-black/10 dark:bg-white/10 p-2 rounded overflow-x-auto">
+                              {JSON.stringify(deploymentResult.data, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
                     </div>
+                    {deploymentResult.status === 'error' && !isDeploying && (
+                      <Button
+                        onClick={handleRetryDeployment}
+                        variant="outline"
+                        size="sm"
+                        className="ml-3 mt-1"
+                      >
+                        <TbSquareRotated className="w-4 h-4 mr-1" />
+                        Retry
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}

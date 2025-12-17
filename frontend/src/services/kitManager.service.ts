@@ -233,7 +233,18 @@ class KitManagerService {
   }
 
   sendMessageToKit(request: DeploymentRequest): void {
-    this.socket?.emit('messageToKit', request)
+    console.log('📤 [FRONTEND DEBUG] Emitting messageToKit event:', JSON.stringify(request, null, 2))
+    console.log('🔌 [FRONTEND DEBUG] Socket state:', {
+      connected: this.socket?.connected,
+      id: this.socket?.id
+    })
+
+    if (this.socket?.connected) {
+      this.socket.emit('messageToKit', request)
+      console.log('✅ [FRONTEND DEBUG] Message sent successfully')
+    } else {
+      console.error('❌ [FRONTEND DEBUG] Socket not connected - message not sent')
+    }
   }
 
   sendMessageToHardwareKit(kitId: string, cmd: string, data: any = {}): void {
@@ -268,13 +279,23 @@ class KitManagerService {
       this.socket.on('messageToKit-kitReply', handleResponse)
 
       // Send deployment request
-      this.sendMessageToKit({
+      const deploymentRequest = {
         to_kit_id: kitId,
         cmd: 'deploy_n_run',
         code: code,
-        prototype: { name: appName },
+        prototype: {
+          name: appName,
+          language: 'python',  // IMPORTANT: Specify language for Python apps
+          description: 'Python application deployed from frontend'
+        },
         disable_code_convert: disableCodeConvert,
-      })
+      }
+
+      console.log('🚀 [FRONTEND DEBUG] Sending deployment to kit-manager:', JSON.stringify(deploymentRequest, null, 2))
+      console.log('🎯 [FRONTEND DEBUG] Target Kit ID:', kitId)
+      console.log('📡 [FRONTEND DEBUG] Kit Manager Connected:', this.socket?.connected)
+
+      this.sendMessageToKit(deploymentRequest)
 
       // Set timeout
       setTimeout(() => {
@@ -282,6 +303,51 @@ class KitManagerService {
         reject(new Error('Deployment timeout'))
       }, 30000) // 30 seconds timeout
     })
+  }
+
+  // HTTP-based deployment method (alternative to WebSocket)
+  async deployAppHTTP(kitId: string, code: string, appName: string, disableCodeConvert = false): Promise<void> {
+    try {
+      const deploymentRequest = {
+        to_kit_id: kitId,
+        cmd: 'deploy_n_run',
+        code: code,
+        prototype: {
+          name: appName,
+          language: 'python',  // IMPORTANT: Specify language for Python apps
+          description: 'Python application deployed from frontend via HTTP'
+        },
+        disable_code_convert: disableCodeConvert,
+      }
+
+      console.log('🚀 [FRONTEND DEBUG] Sending HTTP deployment to kit-manager:', JSON.stringify(deploymentRequest, null, 2))
+      console.log('🎯 [FRONTEND DEBUG] Target Kit ID:', kitId)
+
+      const response = await fetch('http://localhost:3090/messageToKit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(deploymentRequest)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ [FRONTEND DEBUG] HTTP deployment response:', result)
+
+      if (result.status === 'OK') {
+        return Promise.resolve()
+      } else {
+        throw new Error(result.message || 'HTTP deployment failed')
+      }
+    } catch (error) {
+      console.error('❌ [FRONTEND DEBUG] HTTP deployment error:', error)
+      return Promise.reject(error)
+    }
   }
 
   async deployCodeOnly(kitId: string, code: string, appName: string): Promise<void> {
