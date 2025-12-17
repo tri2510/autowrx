@@ -13,6 +13,7 @@ import {
   TbTerminal,
   TbPlayerPlay,
   TbPlayerStop,
+  TbPlayerPause,
   TbRefresh,
   TbTrash,
   TbEye,
@@ -41,7 +42,10 @@ import {
   TbCategory,
   TbFilter,
   TbSquare,
-  TbSquareRotated
+  TbSquareRotated,
+  TbPackage,
+  TbLoader,
+  TbHelp
 } from 'react-icons/tb'
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
@@ -1199,45 +1203,108 @@ if __name__ == "__main__":
 
   // Refresh applications list
   const refreshApps = async () => {
-    if (!selectedKit || (!isRuntimeConnected && !isDirectRuntimeConnected)) return
+    console.log('🔄 refreshApps called!')
+    console.log('📊 selectedKit:', selectedKit)
+    console.log('🔌 isRuntimeConnected:', isRuntimeConnected)
+    console.log('⚡ isDirectRuntimeConnected:', isDirectRuntimeConnected)
+    console.log('🔀 useDirectConnection:', useDirectConnection)
 
+    if (!selectedKit || (!isRuntimeConnected && !isDirectRuntimeConnected)) {
+      console.log('❌ Early return: No selected kit or no connections')
+      return
+    }
+
+    console.log('✅ Proceeding with app refresh...')
     setIsRefreshingApps(true)
     try {
-      if (useDirectConnection && isDirectRuntimeConnected) {
+      // Always use direct connection for app listing since kit manager doesn't support list_deployed_apps
+      // Kit manager is only for deployment operations
+      if (isDirectRuntimeConnected) {
+        console.log('🚀 Using DIRECT connection path for app listing')
         // Use direct connection service
         const appsResponse = await vehicleEdgeRuntimeDirectService.getDeployedApps()
-        console.log('Deployed apps from direct service:', appsResponse)
-        console.log('Applications array length:', appsResponse.applications?.length || 0)
-        console.log('Apps array length:', appsResponse.apps?.length || 0)
+        console.log('📊 Deployed apps from direct service:', appsResponse)
+        console.log('📈 Applications array length:', appsResponse.applications?.length || 0)
 
         // Check both possible response fields
         const appsArray = appsResponse.applications || appsResponse.apps || []
-        console.log('Using apps array:', appsArray)
+        console.log('📋 Using apps array:', appsArray)
 
-        // Convert to VehicleApp format
+        // Extract enhanced statistics from response
+        const stats = {
+          total: appsResponse.total_count || appsResponse.stats?.total || appsArray.length,
+          running: appsResponse.running_count || appsResponse.stats?.running || appsArray.filter(app => app.status === 'running').length,
+          paused: appsResponse.paused_count || appsResponse.stats?.paused || appsArray.filter(app => app.status === 'paused').length,
+          stopped: appsResponse.stopped_count || appsResponse.stats?.stopped || appsArray.filter(app => app.status === 'stopped').length,
+          error: appsResponse.error_count || appsResponse.stats?.error || appsArray.filter(app => app.status === 'error').length
+        }
+        console.log('📊 Enhanced stats:', stats)
+
+        // Convert to VehicleApp format - NO STATUS FILTERING (display ALL apps)
         const convertedApps = appsArray.map((app: any) => ({
           id: app.app_id || app.id,
           name: app.name || `App ${app.app_id || app.id}`,
           version: app.version || '1.0.0',
-          type: 'python' as const,
+          type: (app.type as VehicleApp['type']) || 'python',
           status: app.status as VehicleApp['status'] || 'running',
           created_at: app.deploy_time ? new Date(app.deploy_time).toISOString() : new Date().toISOString(),
-          executionId: app.app_id || app.id || app.executionId
+          executionId: app.app_id || app.id || app.executionId,
+          // Additional fields from enhanced API
+          container_id: app.container_id,
+          pid: app.pid,
+          exit_code: app.exit_code,
+          resources: app.resources
         }))
 
-        console.log('Converted apps:', convertedApps)
+        console.log('✅ Converted ALL apps (no status filtering):', convertedApps)
+        console.log('📈 App status breakdown:', {
+          total: convertedApps.length,
+          running: convertedApps.filter(app => app.status === 'running').length,
+          paused: convertedApps.filter(app => app.status === 'paused').length,
+          stopped: convertedApps.filter(app => app.status === 'stopped').length,
+          error: convertedApps.filter(app => app.status === 'error').length,
+          installed: convertedApps.filter(app => app.status === 'installed').length,
+          starting: convertedApps.filter(app => app.status === 'starting').length
+        })
+
         setVehicleApps(convertedApps)
         setDeployedRuntimeApps(appsArray)
+
+        // Update statistics state
+        if (stats) {
+          setRuntimeState(prev => prev ? { ...prev, appStats: stats } : null)
+        }
       } else {
+        console.log('🔌 Using KIT MANAGER connection path')
         // Use kit manager service
+        console.log('🔌 Kit Manager: Calling listApps...')
         const appsResponse = await vehicleEdgeRuntimeService.listApps()
-        setVehicleApps(appsResponse.apps || [])
+        console.log('📊 Kit Manager apps response:', appsResponse)
+        console.log('📈 Kit Manager apps count:', appsResponse.apps?.length || 0)
+
+        // NO STATUS FILTERING - display ALL apps from kit manager as well
+        const apps = appsResponse.apps || []
+        console.log('✅ Kit Manager apps (no filtering):', apps)
+        console.log('📈 Kit Manager status breakdown:', {
+          total: apps.length,
+          running: apps.filter(app => app.status === 'running').length,
+          paused: apps.filter(app => app.status === 'paused').length,
+          stopped: apps.filter(app => app.status === 'stopped').length,
+          error: apps.filter(app => app.status === 'error').length,
+          installed: apps.filter(app => app.status === 'installed').length,
+          starting: apps.filter(app => app.status === 'starting').length
+        })
+
+        setVehicleApps(apps)
       }
     } catch (error) {
-      console.error('Failed to refresh apps:', error)
+      console.error('❌ ERROR: Failed to refresh apps:', error)
+      console.error('❌ Error details:', error.message)
+      console.error('❌ Error stack:', error.stack)
       setVehicleApps([])
       setDeployedRuntimeApps([])
     } finally {
+      console.log('🏁 refreshApps finished')
       setIsRefreshingApps(false)
     }
   }
@@ -1484,17 +1551,30 @@ if __name__ == "__main__":
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      // Connection states
       case 'online':
-      case 'running':
-        return <TbCheck className="w-4 h-4" />
+        return <TbCheck className="w-4 h-4 text-green-500" />
       case 'offline':
-      case 'stopped':
-        return <TbX className="w-4 h-4" />
+        return <TbX className="w-4 h-4 text-red-500" />
       case 'connecting':
+        return <TbLoader className="w-4 h-4 text-yellow-500 animate-spin" />
+
+      // Application states
+      case 'running':
+        return <TbPlayerPlay className="w-4 h-4 text-green-500" />
+      case 'paused':
+        return <TbPlayerPause className="w-4 h-4 text-yellow-500" />
+      case 'stopped':
+        return <TbPlayerStop className="w-4 h-4 text-gray-500" />
       case 'error':
-        return <TbAlertTriangle className="w-4 h-4" />
+        return <TbAlertTriangle className="w-4 h-4 text-red-500" />
+      case 'installed':
+        return <TbPackage className="w-4 h-4 text-blue-500" />
+      case 'starting':
+        return <TbLoader className="w-4 h-4 text-blue-500 animate-spin" />
+
       default:
-        return <TbAlertTriangle className="w-4 h-4" />
+        return <TbHelp className="w-4 h-4 text-gray-400" />
     }
   }
 
@@ -2498,52 +2578,83 @@ print("\\nDone.")` }))}
                             <TbTerminal className="w-4 h-4" />
                           </Button>
 
-                          {/* Start/Resume button */}
-                          {(app.status === 'stopped' || app.status === 'paused') && (
+                          {/* Start button - for stopped, installed, and error apps */}
+                          {(app.status === 'stopped' || app.status === 'installed' || app.status === 'error') && (
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => app.status === 'stopped' ? handleStartApp(app.id) : handleResumeApp(app.id)}
-                              title={app.status === 'stopped' ? 'Start Application' : 'Resume Application'}
+                              onClick={() => handleStartApp(app.id)}
+                              title={`Start ${app.status} Application`}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             >
                               <TbPlayerPlay className="w-4 h-4" />
                             </Button>
                           )}
 
-                          {/* Pause button */}
+                          {/* Resume button - for paused apps */}
+                          {app.status === 'paused' && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleResumeApp(app.id)}
+                              title="Resume Application"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <TbPlayerPlay className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          {/* Pause button - for running apps */}
                           {app.status === 'running' && (
                             <Button
                               variant="outline"
                               size="icon"
                               onClick={() => handlePauseApp(app.id)}
                               title="Pause Application"
+                              className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
                             >
-                              <TbAlertTriangle className="w-4 h-4" />
+                              <TbPlayerPause className="w-4 h-4" />
                             </Button>
                           )}
 
-                          {/* Stop button */}
+                          {/* Stop button - for running and paused apps */}
                           {(app.status === 'running' || app.status === 'paused') && (
                             <Button
-                              variant={app.status === 'running' ? 'destructive' : 'outline'}
+                              variant="outline"
                               size="icon"
                               onClick={() => handleStopApp(app.id)}
                               title="Stop Application"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                               <TbPlayerStop className="w-4 h-4" />
                             </Button>
                           )}
 
-                          {/* Uninstall button */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleUninstallApp(app.id)}
-                            title="Uninstall Application"
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <TbTrash className="w-4 h-4" />
-                          </Button>
+                          {/* Uninstall/Remove button - for all apps except starting */}
+                          {app.status !== 'starting' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleUninstallApp(app.id)}
+                              title="Uninstall Application"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <TbTrash className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          {/* Disabled indicator for starting apps */}
+                          {app.status === 'starting' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled
+                              title="Application is starting..."
+                              className="opacity-50 cursor-not-allowed"
+                            >
+                              <TbLoader className="w-4 h-4 animate-spin" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -18,7 +18,7 @@ export interface VehicleApp {
   name: string
   version: string
   type: 'python' | 'binary'
-  status: 'installed' | 'running' | 'stopped' | 'paused' | 'error'
+  status: 'installed' | 'running' | 'stopped' | 'paused' | 'error' | 'starting'
   created_at: string
   python_deps?: string[]
   vehicle_signals?: string[]
@@ -28,6 +28,14 @@ export interface VehicleApp {
   executionId?: string
   workingDir?: string
   env?: Record<string, string>
+}
+
+export interface AppStats {
+  total: number
+  running: number
+  paused: number
+  stopped: number
+  error: number
 }
 
 export interface RuntimeState {
@@ -46,6 +54,7 @@ export interface RuntimeState {
     memory: string
     disk: string
   }
+  appStats?: AppStats // Enhanced application statistics from API
 }
 
 export interface RuntimeInfo {
@@ -435,14 +444,60 @@ class VehicleEdgeRuntimeService {
       throw new Error('Kit-manager is not connected. Please ensure the kit-manager service is running on port 3090.')
     }
 
-    // For now, return empty list since kit-manager doesn't have app listing endpoint
-    // This would need to be implemented in the kit-manager backend
-    return {
-      type: 'apps_list',
-      apps: [],
-      count: 0,
-      filters: filters || {},
-      timestamp: new Date().toISOString()
+    if (!this.selectedKitId) {
+      throw new Error('No kit selected for app listing')
+    }
+
+    try {
+      console.log('📋 Kit Manager: Requesting app list for kit:', this.selectedKitId)
+
+      // Send list_deployed_apps request through kit manager to the runtime
+      const response = await kitManagerService.sendMessageToKit({
+        to_kit_id: this.selectedKitId,
+        type: 'list_deployed_apps',
+        id: 'kitmgr-list-' + Date.now(),
+        filters: filters || {}
+      })
+
+      console.log('📊 Kit Manager: Received app list response:', response)
+
+      // Convert the response to match AppsListResponse format
+      if (response && response.applications) {
+        const apps = response.applications.map((app: any) => ({
+          id: app.app_id || app.id,
+          name: app.name || `App ${app.app_id || app.id}`,
+          version: app.version || '1.0.0',
+          type: (app.type as 'python' | 'binary') || 'python',
+          status: app.status as VehicleApp['status'] || 'running',
+          created_at: app.deploy_time ? new Date(app.deploy_time).toISOString() : new Date().toISOString(),
+          executionId: app.app_id || app.id || app.executionId,
+          // Additional fields from enhanced API
+          container_id: app.container_id,
+          pid: app.pid,
+          exit_code: app.exit_code,
+          resources: app.resources
+        }))
+
+        return {
+          type: 'apps_list',
+          apps: apps,
+          count: apps.length,
+          filters: filters || {},
+          timestamp: new Date().toISOString()
+        }
+      } else {
+        console.warn('⚠️ Kit Manager: No applications in response')
+        return {
+          type: 'apps_list',
+          apps: [],
+          count: 0,
+          filters: filters || {},
+          timestamp: new Date().toISOString()
+        }
+      }
+    } catch (error) {
+      console.error('❌ Kit Manager: Failed to list apps:', error)
+      throw new Error(`Failed to list apps through kit manager: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

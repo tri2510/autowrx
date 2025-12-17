@@ -478,38 +478,58 @@ class VehicleEdgeRuntimeDirectService {
         id: requestId
       }
 
-      // Set up a timeout for the entire operation
+      console.log('🚀 Starting getDeployedApps request:', requestId)
+
+      // Set up a longer timeout for the entire operation
       const timeout = setTimeout(() => {
         this.messageHandlers.delete('list_deployed_apps-response')
+        console.error('❌ getDeployedApps timeout after 30 seconds')
         reject(new Error('getDeployedApps timeout'))
-      }, 15000) // Increased timeout to 15 seconds
+      }, 30000) // Extended timeout to 30 seconds
 
       // Set up a one-time handler for the response
       const handleResponse = (message: any) => {
-        if (message.id === requestId || message.type === 'list_deployed_apps-response') {
+        console.log('📨 Received message:', message.type, 'ID:', message.id, 'Expected ID:', requestId)
+
+        // More flexible ID matching - accept if type matches OR ID matches
+        if (message.type === 'list_deployed_apps-response') {
           clearTimeout(timeout)
           this.messageHandlers.delete('list_deployed_apps-response')
-          console.log('📋 Received deployed apps response:', message)
+          console.log('✅ Received deployed apps response:', message)
+          console.log('📊 Apps count in response:', message.applications?.length || 0)
           resolve(message)
         }
       }
 
       this.messageHandlers.set('list_deployed_apps-response', handleResponse)
 
+      // Ensure connection is stable before sending
+      if (!this.isConnected || !this.ws) {
+        clearTimeout(timeout)
+        this.messageHandlers.delete('list_deployed_apps-response')
+        console.error('❌ Not connected to Vehicle Edge Runtime')
+        reject(new Error('Not connected to Vehicle Edge Runtime'))
+        return
+      }
+
+      // Check WebSocket ready state
+      if (this.ws.readyState !== WebSocket.OPEN) {
+        clearTimeout(timeout)
+        this.messageHandlers.delete('list_deployed_apps-response')
+        console.error('❌ WebSocket not open, readyState:', this.ws.readyState)
+        reject(new Error(`WebSocket not open, readyState: ${this.ws.readyState}`))
+        return
+      }
+
       // Send the request
       try {
-        if (!this.isConnected || !this.ws) {
-          clearTimeout(timeout)
-          this.messageHandlers.delete('list_deployed_apps-response')
-          reject(new Error('Not connected to Vehicle Edge Runtime'))
-          return
-        }
-
         this.ws.send(JSON.stringify(request))
         console.log('📤 Sent list_deployed_apps request:', requestId)
+        console.log('🔗 WebSocket state after send:', this.ws.readyState)
       } catch (error) {
         clearTimeout(timeout)
         this.messageHandlers.delete('list_deployed_apps-response')
+        console.error('❌ Failed to send request:', error)
         reject(error)
       }
     })
