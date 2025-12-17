@@ -60,7 +60,6 @@ import type {
   StopAppRequest,
   PauseAppRequest,
   ResumeAppRequest,
-  UninstallAppRequest,
   GetAppLogsRequest,
   SubscribeConsoleRequest,
   UnsubscribeConsoleRequest,
@@ -182,6 +181,18 @@ export interface ListDeployedAppsResponse {
 export interface GetAppStatusRequest extends BaseMessage {
   type: 'get_app_status'
   appId: string
+}
+
+// App management interfaces following the correct API spec
+export interface ManageAppRequest extends BaseMessage {
+  type: 'manage_app'
+  app_id: string  // Use app_id for manage_app
+  action: 'start' | 'stop' | 'pause' | 'resume'
+}
+
+export interface UninstallAppRequest extends BaseMessage {
+  type: 'uninstall_app'
+  appId: string  // Use appId for uninstall_app
 }
 
 export interface AppStatusResponse {
@@ -577,31 +588,46 @@ class VehicleEdgeRuntimeDirectService {
     return this.sendMessage(request)
   }
 
+  // Proper app management methods using the correct API format
+  async startApp(appId: string): Promise<any> {
+    const request: ManageAppRequest = {
+      type: 'manage_app',
+      id: 'start-' + Date.now(),
+      app_id: appId,  // Use app_id for manage_app
+      action: 'start'
+    }
+
+    return this.sendMessage(request)
+  }
+
   async stopApp(appId: string): Promise<any> {
-    const request: StopAppRequest = {
-      type: 'stop_app',
+    const request: ManageAppRequest = {
+      type: 'manage_app',
       id: 'stop-' + Date.now(),
-      appId
+      app_id: appId,  // Use app_id for manage_app
+      action: 'stop'
     }
 
     return this.sendMessage(request)
   }
 
   async pauseApp(appId: string): Promise<any> {
-    const request: PauseAppRequest = {
-      type: 'pause_app',
+    const request: ManageAppRequest = {
+      type: 'manage_app',
       id: 'pause-' + Date.now(),
-      appId
+      app_id: appId,  // Use app_id for manage_app
+      action: 'pause'
     }
 
     return this.sendMessage(request)
   }
 
   async resumeApp(appId: string): Promise<any> {
-    const request: ResumeAppRequest = {
-      type: 'resume_app',
+    const request: ManageAppRequest = {
+      type: 'manage_app',
       id: 'resume-' + Date.now(),
-      appId
+      app_id: appId,  // Use app_id for manage_app
+      action: 'resume'
     }
 
     return this.sendMessage(request)
@@ -611,7 +637,7 @@ class VehicleEdgeRuntimeDirectService {
     const request: UninstallAppRequest = {
       type: 'uninstall_app',
       id: 'uninstall-' + Date.now(),
-      appId
+      appId  // Use appId for uninstall_app (as specified)
     }
 
     return this.sendMessage(request)

@@ -1261,16 +1261,13 @@ if __name__ == "__main__":
         `[${new Date().toLocaleTimeString()}] [ACTION] Starting application: ${appId}`
       ])
 
-      // For direct connection, apps start automatically on deployment
-      const app = vehicleApps.find(a => a.id === appId)
-      if (app && app.type === 'python') {
-        // Use the stored app data to redeploy
-        // For now, just show a message since redeployment needs app data
-        setConsoleOutput(prev => [
-          ...prev,
-          `[${new Date().toLocaleTimeString()}] [INFO] App restart functionality requires stored app data`
-        ])
-      }
+      // Use the correct API format: manage_app with app_id and action: "start"
+      await vehicleEdgeRuntimeDirectService.startApp(appId)
+
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [SUCCESS] Start command sent for application: ${appId}`
+      ])
 
       // Refresh apps list to get updated status
       await refreshApps()
