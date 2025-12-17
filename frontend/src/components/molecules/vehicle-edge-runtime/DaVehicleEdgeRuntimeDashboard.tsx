@@ -119,9 +119,30 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [deploymentConfig, setDeploymentConfig] = useState({
     type: 'python' as 'python' | 'binary',
-    code: prototype?.code || '',
+    code: prototype?.code || `import time
+import asyncio
+
+print("🚗 Vehicle Edge Runtime Test Application")
+print("=" * 50)
+
+try:
+    for i in range(60):  # 60 cycles = 10 minutes (10 seconds each)
+        print(f"📡 Processing cycle {i + 1}/60")
+        print(f"⏰ Timestamp: {time.strftime('%H:%M:%S')}")
+
+        await asyncio.sleep(10)  # 10 seconds per cycle
+
+        print(f"✅ Cycle {i + 1} completed")
+        print("-" * 30)
+
+    print("🎉 Test application completed successfully!")
+    print("📊 Total runtime: 10 minutes")
+
+except Exception as e:
+    print(f"❌ Error: {e}")
+
+print("📊 Application execution finished")`,
     entryPoint: 'main.py',
-    python_deps: [] as string[],
     envVars: {} as Record<string, string>,
     resourceLimits: {
       memory: 512,
@@ -905,15 +926,10 @@ if __name__ == "__main__":
       // Choose deployment method based on connection type
       if (useDirectConnection && isDirectRuntimeConnected) {
         // Direct deployment to Vehicle Edge Runtime
-        const depsLog = deploymentConfig.python_deps.length > 0
-          ? `[${timestamp}] 📚 Dependencies: ${deploymentConfig.python_deps.join(', ')}`
-          : `[${timestamp}] 📚 Dependencies: None`
-
         setConsoleOutput(prev => [...prev,
           `[${timestamp}] 🚀 Starting deployment of ${deploymentConfig.type} app...`,
           `[${timestamp}] 📦 App name: ${appName}`,
           `[${timestamp}] 📝 Code length: ${finalCode.length} characters`,
-          depsLog,
           `[${timestamp}] 🔗 Deploying directly to Vehicle Edge Runtime`
         ])
 
@@ -930,8 +946,7 @@ if __name__ == "__main__":
           description: prototype?.description || 'Deployed from dashboard',
           version: '1.0.0',
           code: finalCode,
-          vehicleId: 'default-vehicle',
-          python_deps: deploymentConfig.python_deps
+          vehicleId: 'default-vehicle'
         })
 
         setConsoleOutput(prev => [...prev,
@@ -1721,39 +1736,20 @@ if __name__ == "__main__":
 
               {/* Configuration */}
               {deploymentConfig.type === 'python' && (
-                <div className="mb-6 grid grid-cols-1 gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">Entry Point</label>
-                      <Input
-                        value={deploymentConfig.entryPoint}
-                        onChange={(e) => setDeploymentConfig(prev => ({ ...prev, entryPoint: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">Working Directory</label>
-                      <Input
-                        value="/app"
-                        disabled
-                        className="bg-muted"
-                      />
-                    </div>
+                <div className="mb-6 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Entry Point</label>
+                    <Input
+                      value={deploymentConfig.entryPoint}
+                      onChange={(e) => setDeploymentConfig(prev => ({ ...prev, entryPoint: e.target.value }))}
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Python Dependencies
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (One dependency per line: requests==2.25.1, numpy, etc.)
-                      </span>
-                    </label>
-                    <textarea
-                      value={deploymentConfig.python_deps.join('\n')}
-                      onChange={(e) => setDeploymentConfig(prev => ({
-                        ...prev,
-                        python_deps: e.target.value.split('\n').filter(dep => dep.trim())
-                      }))}
-                      className="w-full h-20 px-3 py-2 border border-border rounded-md font-mono text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="sdv&#10;requests==2.25.1&#10;numpy&#10;pandas"
+                    <label className="block text-sm font-medium text-foreground mb-1">Working Directory</label>
+                    <Input
+                      value="/app"
+                      disabled
+                      className="bg-muted"
                     />
                   </div>
                 </div>

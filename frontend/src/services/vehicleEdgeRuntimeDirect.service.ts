@@ -107,7 +107,6 @@ export interface DeployRequest extends BaseMessage {
   }
   vehicleId?: string
   language: 'python' | 'binary'
-  python_deps?: string[]
 }
 
 export interface ListDeployedAppsRequest extends BaseMessage {
@@ -440,7 +439,6 @@ class VehicleEdgeRuntimeDirectService {
     description?: string
     version?: string
     vehicleId?: string
-    python_deps?: string[]
   }): Promise<string> {
     const request: DeployRequest = {
       type: 'deploy_request',
@@ -453,8 +451,7 @@ class VehicleEdgeRuntimeDirectService {
         version: appConfig.version || '1.0.0'
       },
       vehicleId: appConfig.vehicleId || 'default-vehicle',
-      language: 'python',
-      python_deps: appConfig.python_deps || []
+      language: 'python'
     }
 
     const response: DeployRequestResponse = await this.sendMessage(request)
