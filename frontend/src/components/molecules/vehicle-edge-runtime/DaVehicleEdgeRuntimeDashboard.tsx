@@ -131,7 +131,7 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
     code: prototype?.code || `import time
 import asyncio
 
-print("🚗 Vehicle Edge Runtime Test Application")
+print("🚗 Vehicle Edge Runtime Application")
 print("=" * 50)
 
 try:
@@ -144,7 +144,7 @@ try:
         print(f"✅ Cycle {i + 1} completed")
         print("-" * 30)
 
-    print("🎉 Test application completed successfully!")
+    print("🎉 Application completed successfully!")
     print("📊 Total runtime: 10 minutes")
 
 except Exception as e:
@@ -1015,7 +1015,7 @@ if __name__ == "__main__":
 
     try {
       const timestamp = new Date().toLocaleTimeString()
-      const appName = customAppName.trim() || prototype?.name || 'New App'
+      const appName = customAppName.trim() || prototype?.name || 'Vehicle Edge Runtime App'
       const finalCode = deploymentConfig.code
       const appId = `app-${Date.now()}`
 
@@ -1936,7 +1936,7 @@ if __name__ == "__main__":
                   className="w-full"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Leave empty to use default name: {prototype?.name || 'New App'}
+                  Leave empty to use default name: {prototype?.name || 'Vehicle Edge Runtime App'}
                 </p>
               </div>
 
