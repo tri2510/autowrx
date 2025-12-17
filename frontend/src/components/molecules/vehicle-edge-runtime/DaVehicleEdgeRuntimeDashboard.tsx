@@ -172,6 +172,7 @@ print("📊 Application execution finished")`,
   const [runtimeState, setRuntimeState] = useState<RuntimeState | null>(null)
   const [isRuntimeConnected, setIsRuntimeConnected] = useState(false)
   const [isKitManagerConnected, setIsKitManagerConnected] = useState(false)
+  const [customAppName, setCustomAppName] = useState('')
 
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -304,9 +305,18 @@ print("📊 Application execution finished")`,
         // Disconnect existing connection if any
         vehicleEdgeRuntimeDirectService.disconnect()
 
-        // TODO: Connect through Kit Manager proxy
-        // For now, connect directly, but this should use Kit Manager as proxy
-        await vehicleEdgeRuntimeDirectService.connect()
+        // Request Vehicle Edge Runtime WebSocket connection from Kit Manager
+        try {
+          const websocketUrl = await kitManagerService.requestVehicleRuntimeWebSocket(selectedKit.kit_id)
+          console.log(`🔗 Got WebSocket URL from Kit Manager: ${websocketUrl}`)
+
+          // Connect to Vehicle Edge Runtime using the WebSocket URL from Kit Manager
+          await vehicleEdgeRuntimeDirectService.connect(websocketUrl)
+        } catch (websocketError) {
+          console.warn('Failed to get WebSocket URL from Kit Manager, falling back to direct connection:', websocketError)
+          // Fallback to direct connection if Kit Manager doesn't support WebSocket proxying
+          await vehicleEdgeRuntimeDirectService.connect()
+        }
 
         const isConnected = vehicleEdgeRuntimeDirectService.isServiceConnected()
         setIsRuntimeConnected(isConnected)
@@ -1005,7 +1015,7 @@ if __name__ == "__main__":
 
     try {
       const timestamp = new Date().toLocaleTimeString()
-      const appName = prototype?.name || 'New App'
+      const appName = customAppName.trim() || prototype?.name || 'New App'
       const finalCode = deploymentConfig.code
       const appId = `app-${Date.now()}`
 
@@ -1913,6 +1923,21 @@ if __name__ == "__main__":
                     <p className="text-sm text-muted-foreground">Execute pre-compiled binary</p>
                   </Button>
                 </div>
+              </div>
+
+              {/* App Name */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-foreground mb-2">Application Name (Optional)</label>
+                <Input
+                  type="text"
+                  value={customAppName}
+                  onChange={(e) => setCustomAppName(e.target.value)}
+                  placeholder={prototype?.name || 'My Custom App'}
+                  className="w-full"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Leave empty to use default name: {prototype?.name || 'New App'}
+                </p>
               </div>
 
               {/* Code Input */}

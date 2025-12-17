@@ -211,7 +211,7 @@ export interface AppStatusResponse {
 
 // Configuration
 const CONFIG = {
-  WEBSOCKET_URL: process.env.NODE_ENV === 'production'
+  DEFAULT_WEBSOCKET_URL: process.env.NODE_ENV === 'production'
     ? 'wss://your-production-domain.com/runtime'
     : 'ws://localhost:3002/runtime',
 
@@ -239,7 +239,7 @@ class VehicleEdgeRuntimeDirectService {
   }
 
   // Connection management
-  async connect(): Promise<void> {
+  async connect(websocketUrl?: string): Promise<void> {
     if (this.isConnected || this.isConnecting) {
       return
     }
@@ -247,9 +247,10 @@ class VehicleEdgeRuntimeDirectService {
     this.isConnecting = true
 
     try {
-      console.log(`🔗 Connecting to Vehicle Edge Runtime at ${CONFIG.WEBSOCKET_URL}`)
+      const url = websocketUrl || CONFIG.DEFAULT_WEBSOCKET_URL
+      console.log(`🔗 Connecting to Vehicle Edge Runtime at ${url}`)
 
-      this.ws = new WebSocket(CONFIG.WEBSOCKET_URL)
+      this.ws = new WebSocket(url)
       await this.waitForConnection()
 
       // Register client after connection
@@ -268,6 +269,24 @@ class VehicleEdgeRuntimeDirectService {
       this.handleReconnection()
       throw error
     }
+  }
+
+  // Method to accept external WebSocket connection (from Kit Manager)
+  setExternalWebSocket(websocket: WebSocket): void {
+    if (this.ws) {
+      this.ws.close()
+    }
+
+    this.ws = websocket
+    this.setupEventHandlers()
+    this.isConnected = true
+    this.isConnecting = false
+    this.reconnectAttempts = 0
+
+    console.log('✅ Using external WebSocket connection for Vehicle Edge Runtime')
+
+    // Register client after connection
+    this.registerClient()
   }
 
   disconnect(): void {

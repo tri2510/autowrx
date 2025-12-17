@@ -395,6 +395,52 @@ class KitManagerService {
     })
   }
 
+  // Request Vehicle Edge Runtime WebSocket connection from kit
+  async requestVehicleRuntimeWebSocket(kitId: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket?.connected) {
+        reject(new Error('Not connected to Kit Manager'))
+        return
+      }
+
+      const requestId = 'websocket-' + Date.now()
+      const request = {
+        to_kit_id: kitId,
+        cmd: 'get_runtime_websocket',
+        id: requestId
+      }
+
+      // Set up a one-time listener for the response
+      const handleResponse = (reply: KitManagerMessage) => {
+        if (reply.kit_id === kitId && reply.data?.requestId === requestId) {
+          this.socket?.off('messageToKit-kitReply', handleResponse)
+
+          if (reply.status === 'OK' || reply.status === 'SUCCESS') {
+            const websocketUrl = reply.data?.websocketUrl
+            if (websocketUrl) {
+              resolve(websocketUrl)
+            } else {
+              reject(new Error('No WebSocket URL provided in response'))
+            }
+          } else {
+            reject(new Error(reply.message || 'Failed to get WebSocket URL'))
+          }
+        }
+      }
+
+      this.socket.on('messageToKit-kitReply', handleResponse)
+
+      // Send request
+      this.socket?.emit('messageToKit', request)
+
+      // Set timeout
+      setTimeout(() => {
+        this.socket?.off('messageToKit-kitReply', handleResponse)
+        reject(new Error('WebSocket request timeout'))
+      }, 10000)
+    })
+  }
+
   // Getters
   getKits(): VehicleEdgeRuntimeKit[] {
     return this.kits
