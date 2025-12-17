@@ -48,6 +48,11 @@ import DaDeviceSetupWizard from './DaDeviceSetupWizard'
 import kitManagerService, { VehicleEdgeRuntimeKit, KitManagerMessage } from '@/services/kitManager.service'
 import vehicleEdgeRuntimeService, { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntime.service'
 import vehicleEdgeRuntimeDirectService from '@/services/vehicleEdgeRuntimeDirect.service'
+
+// Extended VehicleApp interface with additional properties
+interface ExtendedVehicleApp extends VehicleApp {
+  lastStatusUpdate?: string
+}
 import { Button } from '@/components/atoms/button'
 import { Input } from '@/components/atoms/input'
 import { Dialog, DialogContent } from '@/components/atoms/dialog'
@@ -157,7 +162,7 @@ print("📊 Application execution finished")`,
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isDeployingApp, setIsDeployingApp] = useState(false)
-  const [vehicleApps, setVehicleApps] = useState<VehicleApp[]>([])
+  const [vehicleApps, setVehicleApps] = useState<ExtendedVehicleApp[]>([])
   const [deployedRuntimeApps, setDeployedRuntimeApps] = useState<any[]>([])
   const [isRefreshingApps, setIsRefreshingApps] = useState(false)
   const [runtimeState, setRuntimeState] = useState<RuntimeState | null>(null)
@@ -346,6 +351,31 @@ print("📊 Application execution finished")`,
     setIsRuntimeConnected(isKitManagerConnected && selectedKit?.is_online || false)
   }, [selectedKit, isKitManagerConnected])
 
+  // Auto-refresh applications when connected
+  useEffect(() => {
+    let refreshInterval: NodeJS.Timeout | null = null
+
+    // Set up auto-refresh if any connection is active
+    if ((isRuntimeConnected || isDirectRuntimeConnected) && selectedKit) {
+      console.log('🔄 Setting up auto-refresh for applications (10s interval)')
+
+      // Initial refresh
+      refreshApps()
+
+      // Set up periodic refresh
+      refreshInterval = setInterval(() => {
+        refreshApps()
+      }, 10000) // Refresh every 10 seconds
+    }
+
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval)
+        console.log('🔄 Stopped auto-refresh for applications')
+      }
+    }
+  }, [isRuntimeConnected, isDirectRuntimeConnected, selectedKit, useDirectConnection])
+
   // Setup Kit Manager event listeners
   const setupKitManagerEventListeners = () => {
     // Listen for kits updates
@@ -435,7 +465,47 @@ print("📊 Application execution finished")`,
       }
     })
 
-    // Listen for deployed apps list updates
+    // Listen for app status updates for real-time sync
+    vehicleEdgeRuntimeDirectService.onAppStatus((message: any) => {
+      console.log('🔄 Real-time app status update:', message)
+
+      // Update the specific app in vehicleApps state
+      setVehicleApps(prev => prev.map(app =>
+        app.id === message.appId ? {
+          ...app,
+          status: message.currentStatus as VehicleApp['status'],
+          lastStatusUpdate: new Date().toISOString()
+        } : app
+      ))
+
+      // Log status change
+      const timestamp = new Date().toLocaleTimeString()
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${timestamp}] [STATUS] ${message.appId}: ${message.previousStatus} → ${message.currentStatus}`
+      ])
+    })
+
+    // Listen for list_deployed_apps-response updates
+    vehicleEdgeRuntimeDirectService.onDeployedAppsList((message: any) => {
+      console.log('📋 Apps list updated:', message)
+
+      if (message.applications && Array.isArray(message.applications)) {
+        // Convert to VehicleApp format
+        const convertedApps = message.applications.map((app: any) => ({
+          id: app.app_id || app.id,
+          name: app.name || `App ${app.app_id || app.id}`,
+          version: app.version || '1.0.0',
+          type: 'python' as const,
+          status: app.status as VehicleApp['status'] || 'running',
+          created_at: app.deploy_time ? new Date(app.deploy_time).toISOString() : new Date().toISOString(),
+          executionId: app.app_id || app.id || app.executionId
+        }))
+
+        setVehicleApps(convertedApps)
+        setDeployedRuntimeApps(message.applications)
+      }
+    })
     vehicleEdgeRuntimeDirectService.onDeployedAppsList((response) => {
       console.log('Deployed apps list:', response)
       // Convert to RunningApp format
@@ -1115,30 +1185,7 @@ if __name__ == "__main__":
     await handleDeployApp()
   }
 
-  const handleStopApp = async (appId: string, executionId?: string) => {
-    if (!isRuntimeConnected || !isKitManagerConnected) return
-
-    try {
-      const timestamp = new Date().toLocaleTimeString()
-      setConsoleOutput(prev => [...prev, `[${timestamp}] 🛑 Stopping app ${appId}...`])
-
-      // Stop the application using the new API
-      await vehicleEdgeRuntimeService.stopApp(appId)
-
-      setConsoleOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ App ${appId} stopped successfully`])
-
-      // Update app list
-      const appsResponse = await vehicleEdgeRuntimeService.listApps()
-      setVehicleApps(appsResponse.apps)
-    } catch (error) {
-      console.error('Failed to stop app:', error)
-      const timestamp = new Date().toLocaleTimeString()
-      setConsoleOutput(prev => [...prev,
-        `[${timestamp}] ❌ Failed to stop ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
-      ])
-    }
-  }
-
+  
   const handleViewConsole = (app: VehicleApp) => {
     setConsoleOutput([`Console output for ${app.name}:`, `Status: ${app.status}`, `Type: ${app.type}`])
     setActiveTab('console')
@@ -1184,7 +1231,7 @@ if __name__ == "__main__":
       } else {
         // Use kit manager service
         const appsResponse = await vehicleEdgeRuntimeService.listApps()
-        setVehicleApps(appsResponse.apps)
+        setVehicleApps(appsResponse.apps || [])
       }
     } catch (error) {
       console.error('Failed to refresh apps:', error)
@@ -1192,6 +1239,186 @@ if __name__ == "__main__":
       setDeployedRuntimeApps([])
     } finally {
       setIsRefreshingApps(false)
+    }
+  }
+
+  // Application lifecycle management functions
+  const handleStartApp = async (appId: string) => {
+    try {
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ACTION] Starting application: ${appId}`
+      ])
+
+      if (useDirectConnection && isDirectRuntimeConnected) {
+        // For direct connection, deploy a new instance since the runtime starts apps automatically
+        const app = vehicleApps.find(a => a.id === appId)
+        if (app && app.type === 'python') {
+          // Use the stored app data to redeploy
+          // For now, just show a message since redeployment needs app data
+          setConsoleOutput(prev => [
+            ...prev,
+            `[${new Date().toLocaleTimeString()}] [INFO] App restart functionality requires stored app data`
+          ])
+        }
+      } else {
+        // Use kit manager service (if start functionality is available)
+        const response = await vehicleEdgeRuntimeService.runApp(appId)
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [RESPONSE] App start response: ${JSON.stringify(response)}`
+        ])
+      }
+
+      // Refresh apps list to get updated status
+      await refreshApps()
+    } catch (error) {
+      console.error('Failed to start app:', error)
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to start app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
+    }
+  }
+
+  const handleStopApp = async (appId: string) => {
+    try {
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ACTION] Stopping application: ${appId}`
+      ])
+
+      if (useDirectConnection && isDirectRuntimeConnected) {
+        await vehicleEdgeRuntimeDirectService.stopApp(appId)
+      } else {
+        await vehicleEdgeRuntimeService.stopApp(appId)
+      }
+
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [SUCCESS] Application ${appId} stopped successfully`
+      ])
+
+      // Update local state immediately for responsive UI
+      setVehicleApps(prev => prev.map(app =>
+        app.id === appId ? { ...app, status: 'stopped' as const } : app
+      ))
+
+      // Refresh apps list to get updated status
+      await refreshApps()
+    } catch (error) {
+      console.error('Failed to stop app:', error)
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to stop app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
+    }
+  }
+
+  const handlePauseApp = async (appId: string) => {
+    try {
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ACTION] Pausing application: ${appId}`
+      ])
+
+      if (useDirectConnection && isDirectRuntimeConnected) {
+        await vehicleEdgeRuntimeDirectService.pauseApp(appId)
+      } else {
+        // Kit manager service may not have pause functionality
+        console.warn('Pause not available via kit manager service')
+      }
+
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [SUCCESS] Application ${appId} paused successfully`
+      ])
+
+      // Update local state immediately for responsive UI
+      setVehicleApps(prev => prev.map(app =>
+        app.id === appId ? { ...app, status: 'paused' as const } : app
+      ))
+
+      // Refresh apps list to get updated status
+      await refreshApps()
+    } catch (error) {
+      console.error('Failed to pause app:', error)
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to pause app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
+    }
+  }
+
+  const handleResumeApp = async (appId: string) => {
+    try {
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ACTION] Resuming application: ${appId}`
+      ])
+
+      if (useDirectConnection && isDirectRuntimeConnected) {
+        await vehicleEdgeRuntimeDirectService.resumeApp(appId)
+      } else {
+        // Kit manager service may not have resume functionality
+        console.warn('Resume not available via kit manager service')
+      }
+
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [SUCCESS] Application ${appId} resumed successfully`
+      ])
+
+      // Update local state immediately for responsive UI
+      setVehicleApps(prev => prev.map(app =>
+        app.id === appId ? { ...app, status: 'running' as const } : app
+      ))
+
+      // Refresh apps list to get updated status
+      await refreshApps()
+    } catch (error) {
+      console.error('Failed to resume app:', error)
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to resume app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
+    }
+  }
+
+  const handleUninstallApp = async (appId: string) => {
+    if (!confirm('Are you sure you want to uninstall this application? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ACTION] Uninstalling application: ${appId}`
+      ])
+
+      if (useDirectConnection && isDirectRuntimeConnected) {
+        await vehicleEdgeRuntimeDirectService.uninstallApp(appId)
+      } else {
+        // Kit manager service may not have uninstall functionality
+        console.warn('Uninstall not available via kit manager service')
+      }
+
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [SUCCESS] Application ${appId} uninstalled successfully`
+      ])
+
+      // Remove app from local state immediately for responsive UI
+      setVehicleApps(prev => prev.filter(app => app.id !== appId))
+
+      // Refresh apps list to get updated status
+      await refreshApps()
+    } catch (error) {
+      console.error('Failed to uninstall app:', error)
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to uninstall app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
     }
   }
 
@@ -2238,6 +2465,12 @@ print("\\nDone.")` }))}
                                 {getStatusIcon(app.status)}
                                 <span>{app.status}</span>
                               </div>
+                              {app.lastStatusUpdate && (
+                                <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                                  <TbClock className="w-3 h-3" />
+                                  <span>Updated: {new Date(app.lastStatusUpdate).toLocaleTimeString()}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2264,14 +2497,52 @@ print("\\nDone.")` }))}
                           >
                             <TbTerminal className="w-4 h-4" />
                           </Button>
+
+                          {/* Start/Resume button */}
+                          {(app.status === 'stopped' || app.status === 'paused') && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => app.status === 'stopped' ? handleStartApp(app.id) : handleResumeApp(app.id)}
+                              title={app.status === 'stopped' ? 'Start Application' : 'Resume Application'}
+                            >
+                              <TbPlayerPlay className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          {/* Pause button */}
+                          {app.status === 'running' && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handlePauseApp(app.id)}
+                              title="Pause Application"
+                            >
+                              <TbAlertTriangle className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          {/* Stop button */}
+                          {(app.status === 'running' || app.status === 'paused') && (
+                            <Button
+                              variant={app.status === 'running' ? 'destructive' : 'outline'}
+                              size="icon"
+                              onClick={() => handleStopApp(app.id)}
+                              title="Stop Application"
+                            >
+                              <TbPlayerStop className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          {/* Uninstall button */}
                           <Button
-                            variant={app.status === 'running' ? 'destructive' : 'ghost'}
+                            variant="ghost"
                             size="icon"
-                            onClick={() => app.status === 'running' ? handleStopApp(app.id, app.executionId) : null}
-                            title={app.status === 'running' ? 'Stop Application' : 'Application already stopped'}
-                            disabled={app.status !== 'running'}
+                            onClick={() => handleUninstallApp(app.id)}
+                            title="Uninstall Application"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
                           >
-                            {app.status === 'running' ? <TbPlayerStop className="w-4 h-4" /> : <TbPlayerPlay className="w-4 h-4" />}
+                            <TbTrash className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>

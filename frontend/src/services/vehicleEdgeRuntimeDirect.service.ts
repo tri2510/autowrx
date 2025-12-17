@@ -471,12 +471,48 @@ class VehicleEdgeRuntimeDirectService {
   }
 
   async getDeployedApps(): Promise<ListDeployedAppsResponse> {
-    const request: ListDeployedAppsRequest = {
-      type: 'list_deployed_apps',
-      id: 'list-apps-' + Date.now()
-    }
+    return new Promise((resolve, reject) => {
+      const requestId = 'list-apps-' + Date.now()
+      const request: ListDeployedAppsRequest = {
+        type: 'list_deployed_apps',
+        id: requestId
+      }
 
-    return this.sendMessage(request)
+      // Set up a timeout for the entire operation
+      const timeout = setTimeout(() => {
+        this.messageHandlers.delete('list_deployed_apps-response')
+        reject(new Error('getDeployedApps timeout'))
+      }, 15000) // Increased timeout to 15 seconds
+
+      // Set up a one-time handler for the response
+      const handleResponse = (message: any) => {
+        if (message.id === requestId || message.type === 'list_deployed_apps-response') {
+          clearTimeout(timeout)
+          this.messageHandlers.delete('list_deployed_apps-response')
+          console.log('📋 Received deployed apps response:', message)
+          resolve(message)
+        }
+      }
+
+      this.messageHandlers.set('list_deployed_apps-response', handleResponse)
+
+      // Send the request
+      try {
+        if (!this.isConnected || !this.ws) {
+          clearTimeout(timeout)
+          this.messageHandlers.delete('list_deployed_apps-response')
+          reject(new Error('Not connected to Vehicle Edge Runtime'))
+          return
+        }
+
+        this.ws.send(JSON.stringify(request))
+        console.log('📤 Sent list_deployed_apps request:', requestId)
+      } catch (error) {
+        clearTimeout(timeout)
+        this.messageHandlers.delete('list_deployed_apps-response')
+        reject(error)
+      }
+    })
   }
 
   async getAppStatus(appId: string): Promise<AppStatusResponse> {
