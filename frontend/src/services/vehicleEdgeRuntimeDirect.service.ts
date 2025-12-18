@@ -452,7 +452,7 @@ class VehicleEdgeRuntimeDirectService {
       const timeout = setTimeout(() => {
         this.pendingRequests.delete(request.id!)
         reject(new Error('Request timeout'))
-      }, 10000)
+      }, 5000) // Reduced timeout to fail faster
 
       this.pendingRequests.set(request.id!, { resolve, reject, timeout })
 
@@ -614,103 +614,63 @@ class VehicleEdgeRuntimeDirectService {
 
   // Simplified app management methods - use appId directly
   async startApp(appId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const requestId = 'start-' + Date.now()
+    try {
       const request: RunAppRequest = {
         type: 'run_app',
-        id: requestId,
         appId  // Direct mapping - what you send = what you use
       }
 
       console.log('🚀 Starting app request (simplified API):', request)
-
-      // Set up timeout
-      const timeout = setTimeout(() => {
-        this.pendingRequests.delete(requestId)
-        reject(new Error('Start app request timeout'))
-      }, 10000)
-
-      // Store the promise resolvers
-      this.pendingRequests.set(requestId, { resolve, reject, timeout })
-
-      // Send the request
-      this.sendMessage(request)
-    })
+      return await this.sendMessage(request)
+    } catch (error) {
+      console.error('❌ Failed to start app:', error)
+      throw error
+    }
   }
 
   async stopApp(appId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const requestId = 'stop-' + Date.now()
+    try {
       const request: StopAppRequest = {
         type: 'stop_app',
-        id: requestId,
         appId  // Direct mapping - what you send = what you use
       }
 
       console.log('⏹️ Stopping app request (simplified API):', request)
-
-      // Set up timeout
-      const timeout = setTimeout(() => {
-        this.pendingRequests.delete(requestId)
-        reject(new Error('Stop app request timeout'))
-      }, 10000)
-
-      // Store the promise resolvers
-      this.pendingRequests.set(requestId, { resolve, reject, timeout })
-
-      // Send the request
-      this.sendMessage(request)
-    })
+      return await this.sendMessage(request)
+    } catch (error) {
+      console.error('❌ Failed to stop app:', error)
+      throw error
+    }
   }
 
   async pauseApp(appId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const requestId = 'pause-' + Date.now()
+    try {
       const request: PauseAppRequest = {
         type: 'pause_app',
-        id: requestId,
         appId  // Direct mapping - what you send = what you use
       }
 
       console.log('⏸️ Pausing app request (simplified API):', request)
-
-      // Set up timeout
-      const timeout = setTimeout(() => {
-        this.pendingRequests.delete(requestId)
-        reject(new Error('Pause app request timeout'))
-      }, 10000)
-
-      // Store the promise resolvers
-      this.pendingRequests.set(requestId, { resolve, reject, timeout })
-
-      // Send the request
-      this.sendMessage(request)
-    })
+      return await this.sendMessage(request)
+    } catch (error) {
+      console.error('❌ Failed to pause app:', error)
+      throw error
+    }
   }
 
   async resumeApp(appId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const requestId = 'resume-' + Date.now()
+    try {
       const request: ResumeAppRequest = {
         type: 'resume_app',
-        id: requestId,
         appId  // Direct mapping - what you send = what you use
       }
 
       console.log('▶️ Resuming app request (simplified API):', request)
-
-      // Set up timeout
-      const timeout = setTimeout(() => {
-        this.pendingRequests.delete(requestId)
-        reject(new Error('Resume app request timeout'))
-      }, 10000)
-
-      // Store the promise resolvers
-      this.pendingRequests.set(requestId, { resolve, reject, timeout })
-
-      // Send the request
-      this.sendMessage(request)
-    })
+      return await this.sendMessage(request)
+    } catch (error) {
+      console.error('❌ Failed to resume app:', error)
+      throw error
+    }
   }
 
   // Restart app functionality (stop + start)
@@ -718,11 +678,16 @@ class VehicleEdgeRuntimeDirectService {
     try {
       console.log('🔄 Restarting app:', appId)
 
+      // Check connection first
+      if (!this.isConnected) {
+        throw new Error('Not connected to Vehicle Edge Runtime')
+      }
+
       // First stop the app
       await this.stopApp(appId)
 
       // Wait a bit for stop to complete
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       // Then start the app
       await this.startApp(appId)
@@ -735,13 +700,18 @@ class VehicleEdgeRuntimeDirectService {
   }
 
   async uninstallApp(appId: string): Promise<any> {
-    const request: UninstallAppRequest = {
-      type: 'uninstall_app',
-      id: 'uninstall-' + Date.now(),
-      appId  // Use appId for uninstall_app (as specified)
-    }
+    try {
+      const request: UninstallAppRequest = {
+        type: 'uninstall_app',
+        appId  // Use appId for uninstall_app (as specified)
+      }
 
-    return this.sendMessage(request)
+      console.log('🗑️ Uninstalling app request (simplified API):', request)
+      return await this.sendMessage(request)
+    } catch (error) {
+      console.error('❌ Failed to uninstall app:', error)
+      throw error
+    }
   }
 
   // Console methods

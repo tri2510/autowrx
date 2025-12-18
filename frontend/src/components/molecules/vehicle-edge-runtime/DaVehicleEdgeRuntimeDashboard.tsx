@@ -1280,12 +1280,20 @@ if __name__ == "__main__":
   // Application lifecycle management functions
   const handleStartApp = async (appId: string) => {
     try {
+      // Check connection status first
+      if (!vehicleEdgeRuntimeDirectService.isConnected) {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [ERROR] Cannot start app ${appId}: Not connected to Vehicle Edge Runtime`
+        ])
+        return
+      }
+
       setConsoleOutput(prev => [
         ...prev,
         `[${new Date().toLocaleTimeString()}] [ACTION] Starting application: ${appId}`
       ])
 
-      // Use the correct API format: manage_app with app_id and action: "start"
       await vehicleEdgeRuntimeDirectService.startApp(appId)
 
       setConsoleOutput(prev => [
@@ -1297,15 +1305,39 @@ if __name__ == "__main__":
       await refreshApps()
     } catch (error) {
       console.error('Failed to start app:', error)
-      setConsoleOutput(prev => [
-        ...prev,
-        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to start app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
-      ])
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      // Provide user-friendly error messages
+      if (errorMessage.includes('timeout')) {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [ERROR] Failed to start app ${appId}: Request timed out. Please check your connection and try again.`
+        ])
+      } else if (errorMessage.includes('Not connected')) {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [ERROR] Failed to start app ${appId}: Connection lost. Please reconnect to the runtime.`
+        ])
+      } else {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [ERROR] Failed to start app ${appId}: ${errorMessage}`
+        ])
+      }
     }
   }
 
   const handleStopApp = async (appId: string) => {
     try {
+      // Check connection status first
+      if (!vehicleEdgeRuntimeDirectService.isConnected) {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [ERROR] Cannot stop app ${appId}: Not connected to Vehicle Edge Runtime`
+        ])
+        return
+      }
+
       setConsoleOutput(prev => [
         ...prev,
         `[${new Date().toLocaleTimeString()}] [ACTION] Stopping application: ${appId}`
@@ -1327,10 +1359,25 @@ if __name__ == "__main__":
       await refreshApps()
     } catch (error) {
       console.error('Failed to stop app:', error)
-      setConsoleOutput(prev => [
-        ...prev,
-        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to stop app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
-      ])
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      // Provide user-friendly error messages
+      if (errorMessage.includes('timeout')) {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [ERROR] Failed to stop app ${appId}: Request timed out. Please check your connection and try again.`
+        ])
+      } else if (errorMessage.includes('Not connected')) {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [ERROR] Failed to stop app ${appId}: Connection lost. Please reconnect to the runtime.`
+        ])
+      } else {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [ERROR] Failed to stop app ${appId}: ${errorMessage}`
+        ])
+      }
     }
   }
 
