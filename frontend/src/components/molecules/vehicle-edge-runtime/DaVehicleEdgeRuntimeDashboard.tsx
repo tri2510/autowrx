@@ -1417,6 +1417,31 @@ if __name__ == "__main__":
     }
   }
 
+  const handleRestartApp = async (appId: string) => {
+    try {
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ACTION] Restarting application: ${appId}`
+      ])
+
+      await vehicleEdgeRuntimeDirectService.restartApp(appId)
+
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [SUCCESS] Application ${appId} restarted successfully`
+      ])
+
+      // Refresh apps list to get updated status
+      await refreshApps()
+    } catch (error) {
+      console.error('Failed to restart app:', error)
+      setConsoleOutput(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to restart app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      ])
+    }
+  }
+
   const handleRefreshKits = async () => {
     try {
       // Update last refresh time
@@ -2515,6 +2540,19 @@ print("\\nDone.")` }))}
                               className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
                             >
                               <TbPlayerPause className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          {/* Restart button - for running and paused apps */}
+                          {(app.status === 'running' || app.status === 'paused') && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleRestartApp(app.id)}
+                              title="Restart Application"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <TbRefresh className="w-4 h-4" />
                             </Button>
                           )}
 

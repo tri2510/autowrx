@@ -557,49 +557,130 @@ class VehicleEdgeRuntimeDirectService {
     return this.sendMessage(request)
   }
 
-  // Proper app management methods using the correct API format
+  // Enhanced app management methods with proper error handling and response processing
   async startApp(appId: string): Promise<any> {
-    const request: ManageAppRequest = {
-      type: 'manage_app',
-      id: 'start-' + Date.now(),
-      app_id: appId,  // Use app_id for manage_app
-      action: 'start'
-    }
+    return new Promise((resolve, reject) => {
+      const requestId = 'start-' + Date.now()
+      const request: ManageAppRequest = {
+        type: 'manage_app',
+        id: requestId,
+        app_id: appId,
+        action: 'start'
+      }
 
-    return this.sendMessage(request)
+      console.log('🚀 Starting app request:', request)
+
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error('Start app request timeout'))
+      }, 10000)
+
+      // Store the promise resolvers
+      this.pendingRequests.set(requestId, { resolve, reject, timeout })
+
+      // Send the request
+      this.sendMessage(request)
+    })
   }
 
   async stopApp(appId: string): Promise<any> {
-    const request: ManageAppRequest = {
-      type: 'manage_app',
-      id: 'stop-' + Date.now(),
-      app_id: appId,  // Use app_id for manage_app
-      action: 'stop'
-    }
+    return new Promise((resolve, reject) => {
+      const requestId = 'stop-' + Date.now()
+      const request: ManageAppRequest = {
+        type: 'manage_app',
+        id: requestId,
+        app_id: appId,
+        action: 'stop'
+      }
 
-    return this.sendMessage(request)
+      console.log('⏹️ Stopping app request:', request)
+
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error('Stop app request timeout'))
+      }, 10000)
+
+      // Store the promise resolvers
+      this.pendingRequests.set(requestId, { resolve, reject, timeout })
+
+      // Send the request
+      this.sendMessage(request)
+    })
   }
 
   async pauseApp(appId: string): Promise<any> {
-    const request: ManageAppRequest = {
-      type: 'manage_app',
-      id: 'pause-' + Date.now(),
-      app_id: appId,  // Use app_id for manage_app
-      action: 'pause'
-    }
+    return new Promise((resolve, reject) => {
+      const requestId = 'pause-' + Date.now()
+      const request: ManageAppRequest = {
+        type: 'manage_app',
+        id: requestId,
+        app_id: appId,
+        action: 'pause'
+      }
 
-    return this.sendMessage(request)
+      console.log('⏸️ Pausing app request:', request)
+
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error('Pause app request timeout'))
+      }, 10000)
+
+      // Store the promise resolvers
+      this.pendingRequests.set(requestId, { resolve, reject, timeout })
+
+      // Send the request
+      this.sendMessage(request)
+    })
   }
 
   async resumeApp(appId: string): Promise<any> {
-    const request: ManageAppRequest = {
-      type: 'manage_app',
-      id: 'resume-' + Date.now(),
-      app_id: appId,  // Use app_id for manage_app
-      action: 'resume'
-    }
+    return new Promise((resolve, reject) => {
+      const requestId = 'resume-' + Date.now()
+      const request: ManageAppRequest = {
+        type: 'manage_app',
+        id: requestId,
+        app_id: appId,
+        action: 'resume'
+      }
 
-    return this.sendMessage(request)
+      console.log('▶️ Resuming app request:', request)
+
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error('Resume app request timeout'))
+      }, 10000)
+
+      // Store the promise resolvers
+      this.pendingRequests.set(requestId, { resolve, reject, timeout })
+
+      // Send the request
+      this.sendMessage(request)
+    })
+  }
+
+  // Restart app functionality (stop + start)
+  async restartApp(appId: string): Promise<any> {
+    try {
+      console.log('🔄 Restarting app:', appId)
+
+      // First stop the app
+      await this.stopApp(appId)
+
+      // Wait a bit for stop to complete
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Then start the app
+      await this.startApp(appId)
+
+      console.log('✅ App restarted successfully:', appId)
+    } catch (error) {
+      console.error('❌ Failed to restart app:', error)
+      throw error
+    }
   }
 
   async uninstallApp(appId: string): Promise<any> {
