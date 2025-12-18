@@ -498,6 +498,11 @@ class VehicleEdgeRuntimeDirectService {
     const executionId = uuidv4()
     const appId = `${appConfig.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`
 
+    console.log('🚀 Deploy Request Debug:')
+    console.log('  - appConfig.name:', appConfig.name)
+    console.log('  - generated appId:', appId)
+    console.log('  - executionId:', executionId)
+
     const request: DeployRequest = {
       type: 'deploy_request',
       id: 'deploy-' + Date.now(),

@@ -1041,6 +1041,10 @@ if __name__ == "__main__":
         canStop: true
       })
 
+      console.log('🚀 Dashboard Debug before deployment:')
+      console.log('  - appName:', appName)
+      console.log('  - customAppName:', customAppName)
+
       // Deploy using unified Vehicle Edge Runtime service
       const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
         name: appName,
