@@ -172,7 +172,7 @@ print("📊 Application execution finished")`,
   const [runtimeState, setRuntimeState] = useState<RuntimeState | null>(null)
   const [isRuntimeConnected, setIsRuntimeConnected] = useState(false)
   const [isKitManagerConnected, setIsKitManagerConnected] = useState(false)
-  const [customAppName, setCustomAppName] = useState('')
+  const [customAppName, setCustomAppName] = useState('your-vehicle-app')
 
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -1015,7 +1015,11 @@ if __name__ == "__main__":
 
     try {
       const timestamp = new Date().toLocaleTimeString()
-      const appName = customAppName.trim() || prototype?.name || 'Vehicle Edge Runtime App'
+      // Validate application name
+      if (!customAppName.trim()) {
+        throw new Error('Application identifier is required')
+      }
+      const appName = customAppName.trim()
       const finalCode = deploymentConfig.code
       const appId = `app-${Date.now()}`
 
@@ -1932,12 +1936,18 @@ if __name__ == "__main__":
                 <Input
                   type="text"
                   value={customAppName}
-                  onChange={(e) => setCustomAppName(e.target.value)}
-                  placeholder={prototype?.name || 'My Custom App'}
+                  onChange={(e) => {
+                    const value = e.target.value.trim()
+                    if (value.length > 0) {
+                      setCustomAppName(value)
+                    }
+                  }}
+                  placeholder={prototype?.name || 'your-vehicle-app'}
                   className="w-full"
+                  required
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Leave empty to use default name: {prototype?.name || 'Vehicle Edge Runtime App'}
+                  Enter a unique identifier for your application. Default: your-vehicle-app
                 </p>
               </div>
 

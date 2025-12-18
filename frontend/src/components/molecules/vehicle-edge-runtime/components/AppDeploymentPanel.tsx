@@ -27,13 +27,18 @@ const AppDeploymentPanel: FC<AppDeploymentPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'prototype' | 'custom'>('prototype')
   const [selectedPrototype, setSelectedPrototype] = useState(PROTOTYPE_APPS[0])
-  const [customAppName, setCustomAppName] = useState('')
+  const [customAppName, setCustomAppName] = useState('your-vehicle-app')
   const [customCode, setCustomCode] = useState('')
   const [vehicleId, setVehicleId] = useState('default-vehicle')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDeployApp = async () => {
     try {
+      // Validate application name for custom apps
+      if (activeTab === 'custom' && !customAppName.trim()) {
+        throw new Error('Application name is required')
+      }
+
       const config = activeTab === 'prototype'
         ? {
             name: selectedPrototype.name,
@@ -41,7 +46,7 @@ const AppDeploymentPanel: FC<AppDeploymentPanelProps> = ({
             vehicleId
           }
         : {
-            name: customAppName.trim() || 'Custom Vehicle App',
+            name: customAppName.trim(),
             code: customCode,
             vehicleId
           }
@@ -201,9 +206,15 @@ const AppDeploymentPanel: FC<AppDeploymentPanelProps> = ({
             </label>
             <Input
               value={customAppName}
-              onChange={(e) => setCustomAppName(e.target.value)}
-              placeholder="My Vehicle App"
+              onChange={(e) => {
+                const value = e.target.value.trim()
+                if (value.length > 0) {
+                  setCustomAppName(value)
+                }
+              }}
+              placeholder="your-vehicle-app"
               className="max-w-md"
+              required
             />
           </div>
 
