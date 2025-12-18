@@ -1043,10 +1043,7 @@ if __name__ == "__main__":
 
       // Deploy using unified Vehicle Edge Runtime service
       const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
-        id: appId,
         name: appName,
-        description: prototype?.description || 'Deployed from dashboard',
-        version: '1.0.0',
         code: finalCode,
         vehicleId: 'default-vehicle'
       })
@@ -1927,7 +1924,7 @@ if __name__ == "__main__":
 
               {/* App Name */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-foreground mb-2">Application Name (Optional)</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Application Identifier</label>
                 <Input
                   type="text"
                   value={customAppName}

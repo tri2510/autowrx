@@ -129,15 +129,11 @@ export interface RegisterClientRequest extends BaseMessage {
 
 export interface DeployRequest extends BaseMessage {
   type: 'deploy_request'
+  executionId: string
+  appId: string
   code: string
-  prototype: {
-    id: string
-    name: string
-    description?: string
-    version?: string
-  }
-  vehicleId?: string
   language: 'python' | 'binary'
+  vehicleId?: string
 }
 
 export interface ListDeployedAppsRequest extends BaseMessage {
@@ -495,23 +491,19 @@ class VehicleEdgeRuntimeDirectService {
 
   // Application deployment methods
   async deployPythonApp(appConfig: {
-    id: string
     name: string
     code: string
-    description?: string
-    version?: string
     vehicleId?: string
   }): Promise<string> {
+    const executionId = uuidv4()
+    const appId = `${appConfig.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`
+
     const request: DeployRequest = {
       type: 'deploy_request',
       id: 'deploy-' + Date.now(),
+      executionId,
+      appId,
       code: appConfig.code,
-      prototype: {
-        id: appConfig.id,
-        name: appConfig.name,
-        description: appConfig.description,
-        version: appConfig.version || '1.0.0'
-      },
       vehicleId: appConfig.vehicleId || 'default-vehicle',
       language: 'python'
     }
