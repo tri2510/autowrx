@@ -242,29 +242,37 @@ print("📊 Application execution finished")`,
           `[${new Date().toLocaleTimeString()}] 📱 Kit ID: ${selectedKit.kit_id.substring(0, 4).toUpperCase()}`
         ])
 
-        // Get initial runtime state and apps
-        try {
-          const stateResponse = await vehicleEdgeRuntimeDirectService.getRuntimeState()
-          setRuntimeState(stateResponse.runtimeState as RuntimeState)
-        } catch (stateError) {
-          console.warn('Failed to get runtime state:', stateError)
-        }
+        // Wait a moment for connection to fully establish
+        await new Promise(resolve => setTimeout(resolve, 1000))
 
-        try {
-          const appsResponse = await vehicleEdgeRuntimeDirectService.getDeployedApps()
-          // Convert the response format to match what the dashboard expects
-          const convertedApps = appsResponse.applications.map(app => ({
-            id: app.app_id,
-            name: app.name,
-            version: '1.0.0',
-            type: 'python' as const,
-            status: app.status as VehicleApp['status'] || 'running',
-            created_at: new Date(app.deploy_time).toISOString(),
-            executionId: app.app_id
-          }))
-          setVehicleApps(convertedApps)
-        } catch (appsError) {
-          console.warn('Failed to get apps list:', appsError)
+        // Get initial runtime state and apps - but only if connected
+        if (vehicleEdgeRuntimeDirectService.isServiceConnected()) {
+          try {
+            const stateResponse = await vehicleEdgeRuntimeDirectService.getRuntimeState()
+            setRuntimeState(stateResponse.runtimeState as any)
+          } catch (stateError) {
+            console.warn('Failed to get runtime state:', stateError)
+          }
+
+          try {
+            const appsResponse = await vehicleEdgeRuntimeDirectService.getDeployedApps()
+            // Convert the response format to match what the dashboard expects
+            const convertedApps = appsResponse.applications.map(app => ({
+              id: app.app_id,
+              name: app.name,
+              version: '1.0.0',
+              type: 'python' as const,
+              status: app.status as VehicleApp['status'] || 'running',
+              created_at: new Date(app.deploy_time).toISOString(),
+              executionId: app.app_id
+            }))
+            setVehicleApps(convertedApps)
+          } catch (appsError) {
+            console.warn('Failed to get apps list:', appsError)
+            setVehicleApps([])
+          }
+        } else {
+          console.warn('Service not connected, skipping initial data fetch')
           setVehicleApps([])
         }
 
@@ -516,15 +524,15 @@ print("📊 Application execution finished")`,
       console.log('📋 Apps list updated:', message)
 
       if (message.applications && Array.isArray(message.applications)) {
-        // Convert to VehicleApp format
+        // Convert to VehicleApp format - use simplified API mapping
         const convertedApps = message.applications.map((app: any) => ({
-          id: app.app_id || app.id,
-          name: app.name || `App ${app.app_id || app.id}`,
+          id: app.app_id,  // Use app_id directly from runtime response
+          name: app.name || `App ${app.app_id}`,
           version: app.version || '1.0.0',
           type: 'python' as const,
           status: app.status as VehicleApp['status'] || 'running',
           created_at: app.deploy_time ? new Date(app.deploy_time).toISOString() : new Date().toISOString(),
-          executionId: app.app_id || app.id || app.executionId
+          executionId: app.app_id  // Same as id with simplified API
         }))
 
         setVehicleApps(convertedApps)
@@ -541,8 +549,8 @@ print("📊 Application execution finished")`,
         status: app.status as 'running' | 'stopped' | 'error',
         startTime: new Date(app.deploy_time),
         resources: {
-          cpu: app.resources?.cpu || 0,
-          memory: app.resources?.memory || 0
+          cpu: parseInt(app.resources?.cpu_limit?.replace('%', '') || '0'),
+          memory: parseInt(app.resources?.memory_limit?.replace('MB', '') || '0')
         },
         consoleOutput: []
       }))
@@ -1200,14 +1208,15 @@ if __name__ == "__main__":
         console.log('📊 Enhanced stats:', stats)
 
         // Convert to VehicleApp format - NO STATUS FILTERING (display ALL apps)
+        // With simplified API: frontend ID = runtime ID = app.app_id
         const convertedApps = appsArray.map((app: any) => ({
-          id: app.app_id || app.id,
-          name: app.name || `App ${app.app_id || app.id}`,
+          id: app.app_id,  // Use app_id directly from runtime response
+          name: app.name || `App ${app.app_id}`,
           version: app.version || '1.0.0',
           type: (app.type as VehicleApp['type']) || 'python',
           status: app.status as VehicleApp['status'] || 'running',
           created_at: app.deploy_time ? new Date(app.deploy_time).toISOString() : new Date().toISOString(),
-          executionId: app.app_id || app.id || app.executionId,
+          executionId: app.app_id,  // Same as id with simplified API
           // Additional fields from enhanced API
           container_id: app.container_id,
           pid: app.pid,
@@ -1357,30 +1366,63 @@ if __name__ == "__main__":
 
   const handleResumeApp = async (appId: string) => {
     try {
+      // Find the current app state
+      const app = vehicleApps.find(a => a.id === appId)
+      if (!app) {
+        throw new Error('Application not found')
+      }
+
       setConsoleOutput(prev => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] [ACTION] Resuming application: ${appId}`
+        `[${new Date().toLocaleTimeString()}] [ACTION] Starting application: ${appId} (current status: ${app.status})`
       ])
 
-      await vehicleEdgeRuntimeDirectService.resumeApp(appId)
+      // Based on runtime analysis:
+      // - If app is 'paused' -> use resume_app (same executionId, keeps container state)
+      // - If app is 'stopped' or 'error' -> use run_app (new executionId, complete redeploy)
 
-      setConsoleOutput(prev => [
-        ...prev,
-        `[${new Date().toLocaleTimeString()}] [SUCCESS] Application ${appId} resumed successfully`
-      ])
+      if (app.status === 'paused') {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [INFO] App is paused, resuming container (keeping same executionId)`
+        ])
 
-      // Update local state immediately for responsive UI
-      setVehicleApps(prev => prev.map(app =>
-        app.id === appId ? { ...app, status: 'running' as const } : app
-      ))
+        // Use resume_app for paused apps (keeps same executionId)
+        await vehicleEdgeRuntimeDirectService.resumeApp(appId)
 
-      // Refresh apps list to get updated status
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [SUCCESS] Application ${appId} resumed successfully`
+        ])
+
+        // Update local state immediately for responsive UI
+        setVehicleApps(prev => prev.map(a =>
+          a.id === appId ? { ...a, status: 'running' as const } : a
+        ))
+      } else {
+        // For 'stopped' or 'error' apps, use run_app (gets new executionId)
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [INFO] App is ${app.status}, starting fresh deployment (new executionId will be created)`
+        ])
+
+        await vehicleEdgeRuntimeDirectService.startApp(appId)
+
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] [SUCCESS] Application ${appId} started successfully`
+        ])
+
+        // Note: run_app creates new executionId, so we must refresh to get updated data
+      }
+
+      // Always refresh apps list to get the latest executionId and status
       await refreshApps()
     } catch (error) {
-      console.error('Failed to resume app:', error)
+      console.error('Failed to start/resume app:', error)
       setConsoleOutput(prev => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to resume app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `[${new Date().toLocaleTimeString()}] [ERROR] Failed to start/resume app ${appId}: ${error instanceof Error ? error.message : 'Unknown error'}`
       ])
     }
   }
@@ -2435,8 +2477,8 @@ print("\\nDone.")` }))}
                   </div>
                   {runtimeState && (
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span>CPU: {runtimeState.resources.cpu}</span>
-                      <span>Memory: {runtimeState.resources.memory}</span>
+                      <span>Runtime: {runtimeState.status}</span>
+                      <span>Apps: {runtimeState.runningApplications?.length || 0}</span>
                       <span>Uptime: {Math.floor(runtimeState.uptime / 60)}m</span>
                     </div>
                   )}

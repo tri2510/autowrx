@@ -129,11 +129,15 @@ export interface RegisterClientRequest extends BaseMessage {
 
 export interface DeployRequest extends BaseMessage {
   type: 'deploy_request'
-  executionId: string
-  appId: string
   code: string
   language: 'python' | 'binary'
   vehicleId?: string
+  prototype: {
+    id: string
+    name: string
+    description?: string
+    version?: string
+  }
 }
 
 export interface ListDeployedAppsRequest extends BaseMessage {
@@ -165,13 +169,33 @@ export interface ListDeployedAppsResponse {
   applications: Array<{
     app_id: string
     name: string
+    version?: string
     status: string
-    deploy_time: number
+    deploy_time: string
+    auto_start?: boolean
+    description?: string
+    type: 'python' | 'binary'
     resources?: {
-      cpu?: number
-      memory?: number
+      cpu_limit?: string
+      memory_limit?: string
     }
+    container_id?: string
+    pid?: number
+    last_heartbeat?: string
+    exit_code?: number
   }>
+  stats?: {
+    total: number
+    running: number
+    paused: number
+    stopped: number
+    error: number
+  }
+  total_count?: number
+  running_count?: number
+  paused_count?: number
+  stopped_count?: number
+  error_count?: number
 }
 
 export interface GetAppStatusRequest extends BaseMessage {
@@ -179,11 +203,25 @@ export interface GetAppStatusRequest extends BaseMessage {
   appId: string
 }
 
-// App management interfaces following the correct API spec
-export interface ManageAppRequest extends BaseMessage {
-  type: 'manage_app'
-  app_id: string  // Use app_id for manage_app
-  action: 'start' | 'stop' | 'pause' | 'resume'
+// Simplified app management interfaces - use appId directly
+export interface RunAppRequest extends BaseMessage {
+  type: 'run_app'
+  appId: string
+}
+
+export interface StopAppRequest extends BaseMessage {
+  type: 'stop_app'
+  appId: string
+}
+
+export interface PauseAppRequest extends BaseMessage {
+  type: 'pause_app'
+  appId: string
+}
+
+export interface ResumeAppRequest extends BaseMessage {
+  type: 'resume_app'
+  appId: string
 }
 
 export interface UninstallAppRequest extends BaseMessage {
@@ -281,8 +319,10 @@ class VehicleEdgeRuntimeDirectService {
 
     console.log('✅ Using external WebSocket connection for Vehicle Edge Runtime')
 
-    // Register client after connection
-    this.registerClient()
+    // Register client after connection - but wait a moment for WebSocket to be ready
+    setTimeout(() => {
+      this.registerClient()
+    }, 100)
   }
 
   disconnect(): void {
@@ -372,6 +412,12 @@ class VehicleEdgeRuntimeDirectService {
   }
 
   private async registerClient(): Promise<void> {
+    // Only register if connected
+    if (!this.isConnected) {
+      console.log('⚠️ Not connected yet, skipping client registration')
+      return
+    }
+
     const request: RegisterClientRequest = {
       type: 'register_client',
       id: 'register-' + Date.now(),
@@ -382,7 +428,13 @@ class VehicleEdgeRuntimeDirectService {
       }
     }
 
-    this.sendMessage(request)
+    // Send directly without await since registration is fire-and-forget
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(request))
+      console.log('✅ Client registration sent')
+    } else {
+      console.warn('⚠️ WebSocket not ready for client registration')
+    }
   }
 
   // Message handling
@@ -495,22 +547,25 @@ class VehicleEdgeRuntimeDirectService {
     code: string
     vehicleId?: string
   }): Promise<string> {
-    const executionId = uuidv4()
+    // Frontend controls the ID now - use prototype.id as the app ID
     const appId = `${appConfig.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`
 
     console.log('🚀 Deploy Request Debug:')
     console.log('  - appConfig.name:', appConfig.name)
-    console.log('  - generated appId:', appId)
-    console.log('  - executionId:', executionId)
+    console.log('  - app ID (prototype.id):', appId)
 
     const request: DeployRequest = {
       type: 'deploy_request',
       id: 'deploy-' + Date.now(),
-      executionId,
-      appId,
       code: appConfig.code,
       vehicleId: appConfig.vehicleId || 'default-vehicle',
-      language: 'python'
+      language: 'python',
+      prototype: {
+        id: appId,
+        name: appConfig.name,
+        description: `Python application: ${appConfig.name}`,
+        version: '1.0.0'
+      }
     }
 
     const response: DeployRequestResponse = await this.sendMessage(request)
@@ -557,18 +612,17 @@ class VehicleEdgeRuntimeDirectService {
     return this.sendMessage(request)
   }
 
-  // Enhanced app management methods with proper error handling and response processing
+  // Simplified app management methods - use appId directly
   async startApp(appId: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestId = 'start-' + Date.now()
-      const request: ManageAppRequest = {
-        type: 'manage_app',
+      const request: RunAppRequest = {
+        type: 'run_app',
         id: requestId,
-        app_id: appId,
-        action: 'start'
+        appId  // Direct mapping - what you send = what you use
       }
 
-      console.log('🚀 Starting app request:', request)
+      console.log('🚀 Starting app request (simplified API):', request)
 
       // Set up timeout
       const timeout = setTimeout(() => {
@@ -587,14 +641,13 @@ class VehicleEdgeRuntimeDirectService {
   async stopApp(appId: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestId = 'stop-' + Date.now()
-      const request: ManageAppRequest = {
-        type: 'manage_app',
+      const request: StopAppRequest = {
+        type: 'stop_app',
         id: requestId,
-        app_id: appId,
-        action: 'stop'
+        appId  // Direct mapping - what you send = what you use
       }
 
-      console.log('⏹️ Stopping app request:', request)
+      console.log('⏹️ Stopping app request (simplified API):', request)
 
       // Set up timeout
       const timeout = setTimeout(() => {
@@ -613,14 +666,13 @@ class VehicleEdgeRuntimeDirectService {
   async pauseApp(appId: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestId = 'pause-' + Date.now()
-      const request: ManageAppRequest = {
-        type: 'manage_app',
+      const request: PauseAppRequest = {
+        type: 'pause_app',
         id: requestId,
-        app_id: appId,
-        action: 'pause'
+        appId  // Direct mapping - what you send = what you use
       }
 
-      console.log('⏸️ Pausing app request:', request)
+      console.log('⏸️ Pausing app request (simplified API):', request)
 
       // Set up timeout
       const timeout = setTimeout(() => {
@@ -639,14 +691,13 @@ class VehicleEdgeRuntimeDirectService {
   async resumeApp(appId: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestId = 'resume-' + Date.now()
-      const request: ManageAppRequest = {
-        type: 'manage_app',
+      const request: ResumeAppRequest = {
+        type: 'resume_app',
         id: requestId,
-        app_id: appId,
-        action: 'resume'
+        appId  // Direct mapping - what you send = what you use
       }
 
-      console.log('▶️ Resuming app request:', request)
+      console.log('▶️ Resuming app request (simplified API):', request)
 
       // Set up timeout
       const timeout = setTimeout(() => {
