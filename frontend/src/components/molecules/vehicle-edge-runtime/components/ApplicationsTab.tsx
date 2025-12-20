@@ -120,20 +120,33 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
   const formatConsoleMessage = (message: any) => {
     const timestamp = new Date(message.timestamp).toLocaleTimeString()
     
+    // Split the output by newlines and handle each line separately
+    const lines = message.output.split('\n')
+    
     return (
-      <div key={message.id} className="mb-1">
-        <span className="text-gray-500">[{timestamp}]</span>{' '}
-        <span className={
-          // Color coding based on content and message type
-          message.type === 'stderr' ? 'text-red-400' :
-          message.type === 'system' ? 'text-yellow-400' :
-          message.output.includes('🚀') ? 'text-blue-400' :
-          message.output.includes('✅') ? 'text-green-400' :
-          message.output.includes('❌') || message.output.includes('⚠️') ? 'text-yellow-400' :
-          message.output.includes('📦') || message.output.includes('📝') ? 'text-blue-300' :
-          message.output.includes('📤') ? 'text-cyan-400' :
-          'text-green-300'
-        }>{message.output}</span>
+      <div key={message.id} className="mb-2">
+        {/* Show timestamp for the first line only to avoid repetition */}
+        {lines.map((line: string, lineIndex: number) => (
+          <div key={`${message.id}-${lineIndex}`} className="leading-relaxed">
+            {lineIndex === 0 && (
+              <span className="text-gray-500 text-xs mr-2">[{timestamp}]</span>
+            )}
+            <span className={
+              // Color coding based on content and message type
+              message.type === 'stderr' ? 'text-red-400' :
+              message.type === 'system' ? 'text-yellow-400' :
+              line.includes('🚀') ? 'text-blue-400' :
+              line.includes('✅') ? 'text-green-400' :
+              line.includes('❌') || line.includes('⚠️') ? 'text-yellow-400' :
+              line.includes('📦') || line.includes('📝') ? 'text-blue-300' :
+              line.includes('📤') ? 'text-cyan-400' :
+              'text-green-300'
+            }>
+              {/* Preserve empty lines as line breaks */}
+              {line === '' ? '\u00A0' : line}
+            </span>
+          </div>
+        ))}
       </div>
     )
   }

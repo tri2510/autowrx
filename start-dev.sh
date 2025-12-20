@@ -4,12 +4,12 @@ cd backend
 echo "=== Backend .env ==="
 cat .env
 echo "==================="
-yarn dev
+npm run dev
 cd ..
 
 cd frontend
 echo "=== Frontend .env ==="
 cat .env
 echo "===================="
-yarn dev
+npm run dev
 cd ..
