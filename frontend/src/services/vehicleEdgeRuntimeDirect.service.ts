@@ -547,11 +547,11 @@ class VehicleEdgeRuntimeDirectService {
     code: string
     vehicleId?: string
   }): Promise<string> {
-    // Frontend controls the ID now - use prototype.id as the app ID
-    const appId = `${appConfig.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`
+    // Use the provided name as the app ID for smart deployment
+    const appId = appConfig.name
 
-    console.log('🚀 Deploy Request Debug:')
-    console.log('  - appConfig.name:', appConfig.name)
+    console.log('🚀 Smart Deploy Request Debug:')
+    console.log('  - appConfig.name (ID):', appConfig.name)
     console.log('  - app ID (prototype.id):', appId)
 
     const request: DeployRequest = {
@@ -562,8 +562,8 @@ class VehicleEdgeRuntimeDirectService {
       language: 'python',
       prototype: {
         id: appId,
-        name: appConfig.name,
-        description: `Python application: ${appConfig.name}`,
+        name: appId, // Use appId as both ID and name
+        description: `Python application: ${appId}`,
         version: '1.0.0'
       }
     }

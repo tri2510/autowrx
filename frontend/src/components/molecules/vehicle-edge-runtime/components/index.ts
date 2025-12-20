@@ -19,3 +19,11 @@ export { default as ConsoleTab } from './ConsoleTab'
 export { default as OverviewTab } from './OverviewTab'
 export { default as SettingsTab } from './SettingsTab'
 export { default as ApplicationsTab } from './ApplicationsTab'
+
+// Smart Deployment Components
+export { default as SmartDeployForm } from './SmartDeployForm'
+export { default as AutoDependencyDetector } from './AutoDependencyDetector'
+export { default as SignalValidator } from './SignalValidator'
+export { default as DeploymentProgress } from './DeploymentProgress'
+export { default as ErrorSuggestions } from './ErrorSuggestions'
+export { default as SmartDeploymentWorkflow } from './SmartDeploymentWorkflow'

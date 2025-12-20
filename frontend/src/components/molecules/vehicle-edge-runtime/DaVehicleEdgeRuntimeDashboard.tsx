@@ -54,6 +54,7 @@ import DashboardTabs from './components/DashboardTabs'
 import OverviewTab from './components/OverviewTab'
 import SettingsTab from './components/SettingsTab'
 import ApplicationsTab from './components/ApplicationsTab'
+import SmartDeploymentWorkflow from './components/SmartDeploymentWorkflow'
 import {
   useDashboardState,
   useKitManagerState,
@@ -1674,293 +1675,53 @@ if __name__ == "__main__":
         )}
 
         {activeTab === 'deploy' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            {kits.length === 0 ? (
-              <div className="rounded-lg border border-border p-6 text-center">
-                <TbServer className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No Runtimes Available</h3>
-                <p className="text-muted-foreground mb-6">
-                  {connectionError ?
-                    `Connection error: ${connectionError}. Make sure the Vehicle Edge Runtime is running on port 3090.` :
-                    'You need to connect a Vehicle Edge Runtime before deploying applications.'}
-                </p>
-                <Button
-                  onClick={() => connectionError ? handleReconnect() : setShowSetupWizard(true)}
-                  className="mx-auto"
-                >
-                  <TbTool className="w-4 h-4 mr-2" />
-                  {connectionError ? 'Reconnect' : 'Setup Vehicle Edge Runtime'}
-                </Button>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-border p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Deploy New Application</h3>
+          <div className="max-w-6xl mx-auto space-y-6">
+            <SmartDeploymentWorkflow
+              selectedKit={selectedKit}
+              isRuntimeConnected={isRuntimeConnected}
+              onDeploy={async (deployment) => {
+                // Handle smart deployment
+                try {
+                  const timestamp = new Date().toLocaleTimeString()
+                  const appName = deployment.name || deployment.id
+                  const appId = deployment.id
+                  
+                  setConsoleOutput(prev => [...prev,
+                    `[${timestamp}] 🚀 Starting smart deployment of ${deployment.type} app...`,
+                    `[${timestamp}] 📦 App ID: ${appId}`,
+                    `[${timestamp}] 📦 App Name: ${appName}`,
+                    `[${timestamp}] 📝 Code length: ${deployment.code.length} characters`,
+                    `[${timestamp}] 📦 Dependencies: ${deployment.dependencies.join(', ')}`,
+                    `[${timestamp}] 🚗 Target runtime: ${selectedKit.name}`
+                  ])
 
-              {/* Application Type */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-foreground mb-2">Application Type</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant={deploymentConfig.type === 'python' ? 'default' : 'outline'}
-                    onClick={() => setDeploymentConfig(prev => ({ ...prev, type: 'python' }))}
-                    className="p-4 h-auto flex flex-col items-center"
-                  >
-                    <TbCode className="w-6 h-6 mb-2 text-primary" />
-                    <p className="font-medium">Python Application</p>
-                    <p className="text-sm text-muted-foreground">Run Python code in container</p>
-                  </Button>
-                  <Button
-                    variant={deploymentConfig.type === 'binary' ? 'default' : 'outline'}
-                    onClick={() => setDeploymentConfig(prev => ({ ...prev, type: 'binary' }))}
-                    className="p-4 h-auto flex flex-col items-center"
-                  >
-                    <TbBinary className="w-6 h-6 mb-2 text-primary" />
-                    <p className="font-medium">Binary Application</p>
-                    <p className="text-sm text-muted-foreground">Execute pre-compiled binary</p>
-                  </Button>
-                </div>
-              </div>
+                  // Deploy using the user-provided ID and name
+                  const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
+                    name: appId, // Use the user's ID as the app identifier
+                    code: deployment.code,
+                    vehicleId: 'default-vehicle'
+                  })
 
-              {/* App Name */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-foreground mb-2">Application Identifier</label>
-                <Input
-                  type="text"
-                  value={customAppName}
-                  onChange={(e) => {
-                    const value = e.target.value.trim()
-                    if (value.length > 0) {
-                      setCustomAppName(value)
-                    }
-                  }}
-                  placeholder={prototype?.name || 'your-vehicle-app'}
-                  className="w-full"
-                  required
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Enter a unique identifier for your application. Default: your-vehicle-app
-                </p>
-              </div>
+                  setConsoleOutput(prev => [...prev,
+                    `[${new Date().toLocaleTimeString()}] ✅ App deployed and started successfully: ${deployedAppId}`,
+                    `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit.name}`
+                  ])
 
-              {/* Code Input */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    {deploymentConfig.type === 'python' ? 'Python Code' : 'Binary URL'}
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept={deploymentConfig.type === 'python' ? '.py,.txt' : ''}
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    {deploymentConfig.type === 'python' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <TbUpload className="w-4 h-4 mr-1" />
-                        Upload File
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDeploymentConfig(prev => ({ ...prev, code: `import time, datetime
+                  // Refresh the apps list
+                  try {
+                    await refreshApps()
+                  } catch (error) {
+                    console.warn('Failed to refresh apps list:', error)
+                  }
 
-DURATION = 1200
-INTERVAL = 30
-
-start = time.time()
-while time.time() - start < DURATION:
-    elapsed = time.time() - start
-    if int(elapsed) % INTERVAL == 0:
-        ts = datetime.datetime.now().strftime("%H:%M:%S")
-        print(f"[{ts}] Elapsed: {elapsed:.0f}s")
-    time.sleep(1)
-
-print("\\nDone.")` }))}
-                    >
-                      <TbDownload className="w-4 h-4 mr-1" />
-                      Use Prototype Code
-                    </Button>
-                  </div>
-                </div>
-                {deploymentConfig.type === 'python' ? (
-                  <textarea
-                    value={deploymentConfig.code}
-                    onChange={(e) => setDeploymentConfig(prev => ({ ...prev, code: e.target.value }))}
-                    className="w-full h-64 px-3 py-2 border border-border rounded-md font-mono text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="print('Hello Vehicle Edge Runtime!')&#10;import time&#10;while True:&#10;    print('Running...')&#10;    time.sleep(1)"
-                  />
-                ) : (
-                  <Input
-                    type="url"
-                    value={deploymentConfig.code}
-                    onChange={(e) => setDeploymentConfig(prev => ({ ...prev, code: e.target.value }))}
-                    placeholder="https://example.com/app-binary"
-                  />
-                )}
-              </div>
-
-              {/* Configuration */}
-              {deploymentConfig.type === 'python' && (
-                <div className="mb-6 grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Entry Point</label>
-                    <Input
-                      value={deploymentConfig.entryPoint}
-                      onChange={(e) => setDeploymentConfig(prev => ({ ...prev, entryPoint: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Working Directory</label>
-                    <Input
-                      value="/app"
-                      disabled
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Resource Limits */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-foreground mb-2">Resource Limits</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Memory Limit (MB)</label>
-                    <Input
-                      type="number"
-                      value={deploymentConfig.resourceLimits.memory}
-                      onChange={(e) => setDeploymentConfig(prev => ({
-                        ...prev,
-                        resourceLimits: { ...prev.resourceLimits, memory: parseInt(e.target.value) }
-                      }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">CPU Limit (%)</label>
-                    <Input
-                      type="number"
-                      value={deploymentConfig.resourceLimits.cpu}
-                      onChange={(e) => setDeploymentConfig(prev => ({
-                        ...prev,
-                        resourceLimits: { ...prev.resourceLimits, cpu: parseInt(e.target.value) }
-                      }))}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Deployment Status */}
-              {isDeploying && currentDeployment && (
-                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <TbRefresh className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                      Deploying application {currentDeployment.appId ? `(${currentDeployment.appId})` : '...'}
-                    </span>
-                    <span className="text-xs text-blue-700 dark:text-blue-300">
-                      You can stop the deployment at any time.
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Deploy Button Section */}
-              <div className="flex justify-end items-center space-x-3">
-                {deploymentResult?.status === 'error' && !isDeploying && (
-                  <Button
-                    onClick={handleRetryDeployment}
-                    variant="outline"
-                    disabled={!selectedKit || !deploymentConfig.code || !selectedKit.is_online || !isRuntimeConnected}
-                    title="Retry the deployment"
-                  >
-                    <TbSquareRotated className="w-5 h-5 mr-2" />
-                    Retry Deployment
-                  </Button>
-                )}
-
-                {isDeploying && currentDeployment ? (
-                  <Button
-                    onClick={handleStopDeployment}
-                    variant="destructive"
-                    title="Stop current deployment"
-                  >
-                    <TbSquare className="w-5 h-5 mr-2" />
-                    Stop Deployment
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleDeployApp}
-                    disabled={!selectedKit || !isRuntimeConnected || !deploymentConfig.code || isDeploying || !selectedKit.is_online}
-                    title={
-                      !deploymentConfig.code
-                        ? 'Enter code to deploy'
-                        : !selectedKit
-                        ? 'Select a runtime to deploy'
-                        : !isRuntimeConnected
-                        ? 'Vehicle Edge Runtime not connected'
-                        : !selectedKit.is_online
-                        ? 'Selected runtime is offline'
-                        : 'Deploy application to Vehicle Edge Runtime'
-                    }
-                  >
-                    <TbRocket className="w-5 h-5 mr-2" />
-                    Deploy to Runtime
-                  </Button>
-                )}
-              </div>
-
-              {/* Deployment Result */}
-              {deploymentResult && (
-                <div className={`mt-4 p-4 rounded-lg border ${
-                  deploymentResult.status === 'success'
-                    ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-200'
-                    : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-200'
-                }`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-2">
-                      {deploymentResult.status === 'success' ? (
-                        <TbCheck className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <TbAlertTriangle className="w-5 h-5 mt-0.5 text-red-600 dark:text-red-400" />
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium">
-                          {deploymentResult.status === 'success' ? 'Deployment Successful' : 'Deployment Failed'}
-                        </p>
-                        <p className="text-sm mt-1">{deploymentResult.message}</p>
-                        {deploymentResult.data && (
-                          <details className="mt-2">
-                            <summary className="text-xs cursor-pointer hover:underline">View deployment details</summary>
-                            <pre className="mt-1 text-xs bg-black/10 dark:bg-white/10 p-2 rounded overflow-x-auto">
-                              {JSON.stringify(deploymentResult.data, null, 2)}
-                            </pre>
-                          </details>
-                        )}
-                      </div>
-                    </div>
-                    {deploymentResult.status === 'error' && !isDeploying && (
-                      <Button
-                        onClick={handleRetryDeployment}
-                        variant="outline"
-                        size="sm"
-                        className="ml-3 mt-1"
-                      >
-                        <TbSquareRotated className="w-4 h-4 mr-1" />
-                        Retry
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            )}
+                  // Switch to console tab to monitor the app
+                  setActiveTab('console')
+                } catch (error) {
+                  throw error // Re-throw to be handled by SmartDeploymentWorkflow
+                }
+              }}
+              isDeploying={isDeploying}
+            />
           </div>
         )}
 
