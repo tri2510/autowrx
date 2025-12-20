@@ -53,6 +53,7 @@ import DashboardHeader from './components/DashboardHeader'
 import DashboardTabs from './components/DashboardTabs'
 import ConsoleTab from './components/ConsoleTab'
 import OverviewTab from './components/OverviewTab'
+import SettingsTab from './components/SettingsTab'
 import {
   useDashboardState,
   useKitManagerState,
@@ -2380,68 +2381,11 @@ print("\\nDone.")` }))}
         )}
 
         {activeTab === 'settings' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="rounded-lg border border-border p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Runtime Settings</h3>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Default Runtime</label>
-                  <select
-                    value={selectedKit?.kit_id || ''}
-                    onChange={(e) => {
-                      const kit = kits.find(k => k.kit_id === e.target.value)
-                      setSelectedKit(kit || null)
-                    }}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    {kits.map((kit) => (
-                      <option key={kit.kit_id} value={kit.kit_id}>
-                        {kit.name} ({kit.is_online ? 'Online' : 'Offline'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">WebSocket URL</label>
-                  <Input
-                    value="ws://localhost:3002/runtime"
-                    disabled
-                    className="bg-muted"
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">Vehicle Edge Runtime WebSocket endpoint</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Kit Manager URL</label>
-                  <Input
-                    value="ws://localhost:3090"
-                    disabled
-                    className="bg-muted"
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">Kit Manager WebSocket endpoint for runtime communication</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Default Memory Limit (MB)</label>
-                    <Input
-                      type="number"
-                      defaultValue="512"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Default CPU Limit (%)</label>
-                    <Input
-                      type="number"
-                      defaultValue="50"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SettingsTab
+            kits={kits}
+            selectedKit={selectedKit}
+            onSelectKit={setSelectedKit}
+          />
         )}
       </div>
 
