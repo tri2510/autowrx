@@ -51,9 +51,9 @@ import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
 import DashboardHeader from './components/DashboardHeader'
 import DashboardTabs from './components/DashboardTabs'
-import ConsoleTab from './components/ConsoleTab'
 import OverviewTab from './components/OverviewTab'
 import SettingsTab from './components/SettingsTab'
+import ApplicationsTab from './components/ApplicationsTab'
 import {
   useDashboardState,
   useKitManagerState,
@@ -122,7 +122,7 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   onClose,
   prototype
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'deploy' | 'marketplace' | 'apps' | 'console' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'deploy' | 'marketplace' | 'apps' | 'settings'>('overview')
   const [showSetupWizard, setShowSetupWizard] = useState(false)
   const [kits, setKits] = useState<VehicleEdgeRuntimeKit[]>([])
   const [selectedKit, setSelectedKit] = useState<VehicleEdgeRuntimeKit | null>(null)
@@ -2159,224 +2159,23 @@ print("\\nDone.")` }))}
         )}
 
         {activeTab === 'apps' && (
-          <div className="space-y-6">
-            {!selectedKit ? (
-              <div className="rounded-lg border border-border p-6 text-center">
-                <TbCode className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No Runtime Selected</h3>
-                <p className="text-muted-foreground mb-6">
-                  Please select a Vehicle Edge Runtime from the header to view applications.
-                </p>
-              </div>
-            ) : !isRuntimeConnected ? (
-              <div className="rounded-lg border border-border p-6 text-center">
-                <TbServer className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">Runtime Not Connected</h3>
-                <p className="text-muted-foreground mb-6">
-                  {connectionError || 'Failed to connect to Vehicle Edge Runtime'}
-                </p>
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="mx-auto"
-                >
-                  <TbRefresh className="w-4 h-4 mr-2" />
-                  Reconnect
-                </Button>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-border">
-                <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <h3 className="text-lg font-semibold text-foreground">Applications ({vehicleApps.length})</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={refreshApps}
-                      disabled={isRefreshingApps}
-                      title="Refresh applications list"
-                    >
-                      <TbRefresh className={`w-4 h-4 mr-1 ${isRefreshingApps ? 'animate-spin' : ''}`} />
-                      {isRefreshingApps ? 'Refreshing...' : 'Refresh'}
-                    </Button>
-                  </div>
-                  {runtimeState && (
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span>Runtime: {runtimeState.status}</span>
-                      <span>Apps: {runtimeState.runningApplications?.length || 0}</span>
-                      <span>Uptime: {Math.floor(runtimeState.uptime / 60)}m</span>
-                    </div>
-                  )}
-                </div>
-              <div className="divide-y divide-border">
-                {vehicleApps.length === 0 ? (
-                  <div className="px-6 py-12 text-center">
-                    <TbCode className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No applications deployed yet</p>
-                    <Button
-                      onClick={() => setActiveTab('deploy')}
-                      className="mt-4"
-                    >
-                      Deploy First Application
-                    </Button>
-                  </div>
-                ) : (
-                  vehicleApps.map((app) => (
-                    <div key={app.id} className="px-6 py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className={`p-2 rounded-lg ${app.type === 'python' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                            {app.type === 'python' ? <TbCode className="w-5 h-5" /> : <TbBinary className="w-5 h-5" />}
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-foreground">{app.name}</h4>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <span>Type: {app.type}</span>
-                              <span>Version: {app.version}</span>
-                              {app.created_at && <span>Created: {new Date(app.created_at).toLocaleString()}</span>}
-                              <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
-                                {getStatusIcon(app.status)}
-                                <span>{app.status}</span>
-                              </div>
-                              {app.lastStatusUpdate && (
-                                <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                                  <TbClock className="w-3 h-3" />
-                                  <span>Updated: {new Date(app.lastStatusUpdate).toLocaleTimeString()}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="text-right text-sm">
-                            {app.vehicle_signals && app.vehicle_signals.length > 0 && (
-                              <div className="flex items-center space-x-1 text-muted-foreground">
-                                <TbActivity className="w-3 h-3" />
-                                <span>{app.vehicle_signals.length} signals</span>
-                              </div>
-                            )}
-                            {app.python_deps && app.python_deps.length > 0 && (
-                              <div className="flex items-center space-x-1 text-muted-foreground">
-                                <TbDownload className="w-3 h-3" />
-                                <span>{app.python_deps.length} deps</span>
-                              </div>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleViewConsole(app)}
-                            title="View Console"
-                          >
-                            <TbTerminal className="w-4 h-4" />
-                          </Button>
-
-                          {/* Start button - for stopped, installed, and error apps */}
-                          {(app.status === 'stopped' || app.status === 'installed' || app.status === 'error') && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleStartApp(app.id)}
-                              title={`Start ${app.status} Application`}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            >
-                              <TbPlayerPlay className="w-4 h-4" />
-                            </Button>
-                          )}
-
-                          {/* Resume button - for paused apps */}
-                          {app.status === 'paused' && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleResumeApp(app.id)}
-                              title="Resume Application"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            >
-                              <TbPlayerPlay className="w-4 h-4" />
-                            </Button>
-                          )}
-
-                          {/* Pause button - for running apps */}
-                          {app.status === 'running' && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handlePauseApp(app.id)}
-                              title="Pause Application"
-                              className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-                            >
-                              <TbPlayerPause className="w-4 h-4" />
-                            </Button>
-                          )}
-
-                          {/* Restart button - for running and paused apps */}
-                          {(app.status === 'running' || app.status === 'paused') && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleRestartApp(app.id)}
-                              title="Restart Application"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            >
-                              <TbRefresh className="w-4 h-4" />
-                            </Button>
-                          )}
-
-                          {/* Stop button - for running and paused apps */}
-                          {(app.status === 'running' || app.status === 'paused') && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleStopApp(app.id)}
-                              title="Stop Application"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <TbPlayerStop className="w-4 h-4" />
-                            </Button>
-                          )}
-
-                          {/* Uninstall/Remove button - for all apps except starting */}
-                          {app.status !== 'starting' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleUninstallApp(app.id)}
-                              title="Uninstall Application"
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <TbTrash className="w-4 h-4" />
-                            </Button>
-                          )}
-
-                          {/* Disabled indicator for starting apps */}
-                          {app.status === 'starting' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled
-                              title="Application is starting..."
-                              className="opacity-50 cursor-not-allowed"
-                            >
-                              <TbLoader className="w-4 h-4 animate-spin" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'console' && (
-          <ConsoleTab
-            selectedApp={selectedApp}
-            consoleOutput={consoleOutput}
-            onClearConsole={clearConsole}
+          <ApplicationsTab
+            selectedKit={selectedKit}
+            isRuntimeConnected={isRuntimeConnected}
+            connectionError={connectionError}
+            vehicleApps={vehicleApps}
+            runtimeState={runtimeState}
+            isRefreshingApps={isRefreshingApps}
+            onRefreshApps={refreshApps}
+            onStartApp={handleStartApp}
+            onStopApp={handleStopApp}
+            onPauseApp={handlePauseApp}
+            onResumeApp={handleResumeApp}
+            onRestartApp={handleRestartApp}
+            onUninstallApp={handleUninstallApp}
             onViewConsole={handleViewConsole}
+            onDeployNewApp={() => setActiveTab('deploy')}
+            onSelectTab={setActiveTab}
           />
         )}
 

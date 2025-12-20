@@ -25,8 +25,8 @@ interface DashboardTab {
 }
 
 interface DashboardTabsProps {
-  activeTab: 'overview' | 'deploy' | 'marketplace' | 'apps' | 'console' | 'settings'
-  onTabChange: (tabId: 'overview' | 'deploy' | 'marketplace' | 'apps' | 'console' | 'settings') => void
+  activeTab: 'overview' | 'deploy' | 'marketplace' | 'apps' | 'settings'
+  onTabChange: (tabId: 'overview' | 'deploy' | 'marketplace' | 'apps' | 'settings') => void
   runningAppsCount: number
 }
 
@@ -40,7 +40,6 @@ const DashboardTabs: FC<DashboardTabsProps> = ({
     { id: 'deploy', label: 'Deploy', icon: TbRocket },
     { id: 'marketplace', label: 'Marketplace', icon: TbShoppingCart },
     { id: 'apps', label: 'Applications', icon: TbCode, count: runningAppsCount },
-    { id: 'console', label: 'Console', icon: TbTerminal },
     { id: 'settings', label: 'Settings', icon: TbSettings }
   ]
 
