@@ -52,6 +52,14 @@ import DaDeviceSetupWizard from './DaDeviceSetupWizard'
 import DashboardHeader from './components/DashboardHeader'
 import DashboardTabs from './components/DashboardTabs'
 import ConsoleTab from './components/ConsoleTab'
+import OverviewTab from './components/OverviewTab'
+import {
+  useDashboardState,
+  useKitManagerState,
+  useVehicleRuntimeState,
+  useDeployment,
+  useMarketplaceApps
+} from './hooks'
 import kitManagerService, { VehicleEdgeRuntimeKit, KitManagerMessage } from '@/services/kitManager.service'
 import vehicleEdgeRuntimeService from '@/services/vehicleEdgeRuntime.service'
 import vehicleEdgeRuntimeDirectService, { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntimeDirect.service'
