@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { FC, useState, useRef, useEffect } from 'react'
+import { FC, useRef, useEffect } from 'react'
 import {
   TbCode,
   TbBinary,
@@ -29,14 +29,7 @@ import {
 import { Button } from '@/components/atoms/button'
 import { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntimeDirect.service'
 import { VehicleEdgeRuntimeKit } from '@/services/kitManager.service'
-
-interface AppConsoleState {
-  [appId: string]: {
-    isExpanded: boolean
-    output: string[]
-    isVisible: boolean
-  }
-}
+import { useMultiAppConsole } from '../hooks/useMultiAppConsole'
 
 interface ApplicationsTabProps {
   selectedKit: VehicleEdgeRuntimeKit | null
@@ -75,36 +68,15 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
   onDeployNewApp,
   onSelectTab
 }) => {
-  const [appConsoleStates, setAppConsoleStates] = useState<AppConsoleState>({})
+  const {
+    appConsoleStates,
+    expandedApps,
+    toggleAppConsole,
+    getAppMessages,
+    clearAppConsole
+  } = useMultiAppConsole()
+
   const consoleEndRefs = useRef<{ [appId: string]: HTMLDivElement | null }>({})
-
-  // Initialize console states for apps
-  useEffect(() => {
-    const newStates: AppConsoleState = {}
-    vehicleApps.forEach(app => {
-      if (!appConsoleStates[app.id]) {
-        newStates[app.id] = {
-          isExpanded: false,
-          output: [],
-          isVisible: false
-        }
-      }
-    })
-    
-    if (Object.keys(newStates).length > 0) {
-      setAppConsoleStates(prev => ({ ...prev, ...newStates }))
-    }
-  }, [vehicleApps])
-
-  // Auto-scroll to bottom when new console output arrives
-  useEffect(() => {
-    Object.keys(appConsoleStates).forEach(appId => {
-      const ref = consoleEndRefs.current[appId]
-      if (ref && appConsoleStates[appId]?.isExpanded) {
-        ref.scrollIntoView({ behavior: 'smooth' })
-      }
-    })
-  }, [appConsoleStates])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -144,58 +116,26 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
     }
   }
 
-  const toggleAppConsole = (appId: string) => {
-    setAppConsoleStates(prev => ({
-      ...prev,
-      [appId]: {
-        ...prev[appId],
-        isExpanded: !prev[appId]?.isExpanded,
-        isVisible: !prev[appId]?.isExpanded
-      }
-    }))
-
-    // If expanding, fetch console output for this app
-    if (!appConsoleStates[appId]?.isExpanded) {
-      onViewConsole(vehicleApps.find(app => app.id === appId)!)
-    }
-  }
-
-  const clearAppConsole = (appId: string) => {
-    setAppConsoleStates(prev => ({
-      ...prev,
-      [appId]: {
-        ...prev[appId],
-        output: []
-      }
-    }))
-  }
-
-  const formatConsoleLine = (line: string, index: number) => {
-    // Parse timestamp if it exists at the start
-    const timestampMatch = line.match(/^\[([\d:]+\s*[AP]M)\]\s*(.+)/)
-    if (timestampMatch) {
-      return (
-        <div key={index} className="mb-1">
-          <span className="text-gray-500">[{timestampMatch[1]}]</span>{' '}
-          <span className={
-            // Color coding based on content
-            timestampMatch[2].includes('🚀') ? 'text-blue-400' :
-            timestampMatch[2].includes('✅') ? 'text-green-400' :
-            timestampMatch[2].includes('❌') || timestampMatch[2].includes('⚠️') ? 'text-yellow-400' :
-            timestampMatch[2].includes('📦') || timestampMatch[2].includes('📝') ? 'text-blue-300' :
-            timestampMatch[2].includes('📤') ? 'text-cyan-400' :
-            'text-green-300'
-          }>{timestampMatch[2]}</span>
-        </div>
-      )
-    } else {
-      // Fallback for lines without timestamp
-      return (
-        <div key={index} className="mb-1 text-green-300">
-          {line}
-        </div>
-      )
-    }
+  
+  const formatConsoleMessage = (message: any) => {
+    const timestamp = new Date(message.timestamp).toLocaleTimeString()
+    
+    return (
+      <div key={message.id} className="mb-1">
+        <span className="text-gray-500">[{timestamp}]</span>{' '}
+        <span className={
+          // Color coding based on content and message type
+          message.type === 'stderr' ? 'text-red-400' :
+          message.type === 'system' ? 'text-yellow-400' :
+          message.output.includes('🚀') ? 'text-blue-400' :
+          message.output.includes('✅') ? 'text-green-400' :
+          message.output.includes('❌') || message.output.includes('⚠️') ? 'text-yellow-400' :
+          message.output.includes('📦') || message.output.includes('📝') ? 'text-blue-300' :
+          message.output.includes('📤') ? 'text-cyan-400' :
+          'text-green-300'
+        }>{message.output}</span>
+      </div>
+    )
   }
 
   if (!selectedKit) {
@@ -281,7 +221,7 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
                             onClick={() => toggleAppConsole(app.id)}
                             className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-700 transition-colors"
                           >
-                            {appConsoleStates[app.id]?.isExpanded ? (
+                            {expandedApps.has(app.id) ? (
                               <>
                                 <TbEyeOff className="w-4 h-4" />
                                 <span>Hide Console</span>
@@ -422,12 +362,17 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
                   </div>
 
                   {/* Expandable Console Section */}
-                  {appConsoleStates[app.id]?.isExpanded && (
+                  {expandedApps.has(app.id) && (
                     <div className="mt-4 border-t border-border pt-4">
                       <div className="flex items-center justify-between mb-3">
                         <h5 className="font-medium text-foreground flex items-center space-x-2">
                           <TbTerminal className="w-4 h-4" />
                           <span>Console Output - {app.name}</span>
+                          {appConsoleStates[app.id]?.isSubscribed ? (
+                            <span className="text-xs text-green-500 bg-green-100 px-2 py-1 rounded-full">Connected</span>
+                          ) : (
+                            <span className="text-xs text-yellow-500 bg-yellow-100 px-2 py-1 rounded-full">Connecting...</span>
+                          )}
                         </h5>
                         <div className="flex items-center space-x-2">
                           <Button
@@ -441,15 +386,15 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
                         </div>
                       </div>
                       
-                      {appConsoleStates[app.id]?.output.length === 0 ? (
+                      {getAppMessages(app.id).length === 0 ? (
                         <div className="text-center py-8 bg-gray-900 rounded-lg">
                           <TbTerminal className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                          <p className="text-gray-400 text-sm">No console output available</p>
-                          <p className="text-gray-500 text-xs mt-1">Output will appear here when the app runs</p>
+                          <p className="text-gray-400 text-sm">Connecting to console...</p>
+                          <p className="text-gray-500 text-xs mt-1">Output will appear here once the console is connected</p>
                         </div>
                       ) : (
                         <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
-                          {appConsoleStates[app.id]?.output.map((line, index) => formatConsoleLine(line, index))}
+                          {getAppMessages(app.id).map(message => formatConsoleMessage(message))}
                           <div ref={el => consoleEndRefs.current[app.id] = el} />
                         </div>
                       )}
