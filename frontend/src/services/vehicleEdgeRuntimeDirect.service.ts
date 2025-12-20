@@ -546,13 +546,17 @@ class VehicleEdgeRuntimeDirectService {
     name: string
     code: string
     vehicleId?: string
+    displayName?: string  // Optional display name for UI
   }): Promise<string> {
-    // Use the provided name as the app ID for smart deployment
+    // Use the provided name as the app ID
     const appId = appConfig.name
+    const displayName = appConfig.displayName || appId
 
     console.log('🚀 Smart Deploy Request Debug:')
     console.log('  - appConfig.name (ID):', appConfig.name)
+    console.log('  - appConfig.displayName:', appConfig.displayName)
     console.log('  - app ID (prototype.id):', appId)
+    console.log('  - display name (prototype.name):', displayName)
 
     const request: DeployRequest = {
       type: 'deploy_request',
@@ -562,8 +566,8 @@ class VehicleEdgeRuntimeDirectService {
       language: 'python',
       prototype: {
         id: appId,
-        name: appId, // Use appId as both ID and name
-        description: `Python application: ${appId}`,
+        name: displayName, // Use the display name for UI
+        description: `Python application: ${displayName}`,
         version: '1.0.0'
       }
     }

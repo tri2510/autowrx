@@ -1695,9 +1695,10 @@ if __name__ == "__main__":
                     `[${timestamp}] 🚗 Target runtime: ${selectedKit.name}`
                   ])
 
-                  // Deploy using the user-provided ID and name
+                  // Deploy using the user-provided ID and display name
                   const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
                     name: appId, // Use the user's ID as the app identifier
+                    displayName: appName, // Use the display name for UI
                     code: deployment.code,
                     vehicleId: 'default-vehicle'
                   })
