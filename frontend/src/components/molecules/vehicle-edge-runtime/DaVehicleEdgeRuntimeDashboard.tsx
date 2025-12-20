@@ -49,6 +49,9 @@ import {
 } from 'react-icons/tb'
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
+import DashboardHeader from './components/DashboardHeader'
+import DashboardTabs from './components/DashboardTabs'
+import ConsoleTab from './components/ConsoleTab'
 import kitManagerService, { VehicleEdgeRuntimeKit, KitManagerMessage } from '@/services/kitManager.service'
 import vehicleEdgeRuntimeService from '@/services/vehicleEdgeRuntime.service'
 import vehicleEdgeRuntimeDirectService, { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntimeDirect.service'
@@ -174,8 +177,7 @@ print("📊 Application execution finished")`,
   const [isKitManagerConnected, setIsKitManagerConnected] = useState(false)
   const [customAppName, setCustomAppName] = useState('your-vehicle-app')
 
-  const consoleEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
   const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize Kit Manager connection and fetch kits
@@ -631,13 +633,7 @@ print("📊 Application execution finished")`,
     }
   }
 
-  useEffect(() => {
-    // Auto-scroll console output
-    if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [consoleOutput])
-
+  
   const handleSetupWizardComplete = (deviceInfo: any) => {
     // Refresh kits list after setup wizard completes
     kitManagerService.requestKits()
@@ -1622,123 +1618,21 @@ if __name__ == "__main__":
 
   return (
     <div className="w-full h-full flex flex-col bg-background">
-      {/* Header */}
-      <div className="border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <TbServer className="w-8 h-8 text-primary" />
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Vehicle Edge Runtime</h2>
-              <p className="text-muted-foreground">Deploy and manage vehicle applications</p>
-            </div>
-          </div>
+      <DashboardHeader
+        selectedKit={selectedKit}
+        isRuntimeConnected={isRuntimeConnected}
+        isKitManagerConnected={isKitManagerConnected}
+        connectionError={connectionError}
+        kits={kits}
+        onKitSelect={setSelectedKit}
+        onSetupRuntime={() => setActiveTab('overview')}
+      />
 
-          {/* Connection Status */}
-          <div className="flex items-center space-x-3">
-            {selectedKit && (
-              <div className="flex items-center space-x-2 px-3 py-2 rounded-lg border bg-background">
-                <TbPlugConnected className="w-4 h-4" />
-                <div className={`w-2 h-2 rounded-full ${
-                  isRuntimeConnected
-                    ? 'bg-green-500'
-                    : isKitManagerConnected && selectedKit && !selectedKit.is_online
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500'
-                }`}></div>
-                <span className="text-sm font-medium">
-                  {isRuntimeConnected
-                    ? 'Runtime Connected'
-                    : isKitManagerConnected && selectedKit && !selectedKit.is_online
-                      ? 'Runtime Offline'
-                    : isKitManagerConnected
-                      ? 'Kit Manager Connected'
-                      : 'Disconnected'
-                  }
-                </span>
-                {connectionError && (
-                  <span className="text-xs text-red-500 ml-2">
-                    ({connectionError})
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Persistent Runtime Selector */}
-          <div className="flex items-center space-x-4">
-            {kits.length > 0 ? (
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-muted-foreground">Runtime:</span>
-                <select
-                  value={selectedKit?.kit_id || ''}
-                  onChange={(e) => {
-                    const kit = kits.find(k => k.kit_id === e.target.value)
-                    setSelectedKit(kit || null)
-                  }}
-                  className="px-3 py-2 border border-border rounded-md bg-background text-sm focus:ring-2 focus:ring-primary focus:border-transparent min-w-[200px]"
-                >
-                  <option value="">Select Runtime...</option>
-                  {kits.filter(kit => kit.is_online).map((kit) => (
-                    <option key={kit.kit_id} value={kit.kit_id}>
-                      {kit.name} [{kit.kit_id.substring(0, 4).toUpperCase()}]
-                    </option>
-                  ))}
-                </select>
-                {selectedKit && (
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${selectedKit.is_online ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className={`text-sm font-medium ${selectedKit.is_online ? 'text-green-600' : 'text-red-600'}`}>
-                      {selectedKit.is_online ? 'Online' : 'Offline'}
-                    </span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <TbAlertTriangle className="w-4 h-4 text-yellow-500" />
-                <span>No runtimes available</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setActiveTab('overview')}
-                  className="ml-2"
-                >
-                  Setup Runtime
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-border px-6">
-        <div className="flex space-x-1">
-          {[
-            { id: 'overview', label: 'Overview', icon: TbDeviceDesktop },
-            { id: 'deploy', label: 'Deploy', icon: TbRocket },
-            { id: 'marketplace', label: 'Marketplace', icon: TbShoppingCart },
-            { id: 'apps', label: 'Applications', icon: TbCode, count: runningApps.length },
-            { id: 'console', label: 'Console', icon: TbTerminal },
-            { id: 'settings', label: 'Settings', icon: TbSettings }
-          ].map((tab) => (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? 'default' : 'ghost'}
-              onClick={() => setActiveTab(tab.id as any)}
-              className="flex items-center space-x-2"
-            >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && tab.count > 0 && (
-                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
-                  {tab.count}
-                </span>
-              )}
-            </Button>
-          ))}
-        </div>
-      </div>
+      <DashboardTabs
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+        runningAppsCount={runningApps.length}
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
@@ -2695,91 +2589,12 @@ print("\\nDone.")` }))}
         )}
 
         {activeTab === 'console' && (
-          <div className="space-y-6">
-            <div className="rounded-lg border border-border">
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">Console Output</h3>
-                  {selectedApp && (
-                    <p className="text-sm text-muted-foreground">{selectedApp.name} - {selectedApp.id}</p>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearConsole}
-                  >
-                    <TbTrash className="w-4 h-4 mr-1" />
-                    Clear
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (selectedApp) {
-                        // Convert RunningApp to VehicleApp for console viewing
-                        const vehicleApp: VehicleApp = {
-                          id: selectedApp.id,
-                          name: selectedApp.name,
-                          version: '1.0.0',
-                          type: selectedApp.type as 'python' | 'binary',
-                          status: selectedApp.status as VehicleApp['status'],
-                          created_at: selectedApp.startTime ? selectedApp.startTime.toISOString() : new Date().toISOString()
-                        }
-                        handleViewConsole(vehicleApp)
-                      }
-                    }}
-                  >
-                    <TbRefresh className="w-4 h-4 mr-1" />
-                    Refresh
-                  </Button>
-                </div>
-              </div>
-              <div className="p-6">
-                {consoleOutput.length === 0 ? (
-                  <div className="text-center py-12">
-                    <TbTerminal className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No console output available</p>
-                    {selectedApp && (
-                      <p className="text-sm text-muted-foreground mt-2">Select an application to view its console output</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm h-96 overflow-y-auto">
-                    {consoleOutput.map((line, index) => {
-                      // Parse timestamp if it exists at the start
-                      const timestampMatch = line.match(/^\[([\d:]+\s*[AP]M)\]\s*(.+)/)
-                      if (timestampMatch) {
-                        return (
-                          <div key={index} className="mb-1">
-                            <span className="text-gray-500">[{timestampMatch[1]}]</span>{' '}
-                            <span className={
-                              // Color coding based on content
-                              timestampMatch[2].includes('🚀') ? 'text-blue-400' :
-                              timestampMatch[2].includes('✅') ? 'text-green-400' :
-                              timestampMatch[2].includes('❌') || timestampMatch[2].includes('⚠️') ? 'text-yellow-400' :
-                              timestampMatch[2].includes('📦') || timestampMatch[2].includes('📝') ? 'text-blue-300' :
-                              timestampMatch[2].includes('📤') ? 'text-cyan-400' :
-                              'text-green-300'
-                            }>{timestampMatch[2]}</span>
-                          </div>
-                        )
-                      } else {
-                        // Fallback for lines without timestamp
-                        return (
-                          <div key={index} className="mb-1 text-green-300">
-                            {line}
-                          </div>
-                        )
-                      }
-                    })}
-                    <div ref={consoleEndRef} />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <ConsoleTab
+            selectedApp={selectedApp}
+            consoleOutput={consoleOutput}
+            onClearConsole={clearConsole}
+            onViewConsole={handleViewConsole}
+          />
         )}
 
         {activeTab === 'settings' && (
