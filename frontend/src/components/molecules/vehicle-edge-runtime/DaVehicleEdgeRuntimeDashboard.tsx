@@ -1035,7 +1035,8 @@ if __name__ == "__main__":
       }
       const appName = customAppName.trim()
       const finalCode = deploymentConfig.code
-      const appId = `app-${Date.now()}`
+      // Use the user-provided name as the app ID directly
+      const appId = appName
 
       // Unified deployment using Vehicle Edge Runtime API
       if (!selectedKit) {
@@ -1065,7 +1066,7 @@ if __name__ == "__main__":
 
       // Deploy using unified Vehicle Edge Runtime service
       const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
-        name: appName,
+        name: appId, // Use user-provided app ID
         code: finalCode,
         vehicleId: 'default-vehicle'
       })
@@ -1214,10 +1215,10 @@ if __name__ == "__main__":
         console.log('📊 Enhanced stats:', stats)
 
         // Convert to VehicleApp format - NO STATUS FILTERING (display ALL apps)
-        // With simplified API: frontend ID = runtime ID = app.app_id
+        // Use app_id as both ID and name for consistency with deployment
         const convertedApps = appsArray.map((app: any) => ({
           id: app.app_id,  // Use app_id directly from runtime response
-          name: app.name || `App ${app.app_id}`,
+          name: app.app_id,  // Use app_id as the display name to match deployment ID
           version: app.version || '1.0.0',
           type: (app.type as VehicleApp['type']) || 'python',
           status: app.status as VehicleApp['status'] || 'running',
