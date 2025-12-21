@@ -1004,11 +1004,11 @@ if __name__ == "__main__":
 
       setConsoleOutput(prev => [...prev,
         `[${timestamp}] 🎉 ${app.name} deployed successfully to ${selectedKit.name}!`,
-        `[${timestamp}] 🔄 Switching to Console tab to monitor deployment...`
+        `[${timestamp}] 🔄 Switching to Applications tab to view deployed app...`
       ])
 
-      // Switch to console tab to monitor the deployment
-      setActiveTab('console')
+      // Switch to apps tab to view deployed app
+      setActiveTab('apps')
 
     } catch (error) {
       console.error('Marketplace deployment failed:', error)
@@ -1097,8 +1097,8 @@ if __name__ == "__main__":
       // Clear current deployment on success
       setCurrentDeployment(null)
 
-      // Switch to console tab to monitor the app
-      setActiveTab('console')
+      // Switch to apps tab to view deployed app
+      setActiveTab('apps')
     } catch (error) {
       console.error('Deployment failed:', error)
       const timestamp = new Date().toLocaleTimeString()
@@ -1282,6 +1282,16 @@ if __name__ == "__main__":
       setIsRefreshingApps(false)
     }
   }
+
+  // Refresh apps when switching to apps tab (ensures deployed apps are visible)
+  useEffect(() => {
+    if (activeTab === 'apps' && isRuntimeConnected && selectedKit) {
+      const timer = setTimeout(() => {
+        refreshApps()
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+  }, [activeTab])
 
   // Application lifecycle management functions
   const handleStartApp = async (appId: string) => {
@@ -1715,8 +1725,8 @@ if __name__ == "__main__":
                     console.warn('Failed to refresh apps list:', error)
                   }
 
-                  // Switch to console tab to monitor the app
-                  setActiveTab('console')
+                  // Switch to apps tab to view deployed app
+                  setActiveTab('apps')
                 } catch (error) {
                   throw error // Re-throw to be handled by SmartDeploymentWorkflow
                 }
