@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { FC, useRef, useEffect } from 'react'
+import { FC, useRef, useEffect, useState } from 'react'
 import {
   TbCode,
   TbBinary,
@@ -29,7 +29,7 @@ import {
 import { Button } from '@/components/atoms/button'
 import { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntimeDirect.service'
 import { VehicleEdgeRuntimeKit } from '@/services/kitManager.service'
-import { useMultiAppConsole } from '../hooks/useMultiAppConsole'
+import vehicleEdgeRuntimeDirectService from '@/services/vehicleEdgeRuntimeDirect.service'
 
 interface ApplicationsTabProps {
   selectedKit: VehicleEdgeRuntimeKit | null
@@ -68,15 +68,61 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
   onDeployNewApp,
   onSelectTab
 }) => {
-  const {
-    appConsoleStates,
-    expandedApps,
-    toggleAppConsole,
-    getAppMessages,
-    clearAppConsole
-  } = useMultiAppConsole()
-
+  // Simple console state - just store logs and which console is expanded
+  const [expandedConsole, setExpandedConsole] = useState<string | null>(null)
+  const [consoleLogs, setConsoleLogs] = useState<Record<string, string[]>>({})
+  const [isFetchingLogs, setIsFetchingLogs] = useState<Record<string, boolean>>({})
+  
   const consoleEndRefs = useRef<{ [appId: string]: HTMLDivElement | null }>({})
+
+  // Fetch console logs for an app
+  const fetchConsoleLogs = async (appId: string) => {
+    setIsFetchingLogs(prev => ({ ...prev, [appId]: true }))
+    try {
+      // Use the existing service to get console output
+      const appOutput = await vehicleEdgeRuntimeDirectService.getAppOutput(appId, 100)
+      let logs: string[] = []
+      
+      if (appOutput?.output) {
+        if (Array.isArray(appOutput.output)) {
+          logs = appOutput.output
+        } else if (typeof appOutput.output === 'string') {
+          // Split string by newlines and filter out empty strings
+          logs = appOutput.output.split('\n').filter(line => line.length > 0)
+        } else {
+          logs = [String(appOutput.output)]
+        }
+      } else {
+        logs = ['No console output available']
+      }
+      
+      setConsoleLogs(prev => ({
+        ...prev,
+        [appId]: logs
+      }))
+    } catch (error) {
+      console.error('Failed to fetch console logs:', error)
+      setConsoleLogs(prev => ({
+        ...prev,
+        [appId]: [`Error fetching logs: ${error instanceof Error ? error.message : 'Unknown error'}`]
+      }))
+    } finally {
+      setIsFetchingLogs(prev => ({ ...prev, [appId]: false }))
+    }
+  }
+
+  // Toggle console for an app
+  const toggleConsole = (appId: string) => {
+    if (expandedConsole === appId) {
+      setExpandedConsole(null)
+    } else {
+      setExpandedConsole(appId)
+      // Fetch logs if we don't have them yet
+      if (!consoleLogs[appId]) {
+        fetchConsoleLogs(appId)
+      }
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -117,40 +163,7 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
   }
 
   
-  const formatConsoleMessage = (message: any) => {
-    const timestamp = new Date(message.timestamp).toLocaleTimeString()
-    
-    // Split the output by newlines and handle each line separately
-    const lines = message.output.split('\n')
-    
-    return (
-      <div key={message.id} className="mb-2">
-        {/* Show timestamp for the first line only to avoid repetition */}
-        {lines.map((line: string, lineIndex: number) => (
-          <div key={`${message.id}-${lineIndex}`} className="leading-relaxed">
-            {lineIndex === 0 && (
-              <span className="text-gray-500 text-xs mr-2">[{timestamp}]</span>
-            )}
-            <span className={
-              // Color coding based on content and message type
-              message.type === 'stderr' ? 'text-red-400' :
-              message.type === 'system' ? 'text-yellow-400' :
-              line.includes('🚀') ? 'text-blue-400' :
-              line.includes('✅') ? 'text-green-400' :
-              line.includes('❌') || line.includes('⚠️') ? 'text-yellow-400' :
-              line.includes('📦') || line.includes('📝') ? 'text-blue-300' :
-              line.includes('📤') ? 'text-cyan-400' :
-              'text-green-300'
-            }>
-              {/* Preserve empty lines as line breaks */}
-              {line === '' ? '\u00A0' : line}
-            </span>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
+  
   if (!selectedKit) {
     return (
       <div className="rounded-lg border border-border p-6 text-center">
@@ -231,10 +244,10 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
                         <div className="flex items-center space-x-3">
                           <h4 className="font-medium text-foreground">{app.name}</h4>
                           <button
-                            onClick={() => toggleAppConsole(app.id)}
+                            onClick={() => toggleConsole(app.id)}
                             className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-700 transition-colors"
                           >
-                            {expandedApps.has(app.id) ? (
+                            {expandedConsole === app.id ? (
                               <>
                                 <TbEyeOff className="w-4 h-4" />
                                 <span>Hide Console</span>
@@ -375,23 +388,27 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
                   </div>
 
                   {/* Expandable Console Section */}
-                  {expandedApps.has(app.id) && (
+                  {expandedConsole === app.id && (
                     <div className="mt-4 border-t border-border pt-4">
                       <div className="flex items-center justify-between mb-3">
                         <h5 className="font-medium text-foreground flex items-center space-x-2">
                           <TbTerminal className="w-4 h-4" />
                           <span>Console Output - {app.name}</span>
-                          {appConsoleStates[app.id]?.isSubscribed ? (
-                            <span className="text-xs text-green-500 bg-green-100 px-2 py-1 rounded-full">Connected</span>
-                          ) : (
-                            <span className="text-xs text-yellow-500 bg-yellow-100 px-2 py-1 rounded-full">Connecting...</span>
-                          )}
                         </h5>
                         <div className="flex items-center space-x-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => clearAppConsole(app.id)}
+                            onClick={() => fetchConsoleLogs(app.id)}
+                            disabled={isFetchingLogs[app.id]}
+                          >
+                            <TbRefresh className={`w-4 h-4 mr-1 ${isFetchingLogs[app.id] ? 'animate-spin' : ''}`} />
+                            {isFetchingLogs[app.id] ? 'Fetching...' : 'Fetch Logs'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConsoleLogs(prev => ({ ...prev, [app.id]: [] }))}
                           >
                             <TbTrash className="w-4 h-4 mr-1" />
                             Clear
@@ -399,16 +416,15 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
                         </div>
                       </div>
                       
-                      {getAppMessages(app.id).length === 0 ? (
+                      {consoleLogs[app.id]?.length === 0 ? (
                         <div className="text-center py-8 bg-gray-900 rounded-lg">
                           <TbTerminal className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                          <p className="text-gray-400 text-sm">Connecting to console...</p>
-                          <p className="text-gray-500 text-xs mt-1">Output will appear here once the console is connected</p>
+                          <p className="text-gray-400 text-sm">No console logs available</p>
+                          <p className="text-gray-500 text-xs mt-1">Click "Fetch Logs" to get the latest output</p>
                         </div>
                       ) : (
-                        <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
-                          {getAppMessages(app.id).map(message => formatConsoleMessage(message))}
-                          <div ref={el => consoleEndRefs.current[app.id] = el} />
+                        <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto whitespace-pre-wrap">
+                          {consoleLogs[app.id]?.join('\n')}
                         </div>
                       )}
                     </div>
