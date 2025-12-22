@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { FC, useState, useCallback } from 'react'
+import { FC, useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/atoms/button'
 import { Input } from '@/components/atoms/input'
 import { Textarea } from '@/components/atoms/textarea'
@@ -57,17 +57,72 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   onValidateSignals
 }) => {
   const [formData, setFormData] = useState<SmartDeployment>({
-    id: 'your-vehicle-app',
-    name: 'Your Vehicle Application',
+    id: 'speed-provider',
+    name: 'Speed Provider',
     type: 'python',
-    code: '',
+    code: `# speed_provider.py
+
+from kuksa_client.grpc import VSSClient
+from kuksa_client.grpc import Datapoint
+import time
+import os
+
+# --- Configuration ---
+# Use the host's IP as seen from the container
+SERVER_HOST = os.environ.get('KUKSA_HOST', '172.17.0.4')
+SERVER_PORT = 55555
+VSS_PATH_SPEED = 'Vehicle.Speed'
+LOOP_INTERVAL = 1.0  # seconds
+
+def main():
+    """
+    Connects to KUKSA and continuously feeds speed data.
+    """
+    try:
+        with VSSClient(SERVER_HOST, SERVER_PORT) as client:
+            print(f"Provider: Connected to KUKSA at {SERVER_HOST}:{SERVER_PORT}")
+            print("Provider: Starting to feed data...")
+
+            # Loop to simulate speed changes
+            while True:
+                for speed in range(0, 101, 5):  # Accelerate
+                    client.set_current_values({
+                        VSS_PATH_SPEED: Datapoint(speed),
+                    })
+                    print(f"Provider: Feeding Vehicle.Speed to {speed} km/h")
+                    time.sleep(LOOP_INTERVAL)
+
+                for speed in range(100, -1, -5):  # Decelerate
+                    client.set_current_values({
+                        VSS_PATH_SPEED: Datapoint(speed),
+                    })
+                    print(f"Provider: Feeding Vehicle.Speed to {speed} km/h")
+                    time.sleep(LOOP_INTERVAL)
+
+    except ConnectionRefusedError:
+        print(f"Provider: Connection failed. Is KUKSA running on the host at {SERVER_HOST}:{SERVER_PORT}?")
+    except Exception as e:
+        print(f"Provider: An unexpected error occurred: {e}")
+    finally:
+        print("Provider: Finished.")
+
+if __name__ == "__main__":
+    main()`,
     dependencies: [],
-    signals: [],
+    signals: ['Vehicle.Speed'],
     environment: 'development'
   })
 
   const [newSignal, setNewSignal] = useState('')
   const [allDependencies, setAllDependencies] = useState<string[]>(detectedDependencies)
+
+  // Sync allDependencies with detectedDependencies when they change
+  useEffect(() => {
+    setAllDependencies(prev => {
+      const manualDeps = prev.filter(dep => !detectedDependencies.includes(dep))
+      return [...detectedDependencies, ...manualDeps]
+    })
+  }, [detectedDependencies])
 
   const handleInputChange = useCallback((field: keyof SmartDeployment, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -220,28 +275,44 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleInputChange('code', `import time, datetime
+              onClick={() => handleInputChange('code', `# kuksa_test.py
+from kuksa_client.grpc import VSSClient
+from kuksa_client.grpc import Datapoint
+import time
 
-DURATION = 12000
-INTERVAL = 30
+# Test KUKSA connection
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 55555
 
-start = time.time()
-while time.time() - start < DURATION:
-    elapsed = time.time() - start
-    if int(elapsed) % INTERVAL == 0:
-        ts = datetime.datetime.now().strftime("%H:%M:%S")
-        print(f"[{ts}] Elapsed: {elapsed:.0f}s")
-    time.sleep(1)
+def main():
+    try:
+        with VSSClient(SERVER_HOST, SERVER_PORT) as client:
+            print("✅ Connected to KUKSA Databroker")
 
-print("\\nDone.")`)}
-              title="Insert test code"
+            # Test setting speed value
+            test_speed = 55.0
+            client.set_current_values({
+                'Vehicle.Speed': Datapoint(test_speed)
+            })
+            print(f"📡 Set Vehicle.Speed to {test_speed} km/h")
+
+            # Test reading speed value
+            current_speed = client.get_current_values(['Vehicle.Speed'])
+            print(f"📊 Read Vehicle.Speed: {current_speed}")
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+if __name__ == "__main__":
+    main()`)}
+              title="Insert KUKSA test code template"
             >
               <TbDownload className="w-4 h-4 mr-1" />
-              Insert Test Code
+              Insert KUKSA Test Code
             </Button>
           </div>
           <Textarea
-            placeholder="Enter your Python application code here..."
+            placeholder="Enter your Python application code here... (e.g., KUKSA client, vehicle data provider)"
             value={formData.code}
             onChange={(e) => handleInputChange('code', e.target.value)}
             className="min-h-[200px] font-mono"
