@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/atoms/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
 import { TbCode, TbBinary, TbRocket, TbLoader, TbPlus, TbX, TbDownload } from 'react-icons/tb'
+import EnhancedDependencyManager from './EnhancedDependencyManager'
 
 export interface SmartDeployment {
   id: string
@@ -65,8 +66,8 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
     environment: 'development'
   })
 
-  const [newDependency, setNewDependency] = useState('')
   const [newSignal, setNewSignal] = useState('')
+  const [allDependencies, setAllDependencies] = useState<string[]>(detectedDependencies)
 
   const handleInputChange = useCallback((field: keyof SmartDeployment, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -86,16 +87,13 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
     }
   }, [onDetectDependencies, onValidateSignals])
 
-  const addDependency = useCallback(() => {
-    if (newDependency.trim() && !formData.dependencies.includes(newDependency.trim())) {
-      handleInputChange('dependencies', [...formData.dependencies, newDependency.trim()])
-      setNewDependency('')
-    }
-  }, [newDependency, formData.dependencies, handleInputChange])
-
-  const removeDependency = useCallback((dep: string) => {
-    handleInputChange('dependencies', formData.dependencies.filter(d => d !== dep))
-  }, [formData.dependencies, handleInputChange])
+  // Handle dependency changes from the enhanced manager
+  const handleDependenciesChange = useCallback((dependencies: string[]) => {
+    setAllDependencies(dependencies)
+    // Store manual dependencies separately for form submission
+    const manualDeps = dependencies.filter(dep => !detectedDependencies.includes(dep))
+    handleInputChange('dependencies', manualDeps)
+  }, [detectedDependencies, handleInputChange])
 
   const addSignal = useCallback(() => {
     if (newSignal.trim() && !formData.signals.includes(newSignal.trim())) {
@@ -120,8 +118,13 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
     if (!formData.id.trim() || !formData.code.trim()) {
       return
     }
-    onSubmit(formData)
-  }, [formData, onSubmit])
+    // Include all dependencies (detected + manual) in submission
+    const submissionData = {
+      ...formData,
+      dependencies: allDependencies
+    }
+    onSubmit(submissionData)
+  }, [formData, allDependencies, onSubmit])
 
   const isFormValid = formData.id.trim() && formData.code.trim()
 
@@ -259,43 +262,11 @@ print("\\nDone.")`)}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Dependencies</CardTitle>
-          <CardDescription>
-            Add additional dependencies (auto-detected dependencies are included automatically)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex space-x-2 mb-3">
-            <Input
-              placeholder="Enter dependency name (e.g., numpy)"
-              value={newDependency}
-              onChange={(e) => setNewDependency(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addDependency())}
-            />
-            <Button type="button" onClick={addDependency} disabled={!newDependency.trim()}>
-              <TbPlus className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[...new Set([...detectedDependencies, ...formData.dependencies])].map(dep => (
-              <Badge key={dep} variant="outline" className="flex items-center space-x-1">
-                <span>{dep}</span>
-                {formData.dependencies.includes(dep) && (
-                  <button
-                    type="button"
-                    onClick={() => removeDependency(dep)}
-                    className="ml-1 text-red-500 hover:text-red-700"
-                  >
-                    <TbX className="w-3 h-3" />
-                  </button>
-                )}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <EnhancedDependencyManager
+        detectedDependencies={detectedDependencies}
+        onDependenciesChange={handleDependenciesChange}
+        disabled={isDeploying}
+      />
 
       <Card>
         <CardHeader>
