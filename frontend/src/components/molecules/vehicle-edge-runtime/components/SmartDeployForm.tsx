@@ -251,32 +251,55 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
 from kuksa_client.grpc import VSSClient
 from kuksa_client.grpc import Datapoint
 import time
+import random
 
 # --- Configuration ---
-# Use the host's IP as seen from the container
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 55555
+VSS_PATH_SPEED = 'Vehicle.Speed'
+LOOP_INTERVAL = 1.0  # seconds
 
 def main():
+    """
+    Connects to KUKSA and continuously sets random speed values in a loop.
+    Runs forever with 1-second intervals.
+    """
     try:
         with VSSClient(SERVER_HOST, SERVER_PORT) as client:
-            print("Connected to KUKSA Databroker")
+            print(f"Connected to KUKSA at {SERVER_HOST}:{SERVER_PORT}")
+            print(f"Starting to set {VSS_PATH_SPEED} every {LOOP_INTERVAL} seconds...")
+            print("Press Ctrl+C to stop")
 
-            # Test setting speed value
-            test_speed = 55.0
-            client.set_current_values({
-                'Vehicle.Speed': Datapoint(test_speed)
-            })
-            print(f"Set Vehicle.Speed to {test_speed} km/h")
+            speed = 0.0
+            increasing = True
+            loop_count = 0
 
-            # Test reading speed value
-            current_speed = client.get_current_values(['Vehicle.Speed'])
-            print(f"Read Vehicle.Speed: {current_speed}")
+            # Infinite loop with 1-second interval
+            while True:
+                try:
+                    # Generate a smooth sine wave speed pattern
+                    speed = 50 + 45 * math.sin(math.radians(loop_count * 6))
+                    speed = round(speed, 1)  # Round to 1 decimal place
+
+                    client.set_current_values({
+                        VSS_PATH_SPEED: Datapoint(speed)
+                    })
+
+                    timestamp = time.strftime('%H:%M:%S')
+                    print(f"[{timestamp}] Set {VSS_PATH_SPEED}: {speed} km/h")
+
+                    loop_count += 1
+                    time.sleep(LOOP_INTERVAL)
+
+                except Exception as loop_error:
+                    print(f"Error in loop iteration {loop_count}: {loop_error}")
+                    time.sleep(LOOP_INTERVAL)  # Continue with next iteration
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Connection failed: {e}")
 
 if __name__ == "__main__":
+    import math
     main()`)}
                 title="Insert example set value application code"
               >
@@ -290,28 +313,27 @@ if __name__ == "__main__":
                 onClick={() => handleInputChange('code', `# poll_speed.py
 
 from kuksa_client.grpc import VSSClient
-import os
 import sys
 import time
 
 # --- Configuration ---
-# Use the host's IP as seen from the container
-SERVER_HOST = os.environ.get('KUKSA_HOST', '172.17.0.4')
+SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 55555
 VSS_PATH_SPEED = 'Vehicle.Speed'
 # Time to wait between each poll (in seconds)
-POLL_INTERVAL = 2.0
+POLL_INTERVAL = 1.0
 
 def main():
     """
-    Connects to KUKSA and polls for a value in an infinite loop.
+    Connects to KUKSA and polls for speed values in an infinite loop.
+    Runs forever with 1-second intervals.
     """
     try:
         # The 'with' statement handles connection and disconnection automatically
         with VSSClient(SERVER_HOST, SERVER_PORT) as client:
-            print(f"Connecting to KUKSA at {SERVER_HOST}:{SERVER_PORT} to poll {VSS_PATH_SPEED}...")
-            print(f"Polling every {POLL_INTERVAL} seconds. Press Ctrl+C to stop.")
-            print("-" * 50)
+            print(f"Connecting to KUKSA at {SERVER_HOST}:{SERVER_PORT}...")
+            print(f"Polling {VSS_PATH_SPEED} every {POLL_INTERVAL} seconds. Press Ctrl+C to stop.")
+            print("-" * 60)
 
             # Infinite loop for continuous polling
             while True:
