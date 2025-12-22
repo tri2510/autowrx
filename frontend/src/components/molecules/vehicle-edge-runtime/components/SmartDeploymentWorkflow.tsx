@@ -261,19 +261,6 @@ except KeyboardInterrupt:
         ]
       })
 
-      // Reset form on success
-      setDeployment({
-        id: '',
-        name: '',
-        type: 'python',
-        code: '',
-        dependencies: [],
-        signals: [],
-        environment: 'development'
-      })
-      setDetectedDependencies([])
-      setSignalValidation(null)
-
     } catch (error) {
       console.error('Smart deployment failed:', error)
       setDeploymentResult({
