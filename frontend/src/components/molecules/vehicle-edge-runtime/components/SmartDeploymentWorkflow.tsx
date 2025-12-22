@@ -15,6 +15,10 @@ interface SmartDeploymentWorkflowProps {
   onDeploy: (deployment: any) => Promise<void>
   isDeploying?: boolean
   deployedApps?: any[]
+  selectedDeploymentType?: 'python' | 'binary' | 'docker'
+  onDeploymentTypeChange?: (type: 'python' | 'binary' | 'docker') => void
+  showTypeSelector?: boolean
+  onShowTypeSelectorChange?: (show: boolean) => void
 }
 
 const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
@@ -22,7 +26,11 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
   isRuntimeConnected,
   onDeploy,
   isDeploying = false,
-  deployedApps = []
+  deployedApps = [],
+  selectedDeploymentType = 'python',
+  onDeploymentTypeChange,
+  showTypeSelector = true,
+  onShowTypeSelectorChange
 }) => {
   return (
     <DeploymentOrchestrator
@@ -31,6 +39,10 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
       onDeploy={onDeploy}
       isDeploying={isDeploying}
       deployedApps={deployedApps}
+      selectedDeploymentType={selectedDeploymentType}
+      onDeploymentTypeChange={onDeploymentTypeChange}
+      showTypeSelector={showTypeSelector}
+      onShowTypeSelectorChange={onShowTypeSelectorChange}
     />
   )
 }

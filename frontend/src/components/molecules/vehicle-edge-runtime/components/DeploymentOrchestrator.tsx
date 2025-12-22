@@ -21,6 +21,10 @@ interface DeploymentOrchestratorProps {
   onDeploy: (deployment: any) => Promise<void>
   isDeploying?: boolean
   deployedApps?: any[]
+  selectedDeploymentType?: 'python' | 'binary' | 'docker'
+  onDeploymentTypeChange?: (type: 'python' | 'binary' | 'docker') => void
+  showTypeSelector?: boolean
+  onShowTypeSelectorChange?: (show: boolean) => void
 }
 
 const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
@@ -28,18 +32,25 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
   isRuntimeConnected,
   onDeploy,
   isDeploying = false,
-  deployedApps = []
+  deployedApps = [],
+  selectedDeploymentType = 'python',
+  onDeploymentTypeChange,
+  showTypeSelector = true,
+  onShowTypeSelectorChange
 }) => {
-  const [selectedType, setSelectedType] = useState<DeploymentType>('python' as DeploymentType)
-  const [showTypeSelector, setShowTypeSelector] = useState(true)
-
   const handleTypeSelect = (type: DeploymentType) => {
-    setSelectedType(type)
-    setShowTypeSelector(false)
+    if (onDeploymentTypeChange) {
+      onDeploymentTypeChange(type)
+    }
+    if (onShowTypeSelectorChange) {
+      onShowTypeSelectorChange(false)
+    }
   }
 
   const handleBackToTypeSelector = () => {
-    setShowTypeSelector(true)
+    if (onShowTypeSelectorChange) {
+      onShowTypeSelectorChange(true)
+    }
   }
 
   const handleDeploy = async (deployment: any) => {
@@ -53,7 +64,7 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
       // Add deployment type information for other deployments
       const enhancedDeployment = {
         ...deployment,
-        deploymentType: selectedType,
+        deploymentType: selectedDeploymentType,
         timestamp: new Date().toISOString()
       }
 
@@ -65,7 +76,7 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
   }
 
   const renderDeploymentComponent = () => {
-    switch (selectedType) {
+    switch (selectedDeploymentType) {
       case 'python':
         return (
           <PythonDeploymentComponent
@@ -119,12 +130,12 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
           </Button>
 
           <div className="flex items-center space-x-2 px-3 py-1 bg-muted rounded-lg">
-            {selectedType === 'python' && <TbCode className="w-4 h-4" />}
-            {selectedType === 'binary' && <TbBinary className="w-4 h-4" />}
-            {selectedType === 'docker' && <TbPackage className="w-4 h-4" />}
+            {selectedDeploymentType === 'python' && <TbCode className="w-4 h-4" />}
+            {selectedDeploymentType === 'binary' && <TbBinary className="w-4 h-4" />}
+            {selectedDeploymentType === 'docker' && <TbPackage className="w-4 h-4" />}
             <span className="text-sm font-medium capitalize">
-              {selectedType === 'python' ? 'Python Application' :
-               selectedType === 'binary' ? 'Binary Application' : 'Docker Container'}
+              {selectedDeploymentType === 'python' ? 'Python Application' :
+               selectedDeploymentType === 'binary' ? 'Binary Application' : 'Docker Container'}
             </span>
           </div>
         </div>
@@ -133,7 +144,7 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
       {/* Main Content */}
       {showTypeSelector ? (
         <DeploymentTypeSelector
-          selectedType={selectedType}
+          selectedType={selectedDeploymentType}
           onTypeChange={handleTypeSelect}
           disabled={isDeploying}
         />
@@ -148,7 +159,7 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
             <div className="text-center space-y-4">
               <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
               <div>
-                <p className="font-medium">Deploying {selectedType} Application</p>
+                <p className="font-medium">Deploying {selectedDeploymentType} Application</p>
                 <p className="text-sm text-muted-foreground">Please wait...</p>
               </div>
             </div>

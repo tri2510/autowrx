@@ -16,7 +16,6 @@ import {
   TbPlayerPause,
   TbRefresh,
   TbTrash,
-  TbEye,
   TbSettings,
   TbAlertTriangle,
   TbCheck,
@@ -45,7 +44,9 @@ import {
   TbSquareRotated,
   TbPackage,
   TbLoader,
-  TbHelp
+  TbHelp,
+  TbEye,
+  TbEyeOff
 } from 'react-icons/tb'
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
@@ -55,6 +56,8 @@ import OverviewTab from './components/OverviewTab'
 import SettingsTab from './components/SettingsTab'
 import ApplicationsTab from './components/ApplicationsTab'
 import SmartDeploymentWorkflow from './components/SmartDeploymentWorkflow'
+import DockerCommandDisplay from './components/DockerCommandDisplay'
+import DockerConfigDisplay from './components/DockerConfigDisplay'
 import {
   useDashboardState,
   useKitManagerState,
@@ -62,6 +65,7 @@ import {
   useDeployment,
   useMarketplaceApps
 } from './hooks'
+import { MarketplaceApp } from './hooks/useMarketplaceApps'
 import kitManagerService, { VehicleEdgeRuntimeKit, KitManagerMessage } from '@/services/kitManager.service'
 import vehicleEdgeRuntimeService from '@/services/vehicleEdgeRuntime.service'
 import vehicleEdgeRuntimeDirectService, { VehicleApp, RuntimeState } from '@/services/vehicleEdgeRuntimeDirect.service'
@@ -72,6 +76,7 @@ interface ExtendedVehicleApp extends VehicleApp {
 }
 import { Button } from '@/components/atoms/button'
 import { Input } from '@/components/atoms/input'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/atoms/card'
 import { Dialog, DialogContent } from '@/components/atoms/dialog'
 import { DetectedDevice } from '@/utils/networkDiscovery'
 
@@ -94,25 +99,6 @@ interface DeploymentResult {
   data?: any
 }
 
-interface MarketplaceApp {
-  id: string
-  name: string
-  description: string
-  category: string
-  version: string
-  author: string
-  rating: number
-  downloads: number
-  price: 'free' | 'paid'
-  icon: string
-  tags: string[]
-  size: string
-  lastUpdated: string
-  code?: string
-  entryPoint?: string
-  type: 'python' | 'binary'
-  requirements: string[]
-}
 
 interface VehicleEdgeRuntimeDashboardProps {
   onClose: () => void
@@ -139,6 +125,10 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   const [deploymentResult, setDeploymentResult] = useState<DeploymentResult | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState<string | null>(null)
+
+  // Deployment type persistence state
+  const [selectedDeploymentType, setSelectedDeploymentType] = useState<'python' | 'binary' | 'docker'>('python')
+  const [showDeploymentTypeSelector, setShowDeploymentTypeSelector] = useState(true)
   const [deploymentConfig, setDeploymentConfig] = useState({
     type: 'python' as 'python' | 'binary',
     code: prototype?.code || `import time
@@ -179,6 +169,7 @@ print("📊 Application execution finished")`,
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isDeployingApp, setIsDeployingApp] = useState(false)
+  const [expandedDockerCommands, setExpandedDockerCommands] = useState<Set<string>>(new Set())
   const [vehicleApps, setVehicleApps] = useState<ExtendedVehicleApp[]>([])
   const [deployedRuntimeApps, setDeployedRuntimeApps] = useState<any[]>([])
   const [isRefreshingApps, setIsRefreshingApps] = useState(false)
@@ -962,12 +953,47 @@ if __name__ == "__main__":
         `[${timestamp}] 📏 Size: ${app.size}`
       ])
 
-      let finalCode = app.code || ''
+      // Handle different app types
+      if (app.type === 'docker') {
+        // Docker app deployment
+        setConsoleOutput(prev => [...prev,
+          `[${timestamp}] 🐳 Deploying Docker container: ${app.name}`,
+          `[${timestamp}] 📦 Docker Image: ${app.dockerImage}`,
+          `[${timestamp}] 🔌 Ports: ${app.dockerPorts?.join(', ') || 'None'}`
+        ])
 
-      // If it's a binary app, we'll handle it differently
-      if (app.type === 'binary') {
-        // For binary apps, we would typically download the binary
-        // For now, we'll show a message indicating binary deployment
+        if (!app.dockerCommand || app.dockerCommand.length === 0) {
+          throw new Error('Docker command not specified for Docker app')
+        }
+
+        // Create Docker deployment request using the same format as SmartDeploymentWorkflow
+        const dockerDeploymentRequest = {
+          type: 'deploy_request',
+          id: `deploy-docker-${app.id}-${Date.now()}`,
+          prototype: {
+            id: `VEA-${app.id}`,
+            name: app.name,
+            type: 'docker', // ⭐ CRITICAL: MUST be "docker"
+            description: app.description,
+            config: {
+              dockerCommand: app.dockerCommand // ⭐ CRITICAL: MUST be array
+            }
+          },
+          vehicleId: selectedKit?.kit_id || 'default-vehicle'
+        }
+
+        console.log('🐳 Sending Docker deployment request:', dockerDeploymentRequest)
+
+        // Send the Docker deployment request
+        await handleDeployment(dockerDeploymentRequest)
+
+        setConsoleOutput(prev => [...prev,
+          `[${timestamp}] 🐳 Docker deployment request sent to ${selectedKit?.name}`,
+          `[${timestamp}] 🔄 Container will appear as "${app.name}" in Applications tab`
+        ])
+
+      } else if (app.type === 'binary') {
+        // Binary app deployment
         setConsoleOutput(prev => [...prev,
           `[${timestamp}] 📦 Binary deployment - downloading ${app.name}...`,
           `[${timestamp}] ⚠️ Binary deployment requires additional setup`
@@ -979,7 +1005,11 @@ if __name__ == "__main__":
         setConsoleOutput(prev => [...prev,
           `[${timestamp}] 📤 Binary deployment request sent to ${selectedKit.name}`
         ])
+
       } else {
+        // Python app deployment
+        let finalCode = app.code || ''
+
         // Convert Python code to Vehicle App format
         if (finalCode) {
           try {
@@ -1020,6 +1050,122 @@ if __name__ == "__main__":
       setConsoleOutput(prev => [...prev, `[${timestamp}] ❌ Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`])
     } finally {
       setIsDeployingApp(false)
+    }
+  }
+
+  const handleToggleDockerCommand = (appId: string) => {
+    setExpandedDockerCommands(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(appId)) {
+        newSet.delete(appId)
+      } else {
+        newSet.add(appId)
+      }
+      return newSet
+    })
+  }
+
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, string> = {
+      'Data Collection': '📊',
+      'Safety': '🛡️',
+      'Efficiency': '⚡',
+      'Navigation': '🗺️',
+      'Entertainment': '🎵',
+      'Diagnostics': '🔧',
+      'Communication': '📡',
+      'Infrastructure': '🏗️',
+      'Monitoring': '📈'
+    }
+    return icons[category] || '📱'
+  }
+
+  const handleDeployment = async (deployment: any) => {
+    // Handle smart deployment
+    try {
+      const timestamp = new Date().toLocaleTimeString()
+
+      // Check if this is a Docker app deployment request
+      if (deployment.type === 'deploy_request' && deployment.prototype?.type === 'docker') {
+        console.log('🐳 Detected Docker app deployment request')
+
+        setConsoleOutput(prev => [...prev,
+          `[${timestamp}] 🐳 Starting Docker app deployment...`,
+          `[${timestamp}] 📦 App ID: ${deployment.prototype.id}`,
+          `[${timestamp}] 📦 App Name: ${deployment.prototype.name}`,
+          `[${timestamp}] 📋 Docker Command: ${deployment.prototype.config?.dockerCommand?.join(' ')}`,
+          `[${timestamp}] 🚗 Target runtime: ${selectedKit?.name}`
+        ])
+
+        // Send Docker deployment request directly using sendMessage
+        const response = await vehicleEdgeRuntimeDirectService.sendMessage(deployment)
+
+        if (response.status === 'started') {
+          setConsoleOutput(prev => [...prev,
+            `[${new Date().toLocaleTimeString()}] ✅ Docker container deployed and started successfully: ${response.executionId}`,
+            `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit?.name}`,
+            `[${new Date().toLocaleTimeString()}] 🐳 Container ID: ${response.containerId || 'pending'}`
+          ])
+        } else {
+          throw new Error(`Docker deployment failed: ${response.result || 'Unknown error'}`)
+        }
+
+        // Refresh the apps list
+        try {
+          await refreshApps()
+        } catch (error) {
+          console.warn('Failed to refresh apps list:', error)
+        }
+
+        // Switch to apps tab to view deployed app
+        setActiveTab('apps')
+        return
+      }
+
+      // Handle regular Python/Binary app deployment
+      const appName = deployment.name || deployment.id
+      const appId = deployment.id
+
+      setConsoleOutput(prev => [...prev,
+        `[${timestamp}] 🚀 Starting smart deployment of ${deployment.type} app...`,
+        `[${timestamp}] 📦 App ID: ${appId}`,
+        `[${timestamp}] 📦 App Name: ${appName}`,
+        `[${timestamp}] 📝 Code length: ${deployment.code.length} characters`,
+        `[${timestamp}] 📦 Dependencies: ${deployment.dependencies.join(', ')}`,
+        `[${timestamp}] 🚗 Target runtime: ${selectedKit?.name}`
+      ])
+
+      // Deploy using the user-provided ID and display name
+      const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
+        name: appId, // Use the user's ID as the app identifier
+        displayName: appName, // Use the display name for UI
+        code: deployment.code,
+        vehicleId: 'default-vehicle'
+      })
+
+      setConsoleOutput(prev => [...prev,
+        `[${new Date().toLocaleTimeString()}] ✅ App deployed and started successfully: ${deployedAppId}`,
+        `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit?.name}`
+      ])
+
+      // Refresh the apps list
+      try {
+        await refreshApps()
+      } catch (error) {
+        console.warn('Failed to refresh apps list:', error)
+      }
+
+      // Switch to apps tab to view deployed app
+      setActiveTab('apps')
+
+    } catch (error) {
+      console.error('Deployment failed:', error)
+      const timestamp = new Date().toLocaleTimeString()
+      setDeploymentResult({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Deployment failed'
+      })
+      setConsoleOutput(prev => [...prev, `[${timestamp}] ❌ Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`])
     }
   }
 
@@ -1691,89 +1837,12 @@ if __name__ == "__main__":
               selectedKit={selectedKit}
               isRuntimeConnected={isRuntimeConnected}
               deployedApps={deployedRuntimeApps}
-              onDeploy={async (deployment) => {
-                // Handle smart deployment
-                try {
-                  const timestamp = new Date().toLocaleTimeString()
-
-                  // Check if this is a Docker app deployment request
-                  if ((deployment as any).type === 'deploy_request' && (deployment as any).prototype?.type === 'docker') {
-                    console.log('🐳 Detected Docker app deployment request')
-
-                    const dockerDeployment = deployment as any
-                    setConsoleOutput(prev => [...prev,
-                      `[${timestamp}] 🐳 Starting Docker app deployment...`,
-                      `[${timestamp}] 📦 App ID: ${dockerDeployment.prototype.id}`,
-                      `[${timestamp}] 📦 App Name: ${dockerDeployment.prototype.name}`,
-                      `[${timestamp}] 📋 Docker Command: ${dockerDeployment.prototype.config?.dockerCommand?.join(' ')}`,
-                      `[${timestamp}] 🚗 Target runtime: ${selectedKit.name}`
-                    ])
-
-                    // Send Docker deployment request directly using sendMessage
-                    const response = await vehicleEdgeRuntimeDirectService.sendMessage(dockerDeployment)
-
-                    if (response.status === 'started') {
-                      setConsoleOutput(prev => [...prev,
-                        `[${new Date().toLocaleTimeString()}] ✅ Docker container deployed and started successfully: ${response.executionId}`,
-                        `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit.name}`,
-                        `[${new Date().toLocaleTimeString()}] 🐳 Container ID: ${response.containerId || 'pending'}`
-                      ])
-                    } else {
-                      throw new Error(`Docker deployment failed: ${response.result || 'Unknown error'}`)
-                    }
-
-                    // Refresh the apps list
-                    try {
-                      await refreshApps()
-                    } catch (error) {
-                      console.warn('Failed to refresh apps list:', error)
-                    }
-
-                    // Switch to apps tab to view deployed app
-                    setActiveTab('apps')
-                    return
-                  }
-
-                  // Handle regular Python/Binary app deployment
-                  const appName = deployment.name || deployment.id
-                  const appId = deployment.id
-
-                  setConsoleOutput(prev => [...prev,
-                    `[${timestamp}] 🚀 Starting smart deployment of ${deployment.type} app...`,
-                    `[${timestamp}] 📦 App ID: ${appId}`,
-                    `[${timestamp}] 📦 App Name: ${appName}`,
-                    `[${timestamp}] 📝 Code length: ${deployment.code.length} characters`,
-                    `[${timestamp}] 📦 Dependencies: ${deployment.dependencies.join(', ')}`,
-                    `[${timestamp}] 🚗 Target runtime: ${selectedKit.name}`
-                  ])
-
-                  // Deploy using the user-provided ID and display name
-                  const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
-                    name: appId, // Use the user's ID as the app identifier
-                    displayName: appName, // Use the display name for UI
-                    code: deployment.code,
-                    vehicleId: 'default-vehicle'
-                  })
-
-                  setConsoleOutput(prev => [...prev,
-                    `[${new Date().toLocaleTimeString()}] ✅ App deployed and started successfully: ${deployedAppId}`,
-                    `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit.name}`
-                  ])
-
-                  // Refresh the apps list
-                  try {
-                    await refreshApps()
-                  } catch (error) {
-                    console.warn('Failed to refresh apps list:', error)
-                  }
-
-                  // Switch to apps tab to view deployed app
-                  setActiveTab('apps')
-                } catch (error) {
-                  throw error // Re-throw to be handled by SmartDeploymentWorkflow
-                }
-              }}
+              onDeploy={handleDeployment}
               isDeploying={isDeploying}
+              selectedDeploymentType={selectedDeploymentType}
+              onDeploymentTypeChange={setSelectedDeploymentType}
+              showTypeSelector={showDeploymentTypeSelector}
+              onShowTypeSelectorChange={setShowDeploymentTypeSelector}
             />
           </div>
         )}
@@ -1781,44 +1850,66 @@ if __name__ == "__main__":
         {activeTab === 'marketplace' && (
           <div className="space-y-6">
             {/* Marketplace Header */}
-            <div className="rounded-lg border border-border p-6">
+            <div className="bg-background rounded-xl border p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">Digital Auto Marketplace</h3>
-                  <p className="text-muted-foreground">Discover and deploy vehicle applications from the Digital Auto ecosystem</p>
+                  <div className="flex items-center space-x-3 mb-2">
+                    <TbShoppingCart className="w-6 h-6 text-muted-foreground" />
+                    <h3 className="text-xl font-semibold text-foreground">Digital Auto Marketplace</h3>
+                  </div>
+                  <p className="text-muted-foreground text-sm">Discover and deploy vehicle applications from the Digital Auto ecosystem</p>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <TbShoppingCart className="w-4 h-4" />
-                  <span>{filteredMarketplaceApps.length} apps available</span>
+                <div className="hidden sm:flex items-center space-x-6">
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-foreground">{filteredMarketplaceApps.length}</div>
+                    <div className="text-xs text-muted-foreground">Available Apps</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-green-600">
+                      {filteredMarketplaceApps.filter(app => app.type === 'docker').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Docker Apps</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-blue-600">
+                      {filteredMarketplaceApps.filter(app => app.type === 'python').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Python Apps</div>
+                  </div>
                 </div>
               </div>
 
               {/* Search and Filters */}
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="Search apps by name, description, or tags..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10"
-                    />
-                    <TbFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  </div>
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Input
+                    type="text"
+                    placeholder="Search apps by name, description, or tags..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                  <TbFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <TbX className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category === 'all' ? 'All Categories' : category}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex gap-2 flex-wrap">
+                  {categories.map((category) => (
+                    <Button
+                      key={category}
+                      variant={selectedCategory === category ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedCategory(category)}
+                    >
+                      {category === 'all' ? 'All' : category}
+                    </Button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1854,76 +1945,106 @@ if __name__ == "__main__":
             ) : (
               <>
                 {/* Apps Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredMarketplaceApps.map((app) => (
-                    <div key={app.id} className="bg-white border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                      {/* App Card Header */}
-                      <div className="p-6 border-b border-border">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="text-3xl">{app.icon}</div>
-                            <div>
-                              <h4 className="font-semibold text-foreground">{app.name}</h4>
-                              <p className="text-sm text-muted-foreground">by {app.author}</p>
+                    <Card key={app.id} className="group relative hover:shadow-md transition-shadow duration-200">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-4 flex-1">
+                            <div className={`text-3xl p-2 rounded-lg ${
+                              app.type === 'docker'
+                                ? 'bg-green-100 dark:bg-green-900/30'
+                                : 'bg-blue-100 dark:bg-blue-900/30'
+                            }`}>
+                              {app.type === 'docker' ? '🐳' : app.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-lg hover:text-primary transition-colors">
+                                {app.name}
+                              </CardTitle>
+                              <CardDescription className="text-sm">
+                                by {app.author}
+                              </CardDescription>
+
+                              {/* Category and Difficulty Tags */}
+                              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                  {getCategoryIcon(app.category)} {app.category}
+                                </span>
+                                {app.difficulty && (
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                                    app.difficulty === 'Beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                                    app.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                  }`}>
+                                    {app.difficulty}
+                                  </span>
+                                )}
+                                {app.estimatedTime && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-muted">
+                                    <TbClock className="w-3 h-3 mr-1" />
+                                    {app.estimatedTime}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            app.price === 'free'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-blue-100 text-blue-800'
+
+                          {/* App Type Badge */}
+                          <div className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${
+                            app.type === 'docker'
+                              ? 'bg-green-600'
+                              : 'bg-blue-600'
                           }`}>
-                            {app.price === 'free' ? 'FREE' : 'PAID'}
+                            {app.type === 'docker' ? '🐳 Docker' : '🐍 Python'}
+                          </div>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="space-y-4">
+                        <p className="text-sm text-muted-foreground line-clamp-3">{app.description}</p>
+
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-3 gap-2 text-center py-2 border-y border-border">
+                          <div>
+                            <div className="flex items-center justify-center space-x-1 text-yellow-500">
+                              <TbStar className="w-3 h-3 fill-current" />
+                              <span className="font-medium text-sm">{app.rating}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">Rating</div>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-center space-x-1 text-blue-500">
+                              <TbDownload className="w-3 h-3" />
+                              <span className="font-medium text-sm">{app.downloads.toLocaleString()}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">Downloads</div>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-center space-x-1 text-purple-500">
+                              <TbPackage className="w-3 h-3" />
+                              <span className="font-medium text-sm">{app.size}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">Size</div>
                           </div>
                         </div>
 
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{app.description}</p>
+                        {/* Docker Configuration Display */}
+                        {app.type === 'docker' && (
+                          <DockerConfigDisplay
+                            app={app}
+                            showConfig={expandedDockerCommands.has(app.id)}
+                            onToggleConfig={() => handleToggleDockerCommand(app.id)}
+                          />
+                        )}
+                      </CardContent>
 
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-1 mb-4">
-                          {app.tags.slice(0, 3).map((tag) => (
-                            <span key={tag} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                              {tag}
-                            </span>
-                          ))}
-                          {app.tags.length > 3 && (
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                              +{app.tags.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* App Card Details */}
-                      <div className="p-6 space-y-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center space-x-1">
-                            <TbStar className="w-4 h-4 text-yellow-500 fill-current" />
-                            <span className="font-medium">{app.rating}</span>
-                          </div>
-                          <div className="flex items-center space-x-1 text-muted-foreground">
-                            <TbDownload className="w-4 h-4" />
-                            <span>{app.downloads.toLocaleString()}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span>Version {app.version}</span>
-                          <span>{app.size}</span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span>{app.category}</span>
-                          <div className="flex items-center space-x-1">
-                            <TbClock className="w-3 h-3" />
-                            <span>Updated {app.lastUpdated}</span>
-                          </div>
-                        </div>
-
-                        {/* Deploy Button */}
+                      <CardFooter className="space-y-2">
                         <Button
                           onClick={() => handleDeployMarketplaceApp(app)}
                           disabled={!selectedKit || !selectedKit.is_online || isDeployingApp}
-                          className="w-full mt-4"
+                          className="w-full"
+                          variant={app.type === 'docker' ? 'default' : 'secondary'}
                         >
                           {isDeployingApp ? (
                             <>
@@ -1933,38 +2054,55 @@ if __name__ == "__main__":
                           ) : (
                             <>
                               <TbRocket className="w-4 h-4 mr-2" />
-                              Deploy to {selectedKit?.name || 'Runtime'}
+                              {app.type === 'docker' ? 'Deploy Docker' : 'Deploy Python'}
                             </>
                           )}
                         </Button>
 
                         {!selectedKit?.is_online && selectedKit && (
-                          <p className="text-xs text-orange-600 text-center">
+                          <p className="text-xs text-orange-600 dark:text-orange-400 text-center flex items-center justify-center">
+                            <TbAlertTriangle className="w-3 h-3 mr-1" />
                             Runtime is offline - deployment may fail
                           </p>
                         )}
-                      </div>
-                    </div>
+
+                        {!selectedKit && (
+                          <p className="text-xs text-blue-600 dark:text-blue-400 text-center flex items-center justify-center">
+                            <TbDeviceDesktop className="w-3 h-3 mr-1" />
+                            Select a runtime to deploy
+                          </p>
+                        )}
+                      </CardFooter>
+                    </Card>
                   ))}
                 </div>
 
                 {/* No Apps Found */}
                 {filteredMarketplaceApps.length === 0 && (
-                  <div className="text-center py-12">
-                    <TbShoppingCart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">No apps found</h3>
+                  <div className="text-center py-12 bg-background rounded-xl border border-dashed">
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                      <TbShoppingCart className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">No Apps Found</h3>
                     <p className="text-muted-foreground mb-6">
-                      Try adjusting your search terms or category filter.
+                      No apps found matching your criteria.
                     </p>
-                    <Button
-                      onClick={() => {
-                        setSearchQuery('')
-                        setSelectedCategory('all')
-                      }}
-                      variant="outline"
-                    >
-                      Clear Filters
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button
+                        onClick={() => {
+                          setSearchQuery('')
+                          setSelectedCategory('all')
+                        }}
+                        variant="outline"
+                      >
+                        Clear Filters
+                      </Button>
+                      <Button
+                        onClick={() => setActiveTab('deploy')}
+                      >
+                        Create Custom App
+                      </Button>
+                    </div>
                   </div>
                 )}
               </>
