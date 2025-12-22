@@ -30,7 +30,7 @@ import SmartDeployForm, { SmartDeployment, SignalValidation } from './SmartDeplo
 interface PythonDeploymentComponentProps {
   selectedKit: any
   isRuntimeConnected: boolean
-  onDeploy: (deployment: SmartDeployment) => Promise<void>
+  onDeploy: (deployment: SmartDeployment | any) => Promise<any>
   isDeploying?: boolean
   deployedApps?: any[]
   onBack?: () => void
@@ -50,8 +50,7 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
     type: 'python',
     code: '',
     dependencies: [],
-    signals: [],
-    environment: 'development'
+    signals: []
   })
 
   const [detectedDependencies, setDetectedDependencies] = useState<string[]>([])
@@ -177,8 +176,8 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
       // Send deployment request
       const response = await onDeploy(dockerDeploymentRequest as any)
 
-      // Check if deployment actually started
-      if (response && response.status === 'started') {
+      // Check if deployment actually started (for Docker deployments)
+      if (response && typeof response === 'object' && response.status === 'started') {
         setDeploymentResult({
           status: 'success',
           message: `KUKSA Server deployed successfully (ID: ${response.executionId})`,
@@ -186,11 +185,11 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
             'KUKSA Databroker is now available at localhost:8090',
             'Use the Applications tab to monitor the deployment',
             'You can now connect Python apps to KUKSA signals',
-            `Container ID: ${response.containerId || 'pending'}`
+            `Container ID: ${(response as any).containerId || 'pending'}`
           ]
         })
       } else {
-        throw new Error(`KUKSA deployment failed to start: ${response?.result || 'Unknown error'}`)
+        throw new Error(`KUKSA deployment failed to start: ${(response as any)?.result || 'Unknown error'}`)
       }
 
     } catch (error) {

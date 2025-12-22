@@ -13,18 +13,17 @@ import { Textarea } from '@/components/atoms/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select'
 import { Badge } from '@/components/atoms/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
-import { TbCode, TbBinary, TbRocket, TbLoader, TbPlus, TbX, TbDownload } from 'react-icons/tb'
+import { TbCode, TbRocket, TbLoader, TbPlus, TbX, TbDownload } from 'react-icons/tb'
 import EnhancedDependencyManager from './EnhancedDependencyManager'
 import SimpleKuksaDeployer from './SimpleKuksaDeployer'
 
 export interface SmartDeployment {
   id: string
   name: string
-  type: 'python' | 'binary'
+  type: 'python'
   code: string
   dependencies: string[]
   signals: string[]
-  environment: 'production' | 'staging' | 'development'
 }
 
 export interface Signal {
@@ -73,8 +72,7 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
     type: 'python',
     code: '',
     dependencies: [],
-    signals: [],
-    environment: 'development'
+    signals: []
   })
 
   const [newSignal, setNewSignal] = useState('')
@@ -189,44 +187,6 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
               />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="app-type" className="text-sm font-medium">Application Type</label>
-              <Select value={formData.type} onValueChange={(value: 'python' | 'binary') => handleInputChange('type', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="python">
-                    <div className="flex items-center space-x-2">
-                      <TbCode className="w-4 h-4" />
-                      <span>Python</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="binary">
-                    <div className="flex items-center space-x-2">
-                      <TbBinary className="w-4 h-4" />
-                      <span>Binary</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="environment" className="text-sm font-medium">Environment</label>
-              <Select value={formData.environment} onValueChange={(value: 'production' | 'staging' | 'development') => handleInputChange('environment', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="development">Development</SelectItem>
-                  <SelectItem value="staging">Staging</SelectItem>
-                  <SelectItem value="production">Production</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>
