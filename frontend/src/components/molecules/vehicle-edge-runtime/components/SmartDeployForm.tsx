@@ -15,7 +15,7 @@ import { Badge } from '@/components/atoms/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
 import { TbCode, TbBinary, TbRocket, TbLoader, TbPlus, TbX, TbDownload } from 'react-icons/tb'
 import EnhancedDependencyManager from './EnhancedDependencyManager'
-import CollapsibleKuksaSection from './CollapsibleKuksaSection'
+import SimpleKuksaDeployer from './SimpleKuksaDeployer'
 
 export interface SmartDeployment {
   id: string
@@ -147,8 +147,8 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
 
   return (
     <>
-      {/* KUKSA Server Section - Moved to Top */}
-      <CollapsibleKuksaSection
+      {/* KUKSA Server Section - Simple Docker Deployment */}
+      <SimpleKuksaDeployer
         selectedKit={selectedKit}
         isRuntimeConnected={isRuntimeConnected}
         onDeployKuksaServer={onDeployKuksaServer}

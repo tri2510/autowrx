@@ -1694,9 +1694,49 @@ if __name__ == "__main__":
                 // Handle smart deployment
                 try {
                   const timestamp = new Date().toLocaleTimeString()
+
+                  // Check if this is a Docker app deployment request
+                  if ((deployment as any).type === 'deploy_request' && (deployment as any).prototype?.type === 'docker') {
+                    console.log('🐳 Detected Docker app deployment request')
+
+                    const dockerDeployment = deployment as any
+                    setConsoleOutput(prev => [...prev,
+                      `[${timestamp}] 🐳 Starting Docker app deployment...`,
+                      `[${timestamp}] 📦 App ID: ${dockerDeployment.prototype.id}`,
+                      `[${timestamp}] 📦 App Name: ${dockerDeployment.prototype.name}`,
+                      `[${timestamp}] 📋 Docker Command: ${dockerDeployment.prototype.config?.dockerCommand?.join(' ')}`,
+                      `[${timestamp}] 🚗 Target runtime: ${selectedKit.name}`
+                    ])
+
+                    // Send Docker deployment request directly using sendMessage
+                    const response = await vehicleEdgeRuntimeDirectService.sendMessage(dockerDeployment)
+
+                    if (response.status === 'started') {
+                      setConsoleOutput(prev => [...prev,
+                        `[${new Date().toLocaleTimeString()}] ✅ Docker container deployed and started successfully: ${response.executionId}`,
+                        `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit.name}`,
+                        `[${new Date().toLocaleTimeString()}] 🐳 Container ID: ${response.containerId || 'pending'}`
+                      ])
+                    } else {
+                      throw new Error(`Docker deployment failed: ${response.result || 'Unknown error'}`)
+                    }
+
+                    // Refresh the apps list
+                    try {
+                      await refreshApps()
+                    } catch (error) {
+                      console.warn('Failed to refresh apps list:', error)
+                    }
+
+                    // Switch to apps tab to view deployed app
+                    setActiveTab('apps')
+                    return
+                  }
+
+                  // Handle regular Python/Binary app deployment
                   const appName = deployment.name || deployment.id
                   const appId = deployment.id
-                  
+
                   setConsoleOutput(prev => [...prev,
                     `[${timestamp}] 🚀 Starting smart deployment of ${deployment.type} app...`,
                     `[${timestamp}] 📦 App ID: ${appId}`,

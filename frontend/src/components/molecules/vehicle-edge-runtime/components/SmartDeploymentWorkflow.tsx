@@ -79,7 +79,7 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
     }
   }, [])
 
-  // Handle KUKSA server deployment
+  // Handle KUKSA server deployment using Docker API
   const handleDeployKuksaServer = useCallback(async () => {
     if (!selectedKit || !isRuntimeConnected) {
       setDeploymentResult({
@@ -95,87 +95,48 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
 
     try {
       const timestamp = new Date().toLocaleTimeString()
-      console.log('🚀 Starting KUKSA Server deployment...')
+      console.log('🚀 Starting KUKSA Server deployment using Docker API...')
 
-      // Create KUKSA server deployment data using the same mechanism as app deployment
-      const kuksaServerDeployment: SmartDeployment = {
-        id: 'kuksa-server-docker',
-        name: 'KUKSA Databroker Server',
-        type: 'python',
-        code: `import os
-import subprocess
-import time
-import signal
-import sys
-from pathlib import Path
-
-# Install kuksa-val in container if not already installed
-try:
-    import kuksa.val.server
-except ImportError:
-    print('Installing kuksa-val...')
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'kuksa-val'])
-    import kuksa.val.server
-
-# Start Kuksa server using Python module
-print('Starting Kuksa server...')
-try:
-    cmd = [
-        sys.executable, '-m', 'kuksa.val.server',
-        '--vss', '/vss-core/vss_release_3.0.json',
-        '--port', '8090',
-        '--host', '0.0.0.0',
-        '--log-level', 'info'
-    ]
-
-    print(f'Command: {" ".join(cmd)}')
-
-    # Start server process
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        universal_newlines=True
-    )
-
-    print('Kuksa server starting...')
-    print('Server will be available at: ws://localhost:8090')
-
-    # Handle graceful shutdown
-    def signal_handler(sig, frame):
-        print('\\\\nShutting down Kuksa server...')
-        process.terminate()
-        process.wait()
-        print('Kuksa server stopped')
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    # Stream server output
-    for line in iter(process.stdout.readline, ''):
-        if line:
-            print(line.rstrip())
-
-except Exception as e:
-    print(f'Error starting Kuksa server: {e}')
-    sys.exit(1)
-except KeyboardInterrupt:
-    print('\\\\nShutting down...')`,
-        dependencies: ['kuksa-val'],
-        signals: [],
-        environment: 'development'
+      // Create proper Docker app deployment request
+      const dockerDeploymentRequest = {
+        type: 'deploy_request',
+        id: `deploy-kuksa-${Date.now()}`,
+        prototype: {
+          id: 'databroker',
+          name: 'Kuksa Data Broker', // Must contain "kuksa" for proper prefixing
+          type: 'docker', // ⭐ CRITICAL: MUST be "docker"
+          description: 'Eclipse Kuksa vehicle signal databroker - Production deployment',
+          config: {
+            dockerCommand: [ // ⭐ CRITICAL: MUST be array
+              'run', '-d',
+              '--name', 'kuksa-databroker-prod',
+              '--network', 'host',
+              '-p', '55555:55555', // gRPC port
+              '-p', '8090:8090',   // HTTP/VSS port
+              'ghcr.io/eclipse-kuksa/kuksa-databroker:main',
+              '--insecure',
+              '--enable-viss',
+              '--viss-port', '8090'
+            ]
+          }
+        },
+        vehicleId: selectedKit.id || 'default-vehicle'
       }
 
-      await onDeploy(kuksaServerDeployment)
+      console.log('🐳 Sending Docker deployment request:', dockerDeploymentRequest)
+
+      // Send the Docker deployment request directly
+      // Note: This bypasses the onDeploy function since we need the specific Docker format
+      await onDeploy(dockerDeploymentRequest as any)
 
       setDeploymentResult({
         status: 'success',
         message: `KUKSA Databroker Server deployed successfully to ${selectedKit.name}!`,
         suggestions: [
-          'Server will be available at: ws://localhost:8090',
-          'Check the Applications tab to manage the KUKSA server',
-          'Use the set value app to test connectivity to the server'
+          'Server appears as "kuksa-databroker" in Applications tab',
+          'Accessible at: localhost:55555 (gRPC) and localhost:8090 (HTTP)',
+          'Full lifecycle management available in Applications tab',
+          'Python apps can connect via localhost:55555'
         ]
       })
 
@@ -190,8 +151,9 @@ except KeyboardInterrupt:
         status: 'error',
         message: error instanceof Error ? error.message : 'KUKSA server deployment failed',
         suggestions: [
-          'Check if the runtime has sufficient resources',
+          'Check if Docker is installed and running on the runtime',
           'Verify the runtime connection is stable',
+          'Ensure sufficient disk space for Docker image download',
           'Try redeploying the KUKSA server'
         ]
       })

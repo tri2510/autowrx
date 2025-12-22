@@ -438,7 +438,7 @@ class VehicleEdgeRuntimeDirectService {
   }
 
   // Message handling
-  private async sendMessage(request: BaseMessage): Promise<any> {
+  async sendMessage(request: BaseMessage): Promise<any> {
     if (!this.isConnected || !this.ws) {
       throw new Error('Not connected to Vehicle Edge Runtime')
     }
