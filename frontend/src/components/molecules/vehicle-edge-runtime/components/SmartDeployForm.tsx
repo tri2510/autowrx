@@ -24,6 +24,7 @@ export interface SmartDeployment {
   code: string
   dependencies: string[]
   signals: string[]
+  environment?: string
 }
 
 export interface Signal {
