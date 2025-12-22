@@ -90,18 +90,33 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
     try {
       console.log('🚀 Deploying Python application:', deploymentToDeploy.name)
 
-      // Create enhanced deployment object for parent
-      const enhancedDeployment = {
-        ...deploymentToDeploy,
-        deploymentType: 'python' as const,
-        timestamp: new Date().toISOString(),
-        vehicleId: selectedKit.id || 'default-vehicle'
+      // Create Python deployment request using unified API
+      const pythonDeploymentRequest = {
+        type: 'smart_deploy',
+        deploymentType: 'python',
+        app_name: deploymentToDeploy.name,
+        python_config: {
+          code: deploymentToDeploy.code,
+          dependencies: deploymentToDeploy.dependencies,
+          signals: deploymentToDeploy.signals,
+          base_image: 'python:3.11-alpine',
+          requirements: deploymentToDeploy.dependencies,
+          working_directory: '/app'
+        },
+        vehicle_id: selectedKit.id || 'default-vehicle'
       }
 
-      console.log('🐍 Python deployment request:', enhancedDeployment)
+      console.log('🐍 Python deployment request:', pythonDeploymentRequest)
 
       // Send deployment request to parent component
-      await onDeploy(enhancedDeployment)
+      const response = await onDeploy(pythonDeploymentRequest)
+
+      // Handle response for progress tracking
+      if (response && typeof response === 'object' && response.status === 'started') {
+        console.log('✅ Python deployment successful:', deploymentToDeploy.name)
+      } else {
+        throw new Error(`Python deployment failed: ${response?.result || 'Unknown error'}`)
+      }
 
       console.log('✅ Python deployment successful:', deploymentToDeploy.name)
     } catch (error) {

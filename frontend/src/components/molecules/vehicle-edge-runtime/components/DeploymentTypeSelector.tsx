@@ -56,34 +56,34 @@ const deploymentTypes: DeploymentTypeConfig[] = [
   {
     id: 'binary',
     name: 'Binary Application',
-    description: 'Deploy pre-compiled binary applications for high-performance vehicle computing.',
+    description: 'Deploy pre-compiled binary applications with automatic containerization.',
     icon: <TbBinary className="w-6 h-6" />,
-    badge: 'Coming Soon',
-    badgeColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    badge: 'Available',
+    badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
     features: [
-      'Binary file upload',
-      'Performance optimization',
-      'Hardware acceleration support',
-      'Resource monitoring',
-      'Version management'
+      'Binary file upload with base64 encoding',
+      'URL download support for binaries',
+      'Automatic Docker containerization',
+      'Custom run commands and base images',
+      'Resource limits and environment variables'
     ],
-    status: 'coming-soon'
+    status: 'available'
   },
   {
     id: 'docker',
     name: 'Docker Container',
-    description: 'Deploy containerized applications using Docker for isolated and scalable deployments.',
+    description: 'Deploy existing Docker images or custom container configurations.',
     icon: <TbPackage className="w-6 h-6" />,
-    badge: 'Coming Soon',
-    badgeColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    badge: 'Available',
+    badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
     features: [
-      'Docker image configuration',
-      'Container orchestration',
-      'Resource allocation control',
-      'Multi-container deployments',
-      'Service mesh integration'
+      'Deploy existing Docker images',
+      'Custom Docker command execution',
+      'Docker Compose support',
+      'Port and volume mapping',
+      'Network and runtime configuration'
     ],
-    status: 'coming-soon'
+    status: 'available'
   }
 ]
 
@@ -198,8 +198,7 @@ const DeploymentTypeSelector: FC<DeploymentTypeSelectorProps> = ({
       <div className="text-center">
         <p className="text-sm text-muted-foreground">
           <TbInfoCircle className="inline-block w-4 h-4 mr-1" />
-          Binary and Docker deployment types will be available in future updates.
-          Python deployment is fully functional and ready to use.
+          All deployment types are now available! Select the type that best fits your application needs.
         </p>
       </div>
     </div>

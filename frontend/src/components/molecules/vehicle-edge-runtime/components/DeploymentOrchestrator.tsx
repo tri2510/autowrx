@@ -12,13 +12,13 @@ import { TbArrowLeft, TbPackage, TbBinary, TbCode } from 'react-icons/tb'
 import { DeploymentType } from './DeploymentTypeSelector'
 import DeploymentTypeSelector from './DeploymentTypeSelector'
 import PythonDeploymentComponent from './PythonDeploymentComponent'
-import BinaryDeploymentPlaceholder from './BinaryDeploymentPlaceholder'
-import DockerDeploymentPlaceholder from './DockerDeploymentPlaceholder'
+import BinaryDeploymentComponent from './BinaryDeploymentComponent'
+import DockerDeploymentComponent from './DockerDeploymentComponent'
 
 interface DeploymentOrchestratorProps {
   selectedKit: any
   isRuntimeConnected: boolean
-  onDeploy: (deployment: any) => Promise<void>
+  onDeploy: (deployment: any) => Promise<any>
   isDeploying?: boolean
   deployedApps?: any[]
   selectedDeploymentType?: 'python' | 'binary' | 'docker'
@@ -91,14 +91,24 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
 
       case 'binary':
         return (
-          <BinaryDeploymentPlaceholder
+          <BinaryDeploymentComponent
+            selectedKit={selectedKit}
+            isRuntimeConnected={isRuntimeConnected}
+            onDeploy={handleDeploy}
+            isDeploying={isDeploying}
+            deployedApps={deployedApps}
             onBack={handleBackToTypeSelector}
           />
         )
 
       case 'docker':
         return (
-          <DockerDeploymentPlaceholder
+          <DockerDeploymentComponent
+            selectedKit={selectedKit}
+            isRuntimeConnected={isRuntimeConnected}
+            onDeploy={handleDeploy}
+            isDeploying={isDeploying}
+            deployedApps={deployedApps}
             onBack={handleBackToTypeSelector}
           />
         )
