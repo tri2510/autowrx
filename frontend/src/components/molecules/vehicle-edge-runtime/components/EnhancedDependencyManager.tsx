@@ -268,14 +268,14 @@ const EnhancedDependencyManager: FC<EnhancedDependencyManagerProps> = ({
         {/* Dependencies Display */}
         <div className="space-y-3">
           {/* Detected Dependencies */}
-          {detectedDependencies.length > 0 && (
+          {detectedDependencies && detectedDependencies.length > 0 && (
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center space-x-1">
                 <TbLoader className="w-3 h-3" />
                 <span>Auto-Detected ({detectedDependencies.length})</span>
               </p>
               <div className="flex flex-wrap gap-2">
-                {detectedDependencies
+                {(detectedDependencies || [])
                   .filter(dep => !dependencies.some(d => d.name === dep.toLowerCase()))
                   .map(dep => (
                     <Badge
@@ -293,14 +293,14 @@ const EnhancedDependencyManager: FC<EnhancedDependencyManagerProps> = ({
           )}
 
           {/* Manual Dependencies */}
-          {dependencies.length > 0 && (
+          {dependencies && dependencies.length > 0 && (
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center space-x-1">
                 <TbPlus className="w-3 h-3" />
                 <span>Added Dependencies ({dependencies.length})</span>
               </p>
               <div className="flex flex-wrap gap-2">
-                {dependencies.map(dep => (
+                {(dependencies || []).map(dep => (
                   <Badge
                     key={dep.name}
                     variant={dep.isValid === false ? "destructive" : "outline"}
@@ -350,7 +350,7 @@ const EnhancedDependencyManager: FC<EnhancedDependencyManagerProps> = ({
               variant="outline"
               size="sm"
               onClick={() => setDependencies([])}
-              disabled={dependencies.length === 0 || disabled}
+              disabled={!dependencies || dependencies.length === 0 || disabled}
             >
               Clear Manual
             </Button>

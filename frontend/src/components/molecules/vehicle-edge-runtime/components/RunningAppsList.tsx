@@ -13,16 +13,16 @@ import {
   TbPlayerPause,
   TbSquare,
   TbTrash,
-  Terminal,
-  Eye,
-  Loader,
-  Clock,
-  Cpu,
-  Memory
+  TbTerminal,
+  TbEye,
+  TbLoader,
+  TbClock,
+  TbCpu,
+  TbChartBar
 } from 'react-icons/tb'
 import { Button } from '@/components/atoms/button'
 import type { VehicleApp } from '@/services/vehicleEdgeRuntimeDirect.service'
-import { getStatusColor, getStatusBg, getStatusIcon, formatUptime } from '../utils'
+import { getStatusColor, getStatusBgColor, getStatusIcon, formatUptime } from '../utils'
 
 interface RunningAppsListProps {
   apps: VehicleApp[]
@@ -129,7 +129,7 @@ const RunningAppsList: FC<RunningAppsListProps> = ({
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Terminal className="w-8 h-8 text-gray-400" />
+            <TbTerminal className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Deployed</h3>
           <p className="text-gray-600 mb-4">
@@ -148,7 +148,7 @@ const RunningAppsList: FC<RunningAppsListProps> = ({
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Terminal className="w-5 h-5" />
+          <TbTerminal className="w-5 h-5" />
           Running Applications
           <span className="text-sm font-normal text-gray-500">
             ({apps.length} total)
@@ -162,7 +162,7 @@ const RunningAppsList: FC<RunningAppsListProps> = ({
           className="flex items-center gap-1"
         >
           {isRefreshing ? (
-            <Loader className="w-4 h-4 animate-spin" />
+            <TbLoader className="w-4 h-4 animate-spin" />
           ) : (
             <TbPlayerStop className="w-4 h-4" />
           )}
@@ -187,7 +187,7 @@ const RunningAppsList: FC<RunningAppsListProps> = ({
                   <h4 className="text-base font-medium text-gray-900 truncate">
                     {app.name}
                   </h4>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBg(app.status)} ${getStatusColor(app.status)}`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBgColor(app.status)} ${getStatusColor(app.status)}`}>
                     <span className="mr-1">{getStatusIcon(app.status)}</span>
                     {app.status}
                   </span>
@@ -199,7 +199,7 @@ const RunningAppsList: FC<RunningAppsListProps> = ({
                 <div className="text-sm text-gray-600 mb-2">
                   <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                      <TbClock className="w-3 h-3" />
                       Version: {app.version}
                     </span>
                     {app.created_at && (
@@ -219,11 +219,11 @@ const RunningAppsList: FC<RunningAppsListProps> = ({
                 {(app.status === 'running' || app.executionId) && (
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <span className="flex items-center gap-1">
-                      <Cpu className="w-3 h-3" />
+                      <TbCpu className="w-3 h-3" />
                       CPU: 0%
                     </span>
                     <span className="flex items-center gap-1">
-                      <Memory className="w-3 h-3" />
+                      <TbChartBar className="w-3 h-3" />
                       Memory: 128MB
                     </span>
                     {app.executionId && (
@@ -245,7 +245,7 @@ const RunningAppsList: FC<RunningAppsListProps> = ({
                   size="sm"
                   className="flex items-center gap-1"
                 >
-                  <Eye className="w-4 h-4" />
+                  <TbEye className="w-4 h-4" />
                   Console
                 </Button>
               </div>

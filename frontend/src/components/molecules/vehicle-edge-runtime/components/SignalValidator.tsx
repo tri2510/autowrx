@@ -83,7 +83,7 @@ const SignalValidator: FC<SignalValidatorProps> = ({
   const allAvailableSignals = [...new Set([...defaultVSSSignals, ...availableSignals])]
 
   const validateSignals = useCallback(async (signalsToValidate: string[]) => {
-    if (signalsToValidate.length === 0) {
+    if (!signalsToValidate || signalsToValidate.length === 0) {
       setValidation(null)
       onValidationComplete({
         valid: [],
@@ -131,7 +131,7 @@ const SignalValidator: FC<SignalValidatorProps> = ({
         valid,
         invalid,
         warnings,
-        total: signalsToValidate.length
+        total: signalsToValidate?.length || 0
       }
 
       setValidation(validationResult)
@@ -163,7 +163,7 @@ const SignalValidator: FC<SignalValidatorProps> = ({
         valid,
         invalid,
         warnings: ['Validation service unavailable - using fallback validation'],
-        total: signalsToValidate.length
+        total: signalsToValidate?.length || 0
       }
 
       setValidation(fallbackValidation)
@@ -200,7 +200,7 @@ const SignalValidator: FC<SignalValidatorProps> = ({
 
   // Validate signals when available signals change
   useEffect(() => {
-    if (signalList.length > 0) {
+    if (signalList && signalList.length > 0) {
       validateSignals(signalList)
     }
   }, [signalList, allAvailableSignals, validateSignals])
@@ -220,7 +220,7 @@ const SignalValidator: FC<SignalValidatorProps> = ({
         <CardContent>
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <TbLoader className="w-4 h-4 animate-spin" />
-            <span>Validating {signalList.length} signal{signalList.length !== 1 ? 's' : ''}...</span>
+            <span>Validating {signalList?.length || 0} signal{(signalList?.length || 0) !== 1 ? 's' : ''}...</span>
           </div>
         </CardContent>
       </Card>
@@ -301,14 +301,14 @@ const SignalValidator: FC<SignalValidatorProps> = ({
         </div>
 
         {/* Signal list and validation results */}
-        {signalList.length > 0 && (
+        {signalList && signalList.length > 0 && (
           <div className="space-y-4">
             <div>
               <h4 className="text-sm font-medium mb-2">Selected Signals ({signalList.length}):</h4>
               <div className="space-y-2">
-                {signalList.map(signal => {
-                  const isValid = validation?.valid.some(s => s.path === signal)
-                  const isInvalid = validation?.invalid.some(s => s.path === signal)
+                {(signalList || []).map(signal => {
+                  const isValid = validation?.valid?.some(s => s.path === signal) || false
+                  const isInvalid = validation?.invalid?.some(s => s.path === signal) || false
                   
                   return (
                     <div
@@ -355,19 +355,19 @@ const SignalValidator: FC<SignalValidatorProps> = ({
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center space-x-2">
                     <TbCheck className="w-4 h-4 text-green-600" />
-                    <span>{validation.valid.length} Valid signals</span>
+                    <span>{validation?.valid?.length || 0} Valid signals</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <TbAlertCircle className="w-4 h-4 text-red-600" />
-                    <span>{validation.invalid.length} Invalid signals</span>
+                    <span>{validation?.invalid?.length || 0} Invalid signals</span>
                   </div>
                 </div>
                 
-                {validation.warnings.length > 0 && (
+                {validation?.warnings && validation.warnings.length > 0 && (
                   <div className="mt-3">
                     <p className="text-sm font-medium text-yellow-600 mb-1">Warnings:</p>
                     <ul className="text-sm text-yellow-600 list-disc list-inside">
-                      {validation.warnings.map((warning, idx) => (
+                      {(validation?.warnings || []).map((warning, idx) => (
                         <li key={idx}>{warning}</li>
                       ))}
                     </ul>
@@ -379,7 +379,7 @@ const SignalValidator: FC<SignalValidatorProps> = ({
         )}
 
         {/* Empty state */}
-        {signalList.length === 0 && (
+        {!signalList || signalList.length === 0 && (
           <div className="text-center py-8">
             <TbActivity className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">

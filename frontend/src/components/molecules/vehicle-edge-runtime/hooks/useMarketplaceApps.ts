@@ -25,9 +25,28 @@ export interface MarketplaceApp {
   lastUpdated: string
   code?: string
   entryPoint?: string
-  type: 'python' | 'binary'
+  type: 'python' | 'binary' | 'docker'
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced'
   estimatedTime?: string
+  requirements?: string[]
+  // Docker-specific properties
+  dockerConfig?: {
+    image: string
+    name: string
+    ports?: Array<{ host: string; container: string }>
+    network?: string
+    environment?: Record<string, string>
+    command?: string[]
+    volumes?: Array<{ host: string; container: string }>
+    restartPolicy?: string
+    detach?: boolean
+  }
+  dockerCommand?: string[]
+  dockerImage?: string
+  dockerPorts?: string[]
+  dockerVolumes?: string[]
+  dockerEnvironment?: Record<string, string>
+  deploymentType?: 'container' | 'service' | 'application'
 }
 
 export interface MarketplaceState {
@@ -58,16 +77,24 @@ export const useMarketplaceApps = () => {
       // In a real implementation, this would fetch from a marketplace API
       const apps: MarketplaceApp[] = PROTOTYPE_APPS.map(app => ({
         ...app,
-        version: '1.0.0',
-        author: 'AutoWrx Team',
-        rating: 4.5,
-        downloads: Math.floor(Math.random() * 1000) + 100,
-        price: 'free' as const,
-        icon: '🚗',
-        tags: [app.category.toLowerCase(), 'vehicle', 'edge'],
-        size: '2.5 MB',
-        lastUpdated: new Date().toISOString(),
-        type: 'python' as const
+        version: app.version || '1.0.0',
+        author: app.author || 'AutoWrx Team',
+        rating: app.rating || 4.5,
+        downloads: app.downloads || Math.floor(Math.random() * 1000) + 100,
+        price: app.price || 'free' as const,
+        icon: app.icon || (app.type === 'docker' ? '🐳' : '🚗'),
+        tags: app.tags || [app.category.toLowerCase(), 'vehicle', 'edge'],
+        size: app.size || '2.5 MB',
+        lastUpdated: app.lastUpdated || new Date().toISOString(),
+        type: app.type || 'python' as const,
+        // Preserve docker-specific fields if they exist
+        dockerConfig: app.dockerConfig,
+        dockerCommand: app.dockerCommand,
+        dockerImage: app.dockerImage,
+        dockerPorts: app.dockerPorts,
+        dockerVolumes: app.dockerVolumes,
+        dockerEnvironment: app.dockerEnvironment,
+        deploymentType: app.deploymentType
       }))
 
       setState(prev => ({

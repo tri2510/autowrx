@@ -384,11 +384,11 @@ if __name__ == "__main__":
             className="min-h-[200px] font-mono"
             required
           />
-          {detectedDependencies.length > 0 && (
+          {detectedDependencies && detectedDependencies.length > 0 && (
             <div className="mt-2">
               <p className="text-sm text-green-600 mb-2">Auto-detected dependencies:</p>
               <div className="flex flex-wrap gap-1">
-                {detectedDependencies.map(dep => (
+                {(detectedDependencies || []).map(dep => (
                   <Badge key={dep} variant="secondary" className="text-xs">
                     {dep}
                   </Badge>
@@ -400,7 +400,7 @@ if __name__ == "__main__":
       </Card>
 
       <EnhancedDependencyManager
-        detectedDependencies={detectedDependencies}
+        detectedDependencies={detectedDependencies || []}
         onDependenciesChange={handleDependenciesChange}
         disabled={isDeploying}
       />
@@ -426,9 +426,9 @@ if __name__ == "__main__":
           </div>
           <div className="flex flex-wrap gap-2 mb-3">
             {formData.signals.map(signal => (
-              <Badge 
-                key={signal} 
-                variant={signalValidation?.valid.some(s => s.path === signal) ? "default" : "destructive"}
+              <Badge
+                key={signal}
+                variant={signalValidation?.valid && signalValidation.valid.some(s => s.path === signal) ? "default" : "destructive"}
                 className="flex items-center space-x-1"
               >
                 <span>{signal}</span>
@@ -444,7 +444,7 @@ if __name__ == "__main__":
           </div>
           {signalValidation && (
             <div className="space-y-2">
-              {signalValidation.invalid.length > 0 && (
+              {signalValidation.invalid && signalValidation.invalid.length > 0 && (
                 <div className="text-sm text-red-600">
                   <p>Invalid signals:</p>
                   <ul className="list-disc list-inside">
@@ -454,7 +454,7 @@ if __name__ == "__main__":
                   </ul>
                 </div>
               )}
-              {signalValidation.warnings.length > 0 && (
+              {signalValidation.warnings && signalValidation.warnings.length > 0 && (
                 <div className="text-sm text-yellow-600">
                   <p>Warnings:</p>
                   <ul className="list-disc list-inside">
@@ -470,7 +470,7 @@ if __name__ == "__main__":
       </Card>
 
       <div className="flex justify-end">
-        {signalValidation && signalValidation.invalid.length > 0 && (
+        {signalValidation && signalValidation.invalid && signalValidation.invalid.length > 0 && (
           <div className="text-sm text-yellow-600 mb-2">
             ⚠️ {signalValidation.invalid.length} signal{signalValidation.invalid.length !== 1 ? 's' : ''} unavailable. Deployment may have limited functionality.
           </div>

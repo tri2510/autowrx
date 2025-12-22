@@ -15,7 +15,7 @@ import { TbServer, TbRocket, TbLoader, TbCheck, TbInfoCircle, TbPlug, TbChevronD
 interface SimpleKuksaDeployerProps {
   selectedKit: any
   isRuntimeConnected: boolean
-  onDeployKuksaServer: () => void
+  onDeployKuksaServer?: () => void
   isDeployingKuksa: boolean
   deployedApps?: any[] // Array of deployed apps from Applications tab
 }
@@ -31,7 +31,7 @@ const SimpleKuksaDeployer: FC<SimpleKuksaDeployerProps> = ({
   const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
   // Check if KUKSA server is actually running
-  const kuksaApp = deployedApps.find(app =>
+  const kuksaApp = (deployedApps || []).find(app =>
     app.app_id === 'VEA-kuksa-databroker' ||
     app.app_id === 'kuksa-databroker' || // fallback if backend still adds prefix
     app.id === 'VEA-kuksa-databroker' ||
@@ -41,7 +41,7 @@ const SimpleKuksaDeployer: FC<SimpleKuksaDeployerProps> = ({
   const isKuksaRunning = kuksaApp?.status === 'running' || kuksaApp?.status === 'starting'
 
   const handleDeploy = async () => {
-    if (!selectedKit || !isRuntimeConnected) {
+    if (!selectedKit || !isRuntimeConnected || !onDeployKuksaServer) {
       setDeploymentStatus('error')
       return
     }
