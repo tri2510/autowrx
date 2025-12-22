@@ -242,21 +242,21 @@ SERVER_PORT = 55555
 def main():
     try:
         with VSSClient(SERVER_HOST, SERVER_PORT) as client:
-            print("✅ Connected to KUKSA Databroker")
+            print("Connected to KUKSA Databroker")
 
             # Test setting speed value
             test_speed = 55.0
             client.set_current_values({
                 'Vehicle.Speed': Datapoint(test_speed)
             })
-            print(f"📡 Set Vehicle.Speed to {test_speed} km/h")
+            print(f"Set Vehicle.Speed to {test_speed} km/h")
 
             # Test reading speed value
             current_speed = client.get_current_values(['Vehicle.Speed'])
-            print(f"📊 Read Vehicle.Speed: {current_speed}")
+            print(f"Read Vehicle.Speed: {current_speed}")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     main()`)}
