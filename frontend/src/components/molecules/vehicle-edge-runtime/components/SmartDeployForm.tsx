@@ -57,59 +57,12 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   onValidateSignals
 }) => {
   const [formData, setFormData] = useState<SmartDeployment>({
-    id: 'speed-provider',
-    name: 'Speed Provider',
+    id: 'your-vehicle-app',
+    name: 'Your Vehicle Application',
     type: 'python',
-    code: `# speed_provider.py
-
-from kuksa_client.grpc import VSSClient
-from kuksa_client.grpc import Datapoint
-import time
-import os
-
-# --- Configuration ---
-# Use the host's IP as seen from the container
-SERVER_HOST = os.environ.get('KUKSA_HOST', '172.17.0.4')
-SERVER_PORT = 55555
-VSS_PATH_SPEED = 'Vehicle.Speed'
-LOOP_INTERVAL = 1.0  # seconds
-
-def main():
-    """
-    Connects to KUKSA and continuously feeds speed data.
-    """
-    try:
-        with VSSClient(SERVER_HOST, SERVER_PORT) as client:
-            print(f"Provider: Connected to KUKSA at {SERVER_HOST}:{SERVER_PORT}")
-            print("Provider: Starting to feed data...")
-
-            # Loop to simulate speed changes
-            while True:
-                for speed in range(0, 101, 5):  # Accelerate
-                    client.set_current_values({
-                        VSS_PATH_SPEED: Datapoint(speed),
-                    })
-                    print(f"Provider: Feeding Vehicle.Speed to {speed} km/h")
-                    time.sleep(LOOP_INTERVAL)
-
-                for speed in range(100, -1, -5):  # Decelerate
-                    client.set_current_values({
-                        VSS_PATH_SPEED: Datapoint(speed),
-                    })
-                    print(f"Provider: Feeding Vehicle.Speed to {speed} km/h")
-                    time.sleep(LOOP_INTERVAL)
-
-    except ConnectionRefusedError:
-        print(f"Provider: Connection failed. Is KUKSA running on the host at {SERVER_HOST}:{SERVER_PORT}?")
-    except Exception as e:
-        print(f"Provider: An unexpected error occurred: {e}")
-    finally:
-        print("Provider: Finished.")
-
-if __name__ == "__main__":
-    main()`,
+    code: '',
     dependencies: [],
-    signals: ['Vehicle.Speed'],
+    signals: [],
     environment: 'development'
   })
 
@@ -275,44 +228,70 @@ if __name__ == "__main__":
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleInputChange('code', `# kuksa_test.py
+              onClick={() => handleInputChange('code', `# poll_speed.py
+
 from kuksa_client.grpc import VSSClient
-from kuksa_client.grpc import Datapoint
+import os
+import sys
 import time
 
-# Test KUKSA connection
-SERVER_HOST = "127.0.0.1"
+# --- Configuration ---
+# Use the host's IP as seen from the container
+SERVER_HOST = os.environ.get('KUKSA_HOST', '172.17.0.4')
 SERVER_PORT = 55555
+VSS_PATH_SPEED = 'Vehicle.Speed'
+# Time to wait between each poll (in seconds)
+POLL_INTERVAL = 2.0
 
 def main():
+    """
+    Connects to KUKSA and polls for a value in an infinite loop.
+    """
     try:
+        # The 'with' statement handles connection and disconnection automatically
         with VSSClient(SERVER_HOST, SERVER_PORT) as client:
-            print("✅ Connected to KUKSA Databroker")
+            print(f"Connecting to KUKSA at {SERVER_HOST}:{SERVER_PORT} to poll {VSS_PATH_SPEED}...")
+            print(f"Polling every {POLL_INTERVAL} seconds. Press Ctrl+C to stop.")
+            print("-" * 50)
 
-            # Test setting speed value
-            test_speed = 55.0
-            client.set_current_values({
-                'Vehicle.Speed': Datapoint(test_speed)
-            })
-            print(f"📡 Set Vehicle.Speed to {test_speed} km/h")
+            # Infinite loop for continuous polling
+            while True:
+                # Use get_current_values() to retrieve the data
+                values = client.get_current_values([VSS_PATH_SPEED])
 
-            # Test reading speed value
-            current_speed = client.get_current_values(['Vehicle.Speed'])
-            print(f"📊 Read Vehicle.Speed: {current_speed}")
+                # Extract the datapoint from the dictionary
+                speed_datapoint = values.get(VSS_PATH_SPEED)
 
+                # Get the current timestamp for a more informative output
+                timestamp = time.strftime('%H:%M:%S')
+
+                if speed_datapoint and speed_datapoint.value is not None:
+                    print(f"[{timestamp}] Current {VSS_PATH_SPEED}: {speed_datapoint.value} km/h")
+                else:
+                    print(f"[{timestamp}] Could not retrieve {VSS_PATH_SPEED}. Value may not be set.")
+
+                # Wait for the next interval
+                time.sleep(POLL_INTERVAL)
+
+    except KeyboardInterrupt:
+        print("\\nPolling stopped by user.")
+    except ConnectionRefusedError:
+        print(f"Connection failed. Is the KUKSA Databroker running on the host at {SERVER_HOST}:{SERVER_PORT}?")
+        sys.exit(1)
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"An unexpected error occurred: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()`)}
-              title="Insert KUKSA test code template"
+              title="Insert example speed polling application code"
             >
               <TbDownload className="w-4 h-4 mr-1" />
-              Insert KUKSA Test Code
+              Example poll speed app
             </Button>
           </div>
           <Textarea
-            placeholder="Enter your Python application code here... (e.g., KUKSA client, vehicle data provider)"
+            placeholder="Enter your Python application code here..."
             value={formData.code}
             onChange={(e) => handleInputChange('code', e.target.value)}
             className="min-h-[200px] font-mono"
