@@ -1690,6 +1690,7 @@ if __name__ == "__main__":
             <SmartDeploymentWorkflow
               selectedKit={selectedKit}
               isRuntimeConnected={isRuntimeConnected}
+              deployedApps={deployedRuntimeApps}
               onDeploy={async (deployment) => {
                 // Handle smart deployment
                 try {

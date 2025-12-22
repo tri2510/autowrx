@@ -51,6 +51,7 @@ interface SmartDeployFormProps {
   isDeployingKuksa?: boolean
   selectedKit?: any
   isRuntimeConnected?: boolean
+  deployedApps?: any[] // Added to pass deployed apps for KUKSA status checking
 }
 
 const SmartDeployForm: FC<SmartDeployFormProps> = ({
@@ -63,7 +64,8 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   onDeployKuksaServer,
   isDeployingKuksa = false,
   selectedKit,
-  isRuntimeConnected = false
+  isRuntimeConnected = false,
+  deployedApps = []
 }) => {
   const [formData, setFormData] = useState<SmartDeployment>({
     id: 'your-vehicle-app',
@@ -153,6 +155,7 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
         isRuntimeConnected={isRuntimeConnected}
         onDeployKuksaServer={onDeployKuksaServer}
         isDeployingKuksa={isDeployingKuksa}
+        deployedApps={deployedApps}
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -347,7 +350,9 @@ def main():
                 timestamp = time.strftime('%H:%M:%S')
 
                 if speed_datapoint and speed_datapoint.value is not None:
-                    print(f"[{timestamp}] Current {VSS_PATH_SPEED}: {speed_datapoint.value} km/h")
+                    # Format speed to 1 decimal place like the set value app
+                    speed_formatted = round(float(speed_datapoint.value), 1)
+                    print(f"[{timestamp}] Current {VSS_PATH_SPEED}: {speed_formatted} km/h")
                 else:
                     print(f"[{timestamp}] Could not retrieve {VSS_PATH_SPEED}. Value may not be set.")
 

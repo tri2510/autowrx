@@ -34,13 +34,15 @@ interface SmartDeploymentWorkflowProps {
   isRuntimeConnected: boolean
   onDeploy: (deployment: SmartDeployment) => Promise<void>
   isDeploying?: boolean
+  deployedApps?: any[] // Added to pass deployed apps for KUKSA status checking
 }
 
 const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
   selectedKit,
   isRuntimeConnected,
   onDeploy,
-  isDeploying = false
+  isDeploying = false,
+  deployedApps = []
 }) => {
   const [deployment, setDeployment] = useState<SmartDeployment>({
     id: '',
@@ -102,14 +104,14 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
         type: 'deploy_request',
         id: `deploy-kuksa-${Date.now()}`,
         prototype: {
-          id: 'databroker',
+          id: 'VEA-kuksa-databroker', // Include VEA prefix - let's see what backend does
           name: 'Kuksa Data Broker', // Must contain "kuksa" for proper prefixing
           type: 'docker', // ⭐ CRITICAL: MUST be "docker"
           description: 'Eclipse Kuksa vehicle signal databroker - Production deployment',
           config: {
             dockerCommand: [ // ⭐ CRITICAL: MUST be array
               'run', '-d',
-              '--name', 'kuksa-databroker-prod',
+              '--name', 'VEA-kuksa-databroker', // Use VEA- prefix for container name as requested
               '--network', 'host',
               '-p', '55555:55555', // gRPC port
               '-p', '8090:8090',   // HTTP/VSS port
@@ -133,7 +135,8 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
         status: 'success',
         message: `KUKSA Databroker Server deployed successfully to ${selectedKit.name}!`,
         suggestions: [
-          'Server appears as "kuksa-databroker" in Applications tab',
+          'Server appears as "VEA-kuksa-databroker" in Applications tab',
+          'Container runs as "VEA-kuksa-databroker"',
           'Accessible at: localhost:55555 (gRPC) and localhost:8090 (HTTP)',
           'Full lifecycle management available in Applications tab',
           'Python apps can connect via localhost:55555'
@@ -374,6 +377,7 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
         signalValidation={signalValidation}
         onDetectDependencies={handleCodeChange}
         onValidateSignals={handleSignalsChange}
+        deployedApps={deployedApps}
       />
 
       {/* Dependency Detection Status */}
