@@ -224,11 +224,52 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
         <CardContent>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium">Application Code *</label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleInputChange('code', `# poll_speed.py
+            <div className="flex space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleInputChange('code', `# kuksa_set_value.py
+from kuksa_client.grpc import VSSClient
+from kuksa_client.grpc import Datapoint
+import time
+
+# --- Configuration ---
+# Use the host's IP as seen from the container
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 55555
+
+def main():
+    try:
+        with VSSClient(SERVER_HOST, SERVER_PORT) as client:
+            print("✅ Connected to KUKSA Databroker")
+
+            # Test setting speed value
+            test_speed = 55.0
+            client.set_current_values({
+                'Vehicle.Speed': Datapoint(test_speed)
+            })
+            print(f"📡 Set Vehicle.Speed to {test_speed} km/h")
+
+            # Test reading speed value
+            current_speed = client.get_current_values(['Vehicle.Speed'])
+            print(f"📊 Read Vehicle.Speed: {current_speed}")
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+if __name__ == "__main__":
+    main()`)}
+                title="Insert example set value application code"
+              >
+                <TbDownload className="w-4 h-4 mr-1" />
+                Example set value app
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleInputChange('code', `# poll_speed.py
 
 from kuksa_client.grpc import VSSClient
 import os
@@ -284,11 +325,12 @@ def main():
 
 if __name__ == "__main__":
     main()`)}
-              title="Insert example speed polling application code"
-            >
-              <TbDownload className="w-4 h-4 mr-1" />
-              Example poll speed app
-            </Button>
+                title="Insert example speed polling application code"
+              >
+                <TbDownload className="w-4 h-4 mr-1" />
+                Example poll speed app
+              </Button>
+            </div>
           </div>
           <Textarea
             placeholder="Enter your Python application code here..."
