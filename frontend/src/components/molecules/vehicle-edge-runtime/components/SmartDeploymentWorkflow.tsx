@@ -60,6 +60,7 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
     message: string
     suggestions?: string[]
   } | null>(null)
+  const [isDeployingKuksa, setIsDeployingKuksa] = useState(false)
 
   // Handle code change with dependency detection
   const handleCodeChange = useCallback(async (newCode: string) => {
@@ -77,6 +78,127 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
       setDetectedDependencies([])
     }
   }, [])
+
+  // Handle KUKSA server deployment
+  const handleDeployKuksaServer = useCallback(async () => {
+    if (!selectedKit || !isRuntimeConnected) {
+      setDeploymentResult({
+        status: 'error',
+        message: 'No runtime selected or not connected',
+        suggestions: ['Please select a connected Vehicle Edge Runtime from the header']
+      })
+      return
+    }
+
+    setIsDeployingKuksa(true)
+    setDeploymentResult(null)
+
+    try {
+      const timestamp = new Date().toLocaleTimeString()
+      console.log('🚀 Starting KUKSA Server deployment...')
+
+      // Create KUKSA server deployment data using the same mechanism as app deployment
+      const kuksaServerDeployment: SmartDeployment = {
+        id: 'kuksa-server-docker',
+        name: 'KUKSA Databroker Server',
+        type: 'python',
+        code: `import os
+import subprocess
+import time
+import signal
+import sys
+from pathlib import Path
+
+# Install kuksa-val in container if not already installed
+try:
+    import kuksa.val.server
+except ImportError:
+    print('Installing kuksa-val...')
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'kuksa-val'])
+    import kuksa.val.server
+
+# Start Kuksa server using Python module
+print('Starting Kuksa server...')
+try:
+    cmd = [
+        sys.executable, '-m', 'kuksa.val.server',
+        '--vss', '/vss-core/vss_release_3.0.json',
+        '--port', '8090',
+        '--host', '0.0.0.0',
+        '--log-level', 'info'
+    ]
+
+    print(f'Command: {" ".join(cmd)}')
+
+    # Start server process
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        universal_newlines=True
+    )
+
+    print('Kuksa server starting...')
+    print('Server will be available at: ws://localhost:8090')
+
+    # Handle graceful shutdown
+    def signal_handler(sig, frame):
+        print('\\\\nShutting down Kuksa server...')
+        process.terminate()
+        process.wait()
+        print('Kuksa server stopped')
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Stream server output
+    for line in iter(process.stdout.readline, ''):
+        if line:
+            print(line.rstrip())
+
+except Exception as e:
+    print(f'Error starting Kuksa server: {e}')
+    sys.exit(1)
+except KeyboardInterrupt:
+    print('\\\\nShutting down...')`,
+        dependencies: ['kuksa-val'],
+        signals: [],
+        environment: 'development'
+      }
+
+      await onDeploy(kuksaServerDeployment)
+
+      setDeploymentResult({
+        status: 'success',
+        message: `KUKSA Databroker Server deployed successfully to ${selectedKit.name}!`,
+        suggestions: [
+          'Server will be available at: ws://localhost:8090',
+          'Check the Applications tab to manage the KUKSA server',
+          'Use the set value app to test connectivity to the server'
+        ]
+      })
+
+      // Switch to apps tab to show the deployed KUKSA server
+      setTimeout(() => {
+        // This will be handled by the parent component
+      }, 1000)
+
+    } catch (error) {
+      console.error('KUKSA server deployment failed:', error)
+      setDeploymentResult({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'KUKSA server deployment failed',
+        suggestions: [
+          'Check if the runtime has sufficient resources',
+          'Verify the runtime connection is stable',
+          'Try redeploying the KUKSA server'
+        ]
+      })
+    } finally {
+      setIsDeployingKuksa(false)
+    }
+  }, [selectedKit, isRuntimeConnected, onDeploy])
 
   // Handle signal validation
   const handleSignalsChange = useCallback(async (signals: string[]) => {
@@ -295,6 +417,10 @@ const SmartDeploymentWorkflow: FC<SmartDeploymentWorkflowProps> = ({
       <SmartDeployForm
         onSubmit={handleSmartDeploy}
         isDeploying={isDeploying}
+        isDeployingKuksa={isDeployingKuksa}
+        onDeployKuksaServer={handleDeployKuksaServer}
+        selectedKit={selectedKit}
+        isRuntimeConnected={isRuntimeConnected}
         detectedDependencies={detectedDependencies}
         signalValidation={signalValidation}
         onDetectDependencies={handleCodeChange}

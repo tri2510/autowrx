@@ -15,6 +15,7 @@ import { Badge } from '@/components/atoms/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
 import { TbCode, TbBinary, TbRocket, TbLoader, TbPlus, TbX, TbDownload } from 'react-icons/tb'
 import EnhancedDependencyManager from './EnhancedDependencyManager'
+import CollapsibleKuksaSection from './CollapsibleKuksaSection'
 
 export interface SmartDeployment {
   id: string
@@ -46,6 +47,10 @@ interface SmartDeployFormProps {
   signalValidation?: SignalValidation
   onDetectDependencies?: (code: string) => void
   onValidateSignals?: (signals: string[]) => void
+  onDeployKuksaServer?: () => void
+  isDeployingKuksa?: boolean
+  selectedKit?: any
+  isRuntimeConnected?: boolean
 }
 
 const SmartDeployForm: FC<SmartDeployFormProps> = ({
@@ -54,7 +59,11 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   detectedDependencies = [],
   signalValidation,
   onDetectDependencies,
-  onValidateSignals
+  onValidateSignals,
+  onDeployKuksaServer,
+  isDeployingKuksa = false,
+  selectedKit,
+  isRuntimeConnected = false
 }) => {
   const [formData, setFormData] = useState<SmartDeployment>({
     id: 'your-vehicle-app',
@@ -137,7 +146,16 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   const isFormValid = formData.id.trim() && formData.code.trim()
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <>
+      {/* KUKSA Server Section - Moved to Top */}
+      <CollapsibleKuksaSection
+        selectedKit={selectedKit}
+        isRuntimeConnected={isRuntimeConnected}
+        onDeployKuksaServer={onDeployKuksaServer}
+        isDeployingKuksa={isDeployingKuksa}
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -425,39 +443,40 @@ if __name__ == "__main__":
       </Card>
 
       <div className="flex justify-end">
-        <div className="flex flex-col items-end space-y-2">
-          {signalValidation && signalValidation.invalid.length > 0 && (
-            <div className="text-sm text-yellow-600 text-right">
-              ⚠️ {signalValidation.invalid.length} signal{signalValidation.invalid.length !== 1 ? 's' : ''} unavailable. Deployment may have limited functionality.
-            </div>
+        {signalValidation && signalValidation.invalid.length > 0 && (
+          <div className="text-sm text-yellow-600 mb-2">
+            ⚠️ {signalValidation.invalid.length} signal{signalValidation.invalid.length !== 1 ? 's' : ''} unavailable. Deployment may have limited functionality.
+          </div>
+        )}
+        <Button
+          type="submit"
+          disabled={!isFormValid || isDeploying || isDeployingKuksa}
+          className="min-w-[140px]"
+          title={
+            !isFormValid
+              ? 'Please fill in required fields (Application ID and Code)'
+              : isDeploying
+              ? 'Deployment in progress...'
+              : isDeployingKuksa
+              ? 'KUKSA server deployment in progress...'
+              : 'Deploy application to Vehicle Edge Runtime'
+          }
+        >
+          {isDeploying ? (
+            <>
+              <TbLoader className="w-4 h-4 mr-2 animate-spin" />
+              Deploying...
+            </>
+          ) : (
+            <>
+              <TbRocket className="w-4 h-4 mr-2" />
+              Deploy Application
+            </>
           )}
-          <Button 
-            type="submit" 
-            disabled={!isFormValid || isDeploying}
-            className="min-w-[120px]"
-            title={
-              !isFormValid
-                ? 'Please fill in required fields (Application ID and Code)'
-                : isDeploying
-                ? 'Deployment in progress...'
-                : 'Deploy application to Vehicle Edge Runtime'
-            }
-          >
-            {isDeploying ? (
-              <>
-                <TbLoader className="w-4 h-4 mr-2 animate-spin" />
-                Deploying...
-              </>
-            ) : (
-              <>
-                <TbRocket className="w-4 h-4 mr-2" />
-                Deploy Application
-              </>
-            )}
-          </Button>
-        </div>
+        </Button>
       </div>
-    </form>
+      </form>
+    </>
   )
 }
 
