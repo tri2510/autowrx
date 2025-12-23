@@ -77,15 +77,18 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   })
 
   const [newSignal, setNewSignal] = useState('')
-  const [allDependencies, setAllDependencies] = useState<string[]>(detectedDependencies)
+  // Fixed default dependency for vehicle applications
+  const DEFAULT_DEPENDENCY = 'velocitas-sdk==0.14.1'
+  const [allDependencies, setAllDependencies] = useState<string[]>([DEFAULT_DEPENDENCY, ...detectedDependencies])
 
   // Sync allDependencies with detectedDependencies when they change
   useEffect(() => {
     setAllDependencies(prev => {
-      const manualDeps = prev.filter(dep => !detectedDependencies.includes(dep))
-      return [...detectedDependencies, ...manualDeps]
+      // Always keep the DEFAULT_DEPENDENCY first
+      const manualDeps = prev.filter(dep => dep !== DEFAULT_DEPENDENCY && !detectedDependencies.includes(dep))
+      return [DEFAULT_DEPENDENCY, ...detectedDependencies, ...manualDeps]
     })
-  }, [detectedDependencies])
+  }, [detectedDependencies, DEFAULT_DEPENDENCY])
 
   const handleInputChange = useCallback((field: keyof SmartDeployment, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -107,11 +110,16 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
 
   // Handle dependency changes from the enhanced manager
   const handleDependenciesChange = useCallback((dependencies: string[]) => {
-    setAllDependencies(dependencies)
-    // Store manual dependencies separately for form submission
-    const manualDeps = dependencies.filter(dep => !detectedDependencies.includes(dep))
+    // Ensure DEFAULT_DEPENDENCY is always included first
+    const depsWithDefault = dependencies.includes(DEFAULT_DEPENDENCY)
+      ? dependencies
+      : [DEFAULT_DEPENDENCY, ...dependencies]
+
+    setAllDependencies(depsWithDefault)
+    // Store manual dependencies separately for form submission (exclude detected dependencies)
+    const manualDeps = depsWithDefault.filter(dep => dep !== DEFAULT_DEPENDENCY && !detectedDependencies.includes(dep))
     handleInputChange('dependencies', manualDeps)
-  }, [detectedDependencies, handleInputChange])
+  }, [detectedDependencies, handleInputChange, DEFAULT_DEPENDENCY])
 
   const addSignal = useCallback(() => {
     if (newSignal.trim() && !formData.signals.includes(newSignal.trim())) {
