@@ -83,28 +83,52 @@ const AutoDependencyDetector: FC<AutoDependencyDetectorProps> = ({
   // Extract Python imports using regex as fallback
   const extractPythonImports = (sourceCode: string): string[] => {
     const imports = new Set<string>()
-    
-    // Match various import patterns
+
+    // First, remove comments and multi-line strings to avoid false positives
+    const cleanedCode = removeCommentsAndStrings(sourceCode)
+
+    // Smart regex patterns for Python imports (only on cleaned code)
     const patterns = [
-      /import\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)/g,
-      /from\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+import/g
+      // import xxx or import xxx as yyy
+      /^\s*import\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)(?:\s+as\s+[a-zA-Z_][a-zA-Z0-9_]*)?\s*$/gm,
+      // from xxx import yyy
+      /^\s*from\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+import\s+(?:\*|\(?:(?:[a-zA-Z_][a-zA-Z0-9_]*)(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*\))?\s*$/gm
     ]
 
     patterns.forEach(pattern => {
-      const matches = sourceCode.matchAll(pattern)
+      const matches = cleanedCode.matchAll(pattern)
       for (const match of matches) {
         const importPath = match[1]
-        // Get the top-level package name
-        const packageName = importPath.split('.')[0]
-        
+        // Get the top-level package name (e.g., "sdv.vdb.reply" -> "sdv")
+        const packageName = importPath.split('.')[0].toLowerCase()
+
         // Filter out standard library modules and local modules
-        if (!isStandardLibraryModule(packageName) && !isLocalModule(packageName, sourceCode)) {
+        if (!isStandardLibraryModule(packageName) && !isLocalModule(importPath, cleanedCode)) {
           imports.add(packageName)
         }
       }
     })
 
     return Array.from(imports).sort()
+  }
+
+  // Remove Python comments and strings to avoid false positive matches
+  const removeCommentsAndStrings = (sourceCode: string): string => {
+    let result = sourceCode
+
+    // Remove multi-line strings ('''...''' and """..."""")
+    result = result.replace(/'''[\s\S]*?'''/g, '')
+    result = result.replace(/"""[\s\S]*?"""/g, '')
+
+    // Remove single-line comments (# comment)
+    result = result.replace(/#.*$/gm, '')
+
+    // Remove regular strings (single and double quoted)
+    // This prevents matching words inside strings
+    result = result.replace(/'[^']*'/g, "''")
+    result = result.replace(/"[^"]*"/g, '""')
+
+    return result
   }
 
   const isStandardLibraryModule = (moduleName: string): boolean => {
@@ -119,11 +143,25 @@ const AutoDependencyDetector: FC<AutoDependencyDetectorProps> = ({
     return standardLibModules.includes(moduleName)
   }
 
-  const isLocalModule = (moduleName: string, sourceCode: string): boolean => {
-    // Check if there's a local file with this name
-    // This is a simple heuristic - in practice, you'd check the file system
-    const localImportPattern = new RegExp(`from\\s+\\.\\s*${moduleName}\\s+import`)
-    return localImportPattern.test(sourceCode)
+  const isLocalModule = (importPath: string, sourceCode: string): boolean => {
+    // Check for relative imports (from . import xxx, from .. import xxx)
+    const relativeImportPattern = /^\s*from\s+\.\.?\s+import/
+    if (relativeImportPattern.test(sourceCode)) {
+      return true
+    }
+
+    // Check if the import is from a local module (starts with dot in from statement)
+    const lines = sourceCode.split('\n')
+    for (const line of lines) {
+      if (line.includes(`from ${importPath}`)) {
+        // Check if it's a relative import
+        if (/^\s*from\s+\.\.?\s*(?:\w+)?\s+import/.test(line)) {
+          return true
+        }
+      }
+    }
+
+    return false
   }
 
   useEffect(() => {
