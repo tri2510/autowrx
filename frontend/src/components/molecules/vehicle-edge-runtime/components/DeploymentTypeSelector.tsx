@@ -58,8 +58,8 @@ const deploymentTypes: DeploymentTypeConfig[] = [
     name: 'Binary Application',
     description: 'Deploy pre-compiled binary applications with automatic containerization.',
     icon: <TbBinary className="w-6 h-6" />,
-    badge: 'Available',
-    badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    badge: 'Coming Soon',
+    badgeColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
     features: [
       'Binary file upload with base64 encoding',
       'URL download support for binaries',
@@ -67,15 +67,15 @@ const deploymentTypes: DeploymentTypeConfig[] = [
       'Custom run commands and base images',
       'Resource limits and environment variables'
     ],
-    status: 'available'
+    status: 'coming-soon'
   },
   {
     id: 'docker',
     name: 'Docker Container',
     description: 'Deploy existing Docker images or custom container configurations.',
     icon: <TbPackage className="w-6 h-6" />,
-    badge: 'Available',
-    badgeColor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    badge: 'Coming Soon',
+    badgeColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
     features: [
       'Deploy existing Docker images',
       'Custom Docker command execution',
@@ -83,7 +83,7 @@ const deploymentTypes: DeploymentTypeConfig[] = [
       'Port and volume mapping',
       'Network and runtime configuration'
     ],
-    status: 'available'
+    status: 'coming-soon'
   }
 ]
 
@@ -198,7 +198,7 @@ const DeploymentTypeSelector: FC<DeploymentTypeSelectorProps> = ({
       <div className="text-center">
         <p className="text-sm text-muted-foreground">
           <TbInfoCircle className="inline-block w-4 h-4 mr-1" />
-          All deployment types are now available! Select the type that best fits your application needs.
+          Binary and Docker deployment options will be available in future updates.
         </p>
       </div>
     </div>
