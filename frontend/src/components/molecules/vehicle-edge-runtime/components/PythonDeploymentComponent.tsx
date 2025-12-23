@@ -188,9 +188,7 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
               '-p', '55555:55555',
               '-p', '8090:8090',
               'ghcr.io/eclipse-kuksa/kuksa-databroker:0.4.4',
-              '--insecure',
-              '--enable-viss',
-              '--viss-port', '8090'
+              '--insecure'
             ]
           }
         },
