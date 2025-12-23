@@ -1117,14 +1117,19 @@ if __name__ == "__main__":
           console.warn('Failed to refresh apps list:', error)
         }
 
-        // Switch to apps tab to view deployed app
-        setActiveTab('apps')
+        // Don't switch to apps tab - keep user on deploy tab to continue deploying
+        // setActiveTab('apps')
         return
       }
 
       // Handle regular Python/Binary app deployment
       const appName = deployment.name || deployment.id
-      const appId = deployment.id
+
+      // Add VEA- prefix to appId if not already present
+      let appId = deployment.id
+      if (!appId.startsWith('VEA-')) {
+        appId = `VEA-${appId}`
+      }
 
       // Log deployment info based on deployment type
       const isBinaryDeployment = deployment.type === 'deploy_request' && deployment.prototype?.type === 'binary'
@@ -1170,8 +1175,8 @@ if __name__ == "__main__":
         console.warn('Failed to refresh apps list:', error)
       }
 
-      // Switch to apps tab to view deployed app
-      setActiveTab('apps')
+      // Don't switch to apps tab - keep user on deploy tab to continue deploying
+      // setActiveTab('apps')
 
     } catch (error) {
       console.error('Deployment failed:', error)
@@ -1259,8 +1264,8 @@ if __name__ == "__main__":
       // Clear current deployment on success
       setCurrentDeployment(null)
 
-      // Switch to apps tab to view deployed app
-      setActiveTab('apps')
+      // Don't switch to apps tab - keep user on deploy tab to continue deploying
+      // setActiveTab('apps')
     } catch (error) {
       console.error('Deployment failed:', error)
       const timestamp = new Date().toLocaleTimeString()

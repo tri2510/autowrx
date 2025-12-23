@@ -227,7 +227,7 @@ const BinaryDeploymentComponent: FC<BinaryDeploymentComponentProps> = ({
         type: 'deploy_request',
         id: `deploy-binary-${Date.now()}`,
         prototype: {
-          id: appName.toLowerCase().replace(/\s+/g, '-'),
+          id: `VEA-${appName.toLowerCase().replace(/\s+/g, '-')}`.replace('vea-', 'VEA-'),
           name: appName,
           type: 'binary',
           description: appDescription || `${appName} binary application`,
