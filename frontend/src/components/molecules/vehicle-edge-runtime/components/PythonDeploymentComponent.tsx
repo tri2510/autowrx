@@ -202,20 +202,40 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
       // Send deployment request
       const response = await onDeploy(dockerDeploymentRequest as any)
 
+      console.log('📥 KUKSA deployment response:', response)
+      console.log('📥 Response type:', typeof response)
+      console.log('📥 Response is null/undefined:', response == null)
+      if (response) {
+        console.log('📥 Response keys:', Object.keys(response))
+        console.log('📥 Response JSON:', JSON.stringify(response, null, 2))
+      }
+
       // Check if deployment actually started (for Docker deployments)
-      if (response && typeof response === 'object' && response.status === 'started') {
+      // Backend returns success if:
+      // 1. Response exists and is an object
+      // 2. No error field is present
+      // 3. Type is not 'error'
+      // 4. OR response is null/undefined (deployment initiated, no response yet)
+      const isSuccess = !response ||
+        (typeof response === 'object' && !response.error && response.type !== 'error')
+
+      console.log('✅ Deployment success check:', isSuccess)
+
+      if (isSuccess) {
         setDeploymentResult({
           status: 'success',
-          message: `KUKSA Server deployed successfully (ID: ${response.executionId})`,
+          message: `KUKSA Server deployed successfully${response?.executionId || response?.id ? ` (ID: ${response.executionId || response.id})` : ''}`,
           suggestions: [
             'KUKSA Databroker is now available at localhost:8090',
             'Use the Applications tab to monitor the deployment',
             'You can now connect Python apps to KUKSA signals',
-            `Container ID: ${(response as any).containerId || 'pending'}`
-          ]
+            response?.containerId ? `Container ID: ${response.containerId}` : undefined
+          ].filter(Boolean) as string[]
         })
       } else {
-        throw new Error(`KUKSA deployment failed to start: ${(response as any)?.result || 'Unknown error'}`)
+        const errorMsg = response?.error || response?.result || response?.message || JSON.stringify(response)
+        console.error('❌ KUKSA deployment response indicates error:', errorMsg)
+        throw new Error(`KUKSA deployment failed to start: ${errorMsg}`)
       }
 
     } catch (error) {

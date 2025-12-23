@@ -57,8 +57,7 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
     try {
       // For Docker deployments, pass through without modification
       if (deployment.type === 'deploy_request' && deployment.prototype?.type === 'docker') {
-        await onDeploy(deployment)
-        return
+        return await onDeploy(deployment)
       }
 
       // Add deployment type information for other deployments
@@ -68,7 +67,7 @@ const DeploymentOrchestrator: FC<DeploymentOrchestratorProps> = ({
         timestamp: new Date().toISOString()
       }
 
-      await onDeploy(enhancedDeployment)
+      return await onDeploy(enhancedDeployment)
     } catch (error) {
       console.error('Deployment failed:', error)
       throw error

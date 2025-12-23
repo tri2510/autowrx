@@ -1100,14 +1100,20 @@ if __name__ == "__main__":
         // Send Docker deployment request directly using sendMessage
         const response = await vehicleEdgeRuntimeDirectService.sendMessage(deployment)
 
-        if (response.status === 'started') {
+        console.log('📥 Docker deployment response:', response)
+        console.log('📥 Response keys:', response ? Object.keys(response) : 'null')
+
+        // Backend returns success if no error field is present
+        if (response && typeof response === 'object' && !response.error && !response.type?.includes('error')) {
           setConsoleOutput(prev => [...prev,
-            `[${new Date().toLocaleTimeString()}] ✅ Docker container deployed and started successfully: ${response.executionId}`,
+            `[${new Date().toLocaleTimeString()}] ✅ Docker container deployed and started successfully: ${response.executionId || response.id || 'N/A'}`,
             `[${new Date().toLocaleTimeString()}] 🚗 Runtime: ${selectedKit?.name}`,
             `[${new Date().toLocaleTimeString()}] 🐳 Container ID: ${response.containerId || 'pending'}`
           ])
         } else {
-          throw new Error(`Docker deployment failed: ${response.result || 'Unknown error'}`)
+          const errorMsg = response?.error || response?.result || 'Unknown error'
+          console.error('❌ Docker deployment response indicates error:', errorMsg)
+          throw new Error(`Docker deployment failed: ${errorMsg}`)
         }
 
         // Refresh the apps list
