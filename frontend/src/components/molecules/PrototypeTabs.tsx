@@ -14,7 +14,7 @@ import {
   TbGauge,
   TbMapPin,
   TbRoute,
-  TbServer,
+  TbRocket,
 } from 'react-icons/tb'
 import { TabConfig } from '@/components/organisms/CustomTabEditor'
 
@@ -28,7 +28,7 @@ const DEFAULT_BUILTIN_TABS: TabConfig[] = [
   { type: 'builtin', key: 'journey', label: 'Customer Journey' },
   { type: 'builtin', key: 'code', label: 'SDV Code' },
   { type: 'builtin', key: 'dashboard', label: 'Dashboard' },
-  { type: 'builtin', key: 'vehicle-edge-runtime', label: 'Vehicle Edge Runtime' },
+  { type: 'builtin', key: 'vehicle-edge-runtime', label: 'Staging' },
 ]
 
 // Migration helper: convert old format to new format
@@ -99,7 +99,7 @@ const PrototypeTabs: FC<PrototypeTabsProps> = ({ tabs }) => {
               break
             case 'vehicle-edge-runtime':
               route = `/model/${model_id}/library/prototype/${prototype_id}/vehicle-edge-runtime`
-              icon = <TbServer className="w-5 h-5 mr-2" />
+              icon = <TbRocket className="w-5 h-5 mr-2" />
               dataId = 'tab-vehicle-edge-runtime'
               break
             default:

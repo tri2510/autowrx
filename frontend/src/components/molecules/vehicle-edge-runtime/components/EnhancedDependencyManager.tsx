@@ -20,7 +20,9 @@ import {
   TbAlertCircle,
   TbRefresh,
   TbPackage,
-  TbSearch
+  TbSearch,
+  TbChevronDown,
+  TbChevronRight
 } from 'react-icons/tb'
 
 interface Dependency {
@@ -66,6 +68,7 @@ const EnhancedDependencyManager: FC<EnhancedDependencyManagerProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [validatingPackages, setValidatingPackages] = useState<Set<string>>(new Set())
   const [packageValidation, setPackageValidation] = useState<Record<string, boolean>>({})
+  const [isExpanded, setIsExpanded] = useState(false) // Default collapsed
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Initialize detected dependencies
@@ -199,18 +202,28 @@ const EnhancedDependencyManager: FC<EnhancedDependencyManagerProps> = ({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <TbPackage className="w-5 h-5" />
-          <span>Dependencies Management</span>
-          {isLoading && <TbLoader className="w-4 h-4 animate-spin text-blue-500" />}
-          {hasInvalidDeps && <TbAlertCircle className="w-4 h-4 text-yellow-500" />}
+      <CardHeader
+        className="cursor-pointer select-none"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <CardTitle className="flex items-center justify-between space-x-2">
+          <div className="flex items-center space-x-2">
+            <TbPackage className="w-5 h-5" />
+            <span>Dependencies Management</span>
+            {isLoading && <TbLoader className="w-4 h-4 animate-spin text-blue-500" />}
+            {hasInvalidDeps && <TbAlertCircle className="w-4 h-4 text-yellow-500" />}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({dependencies.length} package{dependencies.length !== 1 ? 's' : ''})
+            </span>
+          </div>
+          {isExpanded ? <TbChevronDown className="w-5 h-5" /> : <TbChevronRight className="w-5 h-5" />}
         </CardTitle>
         <CardDescription>
           Add Python packages to install. Detected dependencies are included automatically.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      {isExpanded && (
+        <CardContent className="space-y-4">
         {/* Add Dependency Input */}
         <div className="space-y-2">
           <div className="flex space-x-2">
@@ -374,6 +387,7 @@ const EnhancedDependencyManager: FC<EnhancedDependencyManagerProps> = ({
           </div>
         </div>
       </CardContent>
+      )}
     </Card>
   )
 }
