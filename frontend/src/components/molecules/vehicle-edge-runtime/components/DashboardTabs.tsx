@@ -38,7 +38,7 @@ const DashboardTabs: FC<DashboardTabsProps> = ({
   const tabs: DashboardTab[] = [
     { id: 'overview', label: 'Overview', icon: TbDeviceDesktop },
     { id: 'deploy', label: 'Deploy', icon: TbRocket },
-    { id: 'marketplace', label: 'Marketplace', icon: TbShoppingCart },
+    // { id: 'marketplace', label: 'Marketplace', icon: TbShoppingCart }, // Hidden for future use
     { id: 'apps', label: 'Applications', icon: TbCode, count: runningAppsCount },
     { id: 'settings', label: 'Settings', icon: TbSettings }
   ]

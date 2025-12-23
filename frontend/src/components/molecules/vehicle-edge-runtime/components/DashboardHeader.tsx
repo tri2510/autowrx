@@ -8,7 +8,7 @@
 
 import { FC } from 'react'
 import {
-  TbServer,
+  TbRocket,
   TbPlugConnected,
   TbPlug,
   TbAlertTriangle
@@ -39,7 +39,7 @@ const DashboardHeader: FC<DashboardHeaderProps> = ({
     <div className="border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <TbServer className="w-8 h-8 text-primary" />
+          <TbRocket className="w-8 h-8 text-primary" />
           <div>
             <h2 className="text-2xl font-bold text-foreground">Vehicle Edge Runtime</h2>
             <p className="text-muted-foreground">Deploy and manage vehicle applications</p>

@@ -1875,9 +1875,9 @@ if __name__ == "__main__":
                 <div>
                   <div className="flex items-center space-x-3 mb-2">
                     <TbShoppingCart className="w-6 h-6 text-muted-foreground" />
-                    <h3 className="text-xl font-semibold text-foreground">Digital Auto Marketplace</h3>
+                    <h3 className="text-xl font-semibold text-foreground">digital.auto Marketplace</h3>
                   </div>
-                  <p className="text-muted-foreground text-sm">Discover and deploy vehicle applications from the Digital Auto ecosystem</p>
+                  <p className="text-muted-foreground text-sm">Discover and deploy vehicle applications from the digital.auto ecosystem</p>
                 </div>
                 <div className="hidden sm:flex items-center space-x-6">
                   <div className="text-right">
