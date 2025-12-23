@@ -73,17 +73,17 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
   const handleCodeChange = useCallback(async (newCode: string) => {
     setDeployment(prev => ({ ...prev, code: newCode }))
 
-    if (newCode.trim()) {
-      try {
-        // Simulate dependency detection
-        const deps = extractPythonDependencies(newCode)
-        setDetectedDependencies(deps)
-      } catch (error) {
-        console.error('Dependency detection failed:', error)
-      }
-    } else {
-      setDetectedDependencies([])
-    }
+    // Auto-detection disabled - using default dependency only
+    // if (newCode.trim()) {
+    //   try {
+    //     const deps = extractPythonDependencies(newCode)
+    //     setDetectedDependencies(deps)
+    //   } catch (error) {
+    //     console.error('Dependency detection failed:', error)
+    //   }
+    // } else {
+    //   setDetectedDependencies([])
+    // }
   }, [])
 
   // Handle Python app deployment
