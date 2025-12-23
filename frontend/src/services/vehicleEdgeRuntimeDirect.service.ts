@@ -547,14 +547,17 @@ class VehicleEdgeRuntimeDirectService {
     code: string
     vehicleId?: string
     displayName?: string  // Optional display name for UI
+    dependencies?: string[]  // Optional list of dependencies to install
   }): Promise<string> {
     // Use the provided name as the app ID
     const appId = appConfig.name
     const displayName = appConfig.displayName || appId
+    const dependencies = appConfig.dependencies || []
 
     console.log('🚀 Smart Deploy Request Debug:')
     console.log('  - appConfig.name (ID):', appConfig.name)
     console.log('  - appConfig.displayName:', appConfig.displayName)
+    console.log('  - appConfig.dependencies:', dependencies)
     console.log('  - app ID (prototype.id):', appId)
     console.log('  - display name (prototype.name):', displayName)
 
@@ -569,8 +572,11 @@ class VehicleEdgeRuntimeDirectService {
         name: displayName, // Use the display name for UI
         description: `Python application: ${displayName}`,
         version: '1.0.0'
-      }
+      },
+      dependencies: dependencies // Include dependencies in the request
     }
+
+    console.log('📦 Sending deployment request with dependencies:', dependencies)
 
     const response: DeployRequestResponse = await this.sendMessage(request)
 

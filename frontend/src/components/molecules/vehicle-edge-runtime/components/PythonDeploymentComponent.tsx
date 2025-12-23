@@ -68,23 +68,48 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
     suggestions?: string[]
   } | null>(null)
   const [isDeployingKuksa, setIsDeployingKuksa] = useState(false)
+  const [autoDetectEnabled, setAutoDetectEnabled] = useState(false) // Auto-detect off by default
 
-  // Handle code change with dependency detection
+  // Fixed dependencies that should not be auto-detected
+  const FIXED_DEPS_BASE = ['kuksa_client', 'velocitas-sdk']
+
+  // Trigger dependency detection
+  const triggerDependencyDetection = useCallback(async () => {
+    const code = deployment.code || ''
+    if (code.trim()) {
+      try {
+        const allDeps = extractPythonDependencies(code)
+        // Filter out fixed dependencies to avoid duplicates
+        const filteredDeps = allDeps.filter(dep =>
+          !FIXED_DEPS_BASE.some(fixed => dep.toLowerCase().startsWith(fixed.toLowerCase()))
+        )
+        setDetectedDependencies(filteredDeps)
+      } catch (error) {
+        console.error('Dependency detection failed:', error)
+      }
+    }
+  }, [deployment.code])
+
+  // Handle code change with optional dependency detection
   const handleCodeChange = useCallback(async (newCode: string) => {
     setDeployment(prev => ({ ...prev, code: newCode }))
 
-    // Auto-detection disabled - using default dependency only
-    // if (newCode.trim()) {
-    //   try {
-    //     const deps = extractPythonDependencies(newCode)
-    //     setDetectedDependencies(deps)
-    //   } catch (error) {
-    //     console.error('Dependency detection failed:', error)
-    //   }
-    // } else {
-    //   setDetectedDependencies([])
-    // }
-  }, [])
+    // Only auto-detect if enabled
+    if (autoDetectEnabled && newCode.trim()) {
+      try {
+        const allDeps = extractPythonDependencies(newCode)
+        // Filter out fixed dependencies to avoid duplicates
+        const filteredDeps = allDeps.filter(dep =>
+          !FIXED_DEPS_BASE.some(fixed => dep.toLowerCase().startsWith(fixed.toLowerCase()))
+        )
+        setDetectedDependencies(filteredDeps)
+      } catch (error) {
+        console.error('Dependency detection failed:', error)
+      }
+    } else if (!autoDetectEnabled) {
+      setDetectedDependencies([])
+    }
+  }, [autoDetectEnabled])
 
   // Handle Python app deployment
   const handleDeploy = useCallback(async (deploymentToDeploy: SmartDeployment) => {
@@ -356,6 +381,18 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
         selectedKit={selectedKit}
         isRuntimeConnected={isRuntimeConnected}
         deployedApps={deployedApps}
+        autoDetectEnabled={autoDetectEnabled}
+        onToggleAutoDetect={async () => {
+          const newState = !autoDetectEnabled
+          setAutoDetectEnabled(newState)
+          // If enabling, trigger detection immediately
+          if (newState) {
+            await triggerDependencyDetection()
+          } else {
+            // If disabling, clear detected dependencies
+            setDetectedDependencies([])
+          }
+        }}
       />
 
       {/* Connection Status */}

@@ -52,6 +52,8 @@ interface SmartDeployFormProps {
   selectedKit?: any
   isRuntimeConnected?: boolean
   deployedApps?: any[] // Added to pass deployed apps for KUKSA status checking
+  autoDetectEnabled?: boolean
+  onToggleAutoDetect?: () => void
 }
 
 const SmartDeployForm: FC<SmartDeployFormProps> = ({
@@ -65,7 +67,9 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   isDeployingKuksa = false,
   selectedKit,
   isRuntimeConnected = false,
-  deployedApps = []
+  deployedApps = [],
+  autoDetectEnabled = false,
+  onToggleAutoDetect
 }) => {
   const [formData, setFormData] = useState<SmartDeployment>({
     id: 'your-vehicle-app',
@@ -77,19 +81,19 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   })
 
   const [newSignal, setNewSignal] = useState('')
-  // Default dependency for vehicle applications
-  const DEFAULT_DEPENDENCY = 'kuksa_client==0.4.3'
-  const [allDependencies, setAllDependencies] = useState<string[]>([DEFAULT_DEPENDENCY])
+  // Default dependencies for vehicle applications
+  const DEFAULT_DEPENDENCIES = ['kuksa_client==0.4.3', 'velocitas-sdk==0.14.1']
+  const [allDependencies, setAllDependencies] = useState<string[]>(DEFAULT_DEPENDENCIES)
 
   // Sync allDependencies with detectedDependencies when they change (if auto-detect is enabled)
   useEffect(() => {
     if (detectedDependencies.length > 0) {
       setAllDependencies(prev => {
-        const manualDeps = prev.filter(dep => dep !== DEFAULT_DEPENDENCY && !detectedDependencies.includes(dep))
-        return [DEFAULT_DEPENDENCY, ...detectedDependencies, ...manualDeps]
+        const manualDeps = prev.filter(dep => !DEFAULT_DEPENDENCIES.includes(dep) && !detectedDependencies.includes(dep))
+        return [...DEFAULT_DEPENDENCIES, ...detectedDependencies, ...manualDeps]
       })
     }
-  }, [detectedDependencies, DEFAULT_DEPENDENCY])
+  }, [detectedDependencies, DEFAULT_DEPENDENCIES])
 
   const handleInputChange = useCallback((field: keyof SmartDeployment, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -111,16 +115,16 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
 
   // Handle dependency changes from the enhanced manager
   const handleDependenciesChange = useCallback((dependencies: string[]) => {
-    // Always ensure DEFAULT_DEPENDENCY is included first
-    const depsWithDefault = dependencies.includes(DEFAULT_DEPENDENCY)
+    // Always ensure DEFAULT_DEPENDENCIES are included first
+    const depsWithDefaults = DEFAULT_DEPENDENCIES.every(dep => dependencies.includes(dep))
       ? dependencies
-      : [DEFAULT_DEPENDENCY, ...dependencies]
+      : [...DEFAULT_DEPENDENCIES, ...dependencies]
 
-    setAllDependencies(depsWithDefault)
+    setAllDependencies(depsWithDefaults)
     // Store manual dependencies separately for form submission
-    const manualDeps = depsWithDefault.filter(dep => dep !== DEFAULT_DEPENDENCY && !detectedDependencies.includes(dep))
+    const manualDeps = depsWithDefaults.filter(dep => !DEFAULT_DEPENDENCIES.includes(dep) && !detectedDependencies.includes(dep))
     handleInputChange('dependencies', manualDeps)
-  }, [detectedDependencies, handleInputChange, DEFAULT_DEPENDENCY])
+  }, [detectedDependencies, handleInputChange, DEFAULT_DEPENDENCIES])
 
   const addSignal = useCallback(() => {
     if (newSignal.trim() && !formData.signals.includes(newSignal.trim())) {
@@ -373,6 +377,9 @@ if __name__ == "__main__":
         detectedDependencies={detectedDependencies || []}
         onDependenciesChange={handleDependenciesChange}
         disabled={isDeploying}
+        fixedDependencies={DEFAULT_DEPENDENCIES}
+        autoDetectEnabled={autoDetectEnabled}
+        onToggleAutoDetect={onToggleAutoDetect}
       />
 
       <Card>

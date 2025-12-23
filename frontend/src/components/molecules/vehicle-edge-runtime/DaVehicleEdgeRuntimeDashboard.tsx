@@ -1159,7 +1159,8 @@ if __name__ == "__main__":
           name: appId, // Use the user's ID as the app identifier
           displayName: appName, // Use the display name for UI
           code: deployment.code,
-          vehicleId: 'default-vehicle'
+          vehicleId: 'default-vehicle',
+          dependencies: dependencies // Pass dependencies to backend
         })
       }
 
