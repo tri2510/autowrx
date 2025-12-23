@@ -375,7 +375,7 @@ const BinaryDeploymentComponent: FC<BinaryDeploymentComponentProps> = ({
                 type="file"
                 id="binary-file"
                 className="hidden"
-                accept=".bin,.exe,.out,.elf,.app,.run,application/octet-stream,application/x-executable,application/x-elf"
+                accept="*/*"
                 onChange={handleInputChange}
                 disabled={isDeploying}
               />
@@ -413,7 +413,7 @@ const BinaryDeploymentComponent: FC<BinaryDeploymentComponentProps> = ({
                           Drag and drop binary file here
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          or click to browse (.bin, .exe, .out, .elf, etc.)
+                          or click to browse all files
                         </p>
                       </div>
                     </>
@@ -422,7 +422,7 @@ const BinaryDeploymentComponent: FC<BinaryDeploymentComponentProps> = ({
               </label>
             </div>
             <p className="text-xs text-muted-foreground">
-              Maximum file size: 50MB • Supported formats: Binary executables (.bin, .exe, .out, .elf, etc.)
+              Maximum file size: 50MB • All files shown, validated upon selection
             </p>
           </div>
 
