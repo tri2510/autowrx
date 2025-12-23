@@ -438,15 +438,13 @@ if __name__ == "__main__":
         )}
         <Button
           type="submit"
-          disabled={!isFormValid || isDeploying || isDeployingKuksa}
+          disabled={!isFormValid || isDeploying}
           className="min-w-[140px]"
           title={
             !isFormValid
               ? 'Please fill in required fields (Application ID and Code)'
               : isDeploying
               ? 'Deployment in progress...'
-              : isDeployingKuksa
-              ? 'KUKSA server deployment in progress...'
               : 'Deploy application to Vehicle Edge Runtime'
           }
         >
