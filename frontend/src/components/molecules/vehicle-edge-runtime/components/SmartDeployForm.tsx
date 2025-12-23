@@ -333,6 +333,49 @@ if __name__ == "__main__":
                 <TbDownload className="w-4 h-4 mr-1" />
                 Example poll speed app
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleInputChange('code', `import asyncio
+from sdv import VehicleApp
+from vehicle import vehicle
+
+
+class TestApp(VehicleApp):
+    def __init__(self, vehicle_client):
+        super().__init__()
+        self.Vehicle = vehicle_client
+
+    async def on_start(self):
+        print("App started!")
+        while True:
+            await asyncio.sleep(2)
+            await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(True)
+            await asyncio.sleep(1)
+            value = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
+            print("Light value ", value.value)
+
+            await asyncio.sleep(2)
+            await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(False)
+            await asyncio.sleep(1)
+            value = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
+            print("Light value ", value.value)
+
+
+# Correct way to run the app
+async def main():
+    app = TestApp(vehicle)
+    await app.run()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())`)}
+                title="Insert Velocitas app example"
+              >
+                <TbDownload className="w-4 h-4 mr-1" />
+                Velocitas app
+              </Button>
             </div>
           </div>
           <Textarea
