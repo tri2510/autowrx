@@ -396,11 +396,8 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
           }
           setSignalValidation(validation)
         }}
-        onDeployKuksaServer={handleDeployKuksaServer}
-        isDeployingKuksa={isDeployingKuksa}
         selectedKit={selectedKit}
         isRuntimeConnected={isRuntimeConnected}
-        deployedApps={deployedApps}
         autoDetectEnabled={autoDetectEnabled}
         onToggleAutoDetect={async () => {
           const newState = !autoDetectEnabled

@@ -15,7 +15,6 @@ import { Badge } from '@/components/atoms/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
 import { TbCode, TbRocket, TbLoader, TbPlus, TbX, TbDownload } from 'react-icons/tb'
 import EnhancedDependencyManager from './EnhancedDependencyManager'
-import SimpleKuksaDeployer from './SimpleKuksaDeployer'
 
 export interface SmartDeployment {
   id: string
@@ -47,11 +46,8 @@ interface SmartDeployFormProps {
   signalValidation?: SignalValidation
   onDetectDependencies?: (code: string) => void
   onValidateSignals?: (signals: string[]) => void
-  onDeployKuksaServer?: () => void
-  isDeployingKuksa?: boolean
   selectedKit?: any
   isRuntimeConnected?: boolean
-  deployedApps?: any[] // Added to pass deployed apps for KUKSA status checking
   autoDetectEnabled?: boolean
   onToggleAutoDetect?: () => void
 }
@@ -63,11 +59,8 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   signalValidation,
   onDetectDependencies,
   onValidateSignals,
-  onDeployKuksaServer,
-  isDeployingKuksa = false,
   selectedKit,
   isRuntimeConnected = false,
-  deployedApps = [],
   autoDetectEnabled = false,
   onToggleAutoDetect
 }) => {
@@ -161,15 +154,6 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
 
   return (
     <>
-      {/* KUKSA Server Section - Simple Docker Deployment */}
-      <SimpleKuksaDeployer
-        selectedKit={selectedKit}
-        isRuntimeConnected={isRuntimeConnected}
-        onDeployKuksaServer={onDeployKuksaServer}
-        isDeployingKuksa={isDeployingKuksa}
-        deployedApps={deployedApps}
-      />
-
       <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
