@@ -47,7 +47,7 @@ const BinaryDeploymentComponent: FC<BinaryDeploymentComponentProps> = ({
   deployedApps = [],
   onBack
 }) => {
-  const [appName, setAppName] = useState('')
+  const [appName, setAppName] = useState('vehicle-bin-app')
   const [appDescription, setAppDescription] = useState('')
   const [binaryFile, setBinaryFile] = useState<File | null>(null)
   const [binaryBase64, setBinaryBase64] = useState<string>('')
@@ -278,7 +278,7 @@ const BinaryDeploymentComponent: FC<BinaryDeploymentComponentProps> = ({
 
   // Clear form
   const handleClear = useCallback(() => {
-    setAppName('')
+    setAppName('vehicle-bin-app')
     setAppDescription('')
     setBinaryFile(null)
     setBinaryBase64('')

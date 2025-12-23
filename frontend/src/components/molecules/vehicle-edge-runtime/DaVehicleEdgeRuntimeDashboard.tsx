@@ -1126,22 +1126,37 @@ if __name__ == "__main__":
       const appName = deployment.name || deployment.id
       const appId = deployment.id
 
+      // Log deployment info based on deployment type
+      const isBinaryDeployment = deployment.type === 'deploy_request' && deployment.prototype?.type === 'binary'
+      const codeLength = deployment.code ? deployment.code.length : (deployment.binary ? deployment.binary.length : 0)
+      const dependencies = deployment.dependencies || []
+      const deploymentInfo = isBinaryDeployment
+        ? `[${timestamp}] 📦 Binary size: ${(deployment.binary?.length || 0) / 1024} KB (base64 encoded)`
+        : `[${timestamp}] 📝 Code length: ${codeLength} characters`
+
       setConsoleOutput(prev => [...prev,
         `[${timestamp}] 🚀 Starting smart deployment of ${deployment.type} app...`,
         `[${timestamp}] 📦 App ID: ${appId}`,
         `[${timestamp}] 📦 App Name: ${appName}`,
-        `[${timestamp}] 📝 Code length: ${deployment.code.length} characters`,
-        `[${timestamp}] 📦 Dependencies: ${deployment.dependencies.join(', ')}`,
+        deploymentInfo,
+        !isBinaryDeployment && dependencies.length > 0 ? `[${timestamp}] 📦 Dependencies: ${dependencies.join(', ')}` : null,
         `[${timestamp}] 🚗 Target runtime: ${selectedKit?.name}`
-      ])
+      ].filter(Boolean))
 
-      // Deploy using the user-provided ID and display name
-      const deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
-        name: appId, // Use the user's ID as the app identifier
-        displayName: appName, // Use the display name for UI
-        code: deployment.code,
-        vehicleId: 'default-vehicle'
-      })
+      // Deploy using the appropriate method based on deployment type
+      let deployedAppId: string
+      if (isBinaryDeployment) {
+        // Use sendMessage for binary deployments
+        deployedAppId = await vehicleEdgeRuntimeDirectService.sendMessage(deployment)
+      } else {
+        // Use deployPythonApp for Python deployments
+        deployedAppId = await vehicleEdgeRuntimeDirectService.deployPythonApp({
+          name: appId, // Use the user's ID as the app identifier
+          displayName: appName, // Use the display name for UI
+          code: deployment.code,
+          vehicleId: 'default-vehicle'
+        })
+      }
 
       setConsoleOutput(prev => [...prev,
         `[${new Date().toLocaleTimeString()}] ✅ App deployed and started successfully: ${deployedAppId}`,
