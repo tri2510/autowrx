@@ -127,7 +127,7 @@ const SimpleKuksaDeployer: FC<SimpleKuksaDeployerProps> = ({
                 One-click deployment of KUKSA Databroker server using Docker:
               </p>
               <ul className="list-disc list-inside space-y-1 text-xs text-gray-500 ml-2">
-                <li>Container: <code className="bg-gray-100 px-1 rounded">ghcr.io/eclipse-kuksa/kuksa-databroker:main</code></li>
+                <li>Container: <code className="bg-gray-100 px-1 rounded">ghcr.io/eclipse-kuksa/kuksa-databroker:0.4.4</code></li>
                 <li>Network: Host networking (localhost access)</li>
                 <li>Ports: gRPC:55555, HTTP/VSS:8090</li>
                 <li>App ID: <code className="bg-gray-100 px-1 rounded">VEA-kuksa-databroker</code></li>
