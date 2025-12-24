@@ -14,14 +14,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   TbBrain,
   TbLoader,
-  TbPlay,
-  TbStop,
+  TbPlayerPlay,
+  TbPlayerStop,
   TbSettings,
   TbRefresh,
   TbCheck,
-  TbX,
-  TbToggleLeft,
-  TbToggleRight
+  TbX
 } from 'react-icons/tb'
 import { useMockService, MOCK_MODE_DESCRIPTIONS, MockMode } from '../hooks/useMockService'
 
@@ -299,7 +297,7 @@ const MockServiceControl: FC<MockServiceControlProps> = ({ className = '' }) => 
                 </>
               ) : (
                 <>
-                  <TbPlay className="w-4 h-4 mr-2" />
+                  <TbPlayerPlay className="w-4 h-4 mr-2" />
                   Start Mock Service
                 </>
               )}
@@ -336,7 +334,7 @@ const MockServiceControl: FC<MockServiceControlProps> = ({ className = '' }) => 
                   </>
                 ) : (
                   <>
-                    <TbStop className="w-4 h-4 mr-2" />
+                    <TbPlayerStop className="w-4 h-4 mr-2" />
                     Stop
                   </>
                 )}

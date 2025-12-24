@@ -1166,11 +1166,7 @@ if __name__ == "__main__":
           displayName: appName, // Use the display name for UI
           code: deployment.code,
           vehicleId: 'default-vehicle',
-          dependencies: dependencies, // Pass dependencies to backend
-          options: deployment.mockMode ? {
-            mockMode: deployment.mockMode,
-            mockSignals: deployment.mockSignals
-          } : undefined
+          dependencies: dependencies // Pass dependencies to backend
         })
       }
 

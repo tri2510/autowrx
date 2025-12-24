@@ -127,10 +127,6 @@ export interface RegisterClientRequest extends BaseMessage {
   clientInfo: ClientInfo
 }
 
-export interface MockSignals {
-  [signalPath: string]: number | boolean | string
-}
-
 export interface DeployRequest extends BaseMessage {
   type: 'deploy_request'
   code: string
@@ -143,10 +139,6 @@ export interface DeployRequest extends BaseMessage {
     version?: string
   }
   dependencies?: string[]
-  options?: {
-    mockMode?: boolean
-    mockSignals?: MockSignals
-  }
 }
 
 export interface ListDeployedAppsRequest extends BaseMessage {
@@ -557,22 +549,16 @@ class VehicleEdgeRuntimeDirectService {
     vehicleId?: string
     displayName?: string  // Optional display name for UI
     dependencies?: string[]  // Optional list of dependencies to install
-    options?: {
-      mockMode?: boolean
-      mockSignals?: MockSignals
-    }
   }): Promise<string> {
     // Use the provided name as the app ID
     const appId = appConfig.name
     const displayName = appConfig.displayName || appId
     const dependencies = appConfig.dependencies || []
-    const options = appConfig.options
 
     console.log('🚀 Smart Deploy Request Debug:')
     console.log('  - appConfig.name (ID):', appConfig.name)
     console.log('  - appConfig.displayName:', appConfig.displayName)
     console.log('  - appConfig.dependencies:', dependencies)
-    console.log('  - appConfig.options:', options)
     console.log('  - app ID (prototype.id):', appId)
     console.log('  - display name (prototype.name):', displayName)
 
@@ -588,17 +574,10 @@ class VehicleEdgeRuntimeDirectService {
         description: `Python application: ${displayName}`,
         version: '1.0.0'
       },
-      dependencies: dependencies, // Include dependencies in the request
-      ...(options && { options }) // Include options if provided
+      dependencies: dependencies // Include dependencies in the request
     }
 
     console.log('📦 Sending deployment request with dependencies:', dependencies)
-    if (options) {
-      console.log('🧪 Mock mode enabled:', options.mockMode)
-      if (options.mockSignals) {
-        console.log('🎭 Mock signals:', options.mockSignals)
-      }
-    }
 
     const response: DeployRequestResponse = await this.sendMessage(request)
 

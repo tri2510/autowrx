@@ -9,15 +9,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 // Types for WebSocket messages
-export interface MockSignals {
-  [signalPath: string]: number | boolean | string
-}
-
 export interface SmartDeploymentRequest {
   type: 'smart_deploy'
   id: string
   name?: string
-  type: 'python' | 'binary'
   code: string
   dependencies?: string[]
   signals?: (string | { path: string; access: string; rate_hz?: number })[]
@@ -26,10 +21,6 @@ export interface SmartDeploymentRequest {
     tls?: { ca_cert?: string }
   }
   environment?: 'production' | 'staging' | 'development'
-  options?: {
-    mockMode?: boolean
-    mockSignals?: MockSignals
-  }
 }
 
 export interface DependencyDetectionRequest {
