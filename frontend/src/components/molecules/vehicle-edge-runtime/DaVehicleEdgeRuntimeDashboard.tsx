@@ -46,12 +46,14 @@ import {
   TbLoader,
   TbHelp,
   TbEye,
-  TbEyeOff
+  TbEyeOff,
+  TbColumns1
 } from 'react-icons/tb'
 import useSocketIO from '@/hooks/useSocketIO'
 import DaDeviceSetupWizard from './DaDeviceSetupWizard'
 import DashboardHeader from './components/DashboardHeader'
 import DashboardTabs from './components/DashboardTabs'
+import SplitPanelLayout from './components/SplitPanelLayout'
 import OverviewTab from './components/OverviewTab'
 import SettingsTab from './components/SettingsTab'
 import ApplicationsTab from './components/ApplicationsTab'
@@ -109,7 +111,7 @@ const DaVehicleEdgeRuntimeDashboard: FC<VehicleEdgeRuntimeDashboardProps> = ({
   onClose,
   prototype
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'deploy' | 'marketplace' | 'apps' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'deploy-apps' | 'marketplace' | 'apps' | 'settings'>('overview')
   const [showSetupWizard, setShowSetupWizard] = useState(false)
   const [kits, setKits] = useState<VehicleEdgeRuntimeKit[]>([])
   const [selectedKit, setSelectedKit] = useState<VehicleEdgeRuntimeKit | null>(null)
@@ -1854,20 +1856,44 @@ if __name__ == "__main__":
           />
         )}
 
-        {activeTab === 'deploy' && (
-          <div className="max-w-6xl mx-auto space-y-6">
-            <SmartDeploymentWorkflow
-              selectedKit={selectedKit}
-              isRuntimeConnected={isRuntimeConnected}
-              deployedApps={deployedRuntimeApps}
-              onDeploy={handleDeployment}
-              isDeploying={isDeploying}
-              selectedDeploymentType={selectedDeploymentType}
-              onDeploymentTypeChange={setSelectedDeploymentType}
-              showTypeSelector={showDeploymentTypeSelector}
-              onShowTypeSelectorChange={setShowDeploymentTypeSelector}
-            />
-          </div>
+        {activeTab === 'deploy-apps' && (
+          <SplitPanelLayout
+            leftPanel={
+              <SmartDeploymentWorkflow
+                selectedKit={selectedKit}
+                isRuntimeConnected={isRuntimeConnected}
+                deployedApps={deployedRuntimeApps}
+                onDeploy={handleDeployment}
+                isDeploying={isDeploying}
+                selectedDeploymentType={selectedDeploymentType}
+                onDeploymentTypeChange={setSelectedDeploymentType}
+                showTypeSelector={showDeploymentTypeSelector}
+                onShowTypeSelectorChange={setShowDeploymentTypeSelector}
+              />
+            }
+            rightPanel={
+              <ApplicationsTab
+                selectedKit={selectedKit}
+                isRuntimeConnected={isRuntimeConnected}
+                connectionError={connectionError}
+                vehicleApps={vehicleApps}
+                runtimeState={runtimeState}
+                isRefreshingApps={isRefreshingApps}
+                onRefreshApps={refreshApps}
+                onStartApp={handleStartApp}
+                onStopApp={handleStopApp}
+                onPauseApp={handlePauseApp}
+                onResumeApp={handleResumeApp}
+                onRestartApp={handleRestartApp}
+                onUninstallApp={handleUninstallApp}
+                onViewConsole={handleViewConsole}
+                onDeployNewApp={() => setActiveTab('deploy-apps')}
+                onSelectTab={(tab: string) => setActiveTab(tab as any)}
+              />
+            }
+            leftPanelBadgeCount={0}
+            rightPanelBadgeCount={vehicleApps.length}
+          />
         )}
 
         {activeTab === 'marketplace' && (
@@ -2121,7 +2147,7 @@ if __name__ == "__main__":
                         Clear Filters
                       </Button>
                       <Button
-                        onClick={() => setActiveTab('deploy')}
+                        onClick={() => setActiveTab('deploy-apps')}
                       >
                         Create Custom App
                       </Button>
@@ -2150,7 +2176,7 @@ if __name__ == "__main__":
             onUninstallApp={handleUninstallApp}
             onViewConsole={handleViewConsole}
             onDeployNewApp={() => setActiveTab('deploy')}
-            onSelectTab={setActiveTab}
+            onSelectTab={(tab: string) => setActiveTab(tab as any)}
           />
         )}
 

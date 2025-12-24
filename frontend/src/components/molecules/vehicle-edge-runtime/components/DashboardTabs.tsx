@@ -13,7 +13,8 @@ import {
   TbTerminal,
   TbSettings,
   TbShoppingCart,
-  TbCode
+  TbCode,
+  TbColumns1
 } from 'react-icons/tb'
 import { Button } from '@/components/atoms/button'
 
@@ -25,8 +26,8 @@ interface DashboardTab {
 }
 
 interface DashboardTabsProps {
-  activeTab: 'overview' | 'deploy' | 'marketplace' | 'apps' | 'settings'
-  onTabChange: (tabId: 'overview' | 'deploy' | 'marketplace' | 'apps' | 'settings') => void
+  activeTab: 'overview' | 'deploy-apps' | 'marketplace' | 'apps' | 'settings'
+  onTabChange: (tabId: 'overview' | 'deploy-apps' | 'marketplace' | 'apps' | 'settings') => void
   runningAppsCount: number
 }
 
@@ -37,7 +38,7 @@ const DashboardTabs: FC<DashboardTabsProps> = ({
 }) => {
   const tabs: DashboardTab[] = [
     { id: 'overview', label: 'Overview', icon: TbDeviceDesktop },
-    { id: 'deploy', label: 'Deploy', icon: TbRocket },
+    { id: 'deploy-apps', label: 'Deploy + Apps', icon: TbColumns1 },
     // { id: 'marketplace', label: 'Marketplace', icon: TbShoppingCart }, // Hidden for future use
     { id: 'apps', label: 'Applications', icon: TbCode, count: runningAppsCount },
     { id: 'settings', label: 'Settings', icon: TbSettings }
@@ -50,7 +51,7 @@ const DashboardTabs: FC<DashboardTabsProps> = ({
           <Button
             key={tab.id}
             variant={activeTab === tab.id ? 'default' : 'ghost'}
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => onTabChange(tab.id as any)}
             className="flex items-center space-x-2"
           >
             <tab.icon className="w-4 h-4" />
