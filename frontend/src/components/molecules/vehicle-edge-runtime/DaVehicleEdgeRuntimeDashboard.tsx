@@ -1131,12 +1131,7 @@ if __name__ == "__main__":
 
       // Handle regular Python/Binary app deployment
       const appName = deployment.name || deployment.id
-
-      // Add VEA- prefix to appId if not already present
-      let appId = deployment.id
-      if (!appId.startsWith('VEA-')) {
-        appId = `VEA-${appId}`
-      }
+      const appId = deployment.id  // Send ID as-is, backend will add VEA- prefix
 
       // Log deployment info based on deployment type
       const isBinaryDeployment = deployment.type === 'deploy_request' && deployment.prototype?.type === 'binary'
