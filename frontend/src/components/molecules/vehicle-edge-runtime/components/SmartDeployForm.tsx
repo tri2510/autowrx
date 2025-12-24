@@ -13,12 +13,9 @@ import { Textarea } from '@/components/atoms/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select'
 import { Badge } from '@/components/atoms/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
-import { TbCode, TbRocket, TbLoader, TbPlus, TbX, TbDownload, TbBrain } from 'react-icons/tb'
+import { TbCode, TbRocket, TbLoader, TbPlus, TbX, TbDownload } from 'react-icons/tb'
 import EnhancedDependencyManager from './EnhancedDependencyManager'
-
-export interface MockSignals {
-  [signalPath: string]: number | boolean | string
-}
+import MockServiceControl from './MockServiceControl'
 
 export interface SmartDeployment {
   id: string
@@ -28,8 +25,6 @@ export interface SmartDeployment {
   dependencies: string[]
   signals: string[]
   environment?: string
-  mockMode?: boolean
-  mockSignals?: MockSignals
 }
 
 export interface Signal {
@@ -76,20 +71,13 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
     type: 'python',
     code: '',
     dependencies: [],
-    signals: [],
-    mockMode: false,
-    mockSignals: {}
+    signals: []
   })
 
   const [newSignal, setNewSignal] = useState('')
   // Default dependencies for vehicle applications
   const DEFAULT_DEPENDENCIES = ['kuksa_client==0.4.3', 'velocitas-sdk==0.14.1']
   const [allDependencies, setAllDependencies] = useState<string[]>(DEFAULT_DEPENDENCIES)
-  const [mockModeEnabled, setMockModeEnabled] = useState(false)
-  const [customMockSignal, setCustomMockSignal] = useState<{ path: string, value: string }>({
-    path: '',
-    value: ''
-  })
 
   // Sync allDependencies with detectedDependencies when they change (if auto-detect is enabled)
   useEffect(() => {
@@ -149,66 +137,6 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
       onValidateSignals(newSignals)
     }
   }, [formData.signals, handleInputChange, onValidateSignals])
-
-  const toggleMockMode = useCallback(() => {
-    const newMockMode = !mockModeEnabled
-    setMockModeEnabled(newMockMode)
-    handleInputChange('mockMode', newMockMode)
-
-    // If enabling mock mode, populate mock signals from current signals
-    if (newMockMode && formData.signals.length > 0) {
-      const defaultMockSignals: MockSignals = {}
-      formData.signals.forEach(signal => {
-        if (signal.includes('Speed')) {
-          defaultMockSignals[signal] = 100
-        } else if (signal.includes('IsOn') || signal.includes('Open')) {
-          defaultMockSignals[signal] = signal.includes('IsOn') ? true : false
-        } else {
-          defaultMockSignals[signal] = 'test_value'
-        }
-      })
-      handleInputChange('mockSignals', defaultMockSignals)
-    } else if (!newMockMode) {
-      handleInputChange('mockSignals', {})
-    }
-  }, [mockModeEnabled, formData.signals, handleInputChange])
-
-  const updateMockSignalValue = useCallback((signalPath: string, value: number | boolean | string) => {
-    const updatedMockSignals = {
-      ...(formData.mockSignals || {}),
-      [signalPath]: value
-    }
-    handleInputChange('mockSignals', updatedMockSignals)
-  }, [formData.mockSignals, handleInputChange])
-
-  const removeMockSignal = useCallback((signalPath: string) => {
-    const updatedMockSignals = { ...formData.mockSignals }
-    delete updatedMockSignals[signalPath]
-    handleInputChange('mockSignals', updatedMockSignals)
-  }, [formData.mockSignals, handleInputChange])
-
-  const addCustomMockSignal = useCallback(() => {
-    if (!customMockSignal.path.trim() || !customMockSignal.value.trim()) {
-      return
-    }
-
-    // Try to parse the value as number, boolean, or keep as string
-    let parsedValue: number | boolean | string = customMockSignal.value
-    if (customMockSignal.value === 'true') {
-      parsedValue = true
-    } else if (customMockSignal.value === 'false') {
-      parsedValue = false
-    } else if (!isNaN(Number(customMockSignal.value))) {
-      parsedValue = Number(customMockSignal.value)
-    }
-
-    const updatedMockSignals = {
-      ...(formData.mockSignals || {}),
-      [customMockSignal.path]: parsedValue
-    }
-    handleInputChange('mockSignals', updatedMockSignals)
-    setCustomMockSignal({ path: '', value: '' })
-  }, [customMockSignal, formData.mockSignals, handleInputChange])
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
@@ -546,117 +474,7 @@ if __name__ == "__main__":
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <TbBrain className="w-5 h-5" />
-              <CardTitle>Mock Mode</CardTitle>
-            </div>
-            <Button
-              type="button"
-              variant={mockModeEnabled ? "default" : "outline"}
-              size="sm"
-              onClick={toggleMockMode}
-              className="min-w-[120px]"
-            >
-              {mockModeEnabled ? (
-                <>
-                  <TbBrain className="w-4 h-4 mr-2" />
-                  Mock Enabled
-                </>
-              ) : (
-                <>
-                  <TbBrain className="w-4 h-4 mr-2" />
-                  Enable Mock
-                </>
-              )}
-            </Button>
-          </div>
-          <CardDescription>
-            {mockModeEnabled
-              ? 'Mock mode is enabled. Configure mock signal values below.'
-              : 'Enable mock mode to test your application with simulated signal values.'}
-          </CardDescription>
-        </CardHeader>
-        {mockModeEnabled && (
-          <CardContent className="space-y-4">
-            {Object.keys(formData.mockSignals || {}).length > 0 && (
-              <div className="space-y-3">
-                <label className="text-sm font-medium">Mock Signal Values</label>
-                {Object.entries(formData.mockSignals || {}).map(([signalPath, value]) => (
-                  <div key={signalPath} className="flex items-center space-x-2 p-2 border rounded-lg bg-muted/30">
-                    <span className="text-sm font-mono flex-1 truncate">{signalPath}</span>
-                    <Input
-                      type="text"
-                      value={String(value)}
-                      onChange={(e) => {
-                        const newValue = e.target.value
-                        // Parse value based on current type
-                        let parsedValue: number | boolean | string = newValue
-                        if (newValue === 'true') parsedValue = true
-                        else if (newValue === 'false') parsedValue = false
-                        else if (!isNaN(Number(newValue))) parsedValue = Number(newValue)
-
-                        updateMockSignalValue(signalPath, parsedValue)
-                      }}
-                      className="w-32 h-8"
-                      placeholder="Value"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeMockSignal(signalPath)}
-                    >
-                      <TbX className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Add Custom Mock Signal</label>
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Signal path (e.g., Vehicle.Speed)"
-                  value={customMockSignal.path}
-                  onChange={(e) => setCustomMockSignal(prev => ({ ...prev, path: e.target.value }))}
-                  className="flex-1"
-                />
-                <Input
-                  placeholder="Value (e.g., 100, true, test)"
-                  value={customMockSignal.value}
-                  onChange={(e) => setCustomMockSignal(prev => ({ ...prev, value: e.target.value }))}
-                  className="w-32"
-                />
-                <Button
-                  type="button"
-                  onClick={addCustomMockSignal}
-                  disabled={!customMockSignal.path.trim() || !customMockSignal.value.trim()}
-                >
-                  <TbPlus className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {Object.keys(formData.mockSignals || {}).length > 0 && (
-              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                <p className="font-medium mb-1">When mock mode is enabled, pressing "Deploy Application" will include:</p>
-                <code className="text-xs block bg-background p-2 rounded mt-1 overflow-x-auto">
-                  {JSON.stringify({
-                    options: {
-                      mockMode: true,
-                      mockSignals: formData.mockSignals
-                    }
-                  }, null, 2)}
-                </code>
-              </div>
-            )}
-          </CardContent>
-        )}
-      </Card>
+      <MockServiceControl />
 
       <div className="flex justify-end">
         {signalValidation && signalValidation.invalid && signalValidation.invalid.length > 0 && (
