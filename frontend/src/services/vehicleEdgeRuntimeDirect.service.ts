@@ -18,7 +18,7 @@ export interface VehicleApp {
   id: string
   name: string
   version: string
-  type: 'python' | 'binary'
+  type: 'python' | 'binary' | 'mock-service'
   status: 'installed' | 'running' | 'stopped' | 'paused' | 'error' | 'starting'
   created_at: string
   python_deps?: string[]

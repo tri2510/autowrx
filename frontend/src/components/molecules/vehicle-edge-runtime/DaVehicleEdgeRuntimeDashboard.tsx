@@ -83,7 +83,7 @@ import { DetectedDevice } from '@/utils/networkDiscovery'
 interface RunningApp {
   id: string
   name: string
-  type: 'python' | 'binary'
+  type: 'python' | 'binary' | 'mock-service'
   status: 'running' | 'stopped' | 'error'
   startTime?: Date
   resources: {
@@ -532,10 +532,11 @@ print("📊 Application execution finished")`,
           id: app.app_id,  // Use app_id directly from runtime response
           name: app.name || `App ${app.app_id}`,
           version: app.version || '1.0.0',
-          type: 'python' as const,
+          type: (app.type as VehicleApp['type']) || 'python',  // Preserve type from backend
           status: app.status as VehicleApp['status'] || 'running',
           created_at: app.deploy_time ? new Date(app.deploy_time).toISOString() : new Date().toISOString(),
-          executionId: app.app_id  // Same as id with simplified API
+          executionId: app.app_id,  // Same as id with simplified API
+          description: app.description
         }))
 
         setVehicleApps(convertedApps)
@@ -548,7 +549,7 @@ print("📊 Application execution finished")`,
       const runningApps: RunningApp[] = response.applications.map(app => ({
         id: app.app_id,
         name: app.name,
-        type: 'python' as const,
+        type: (app.type as RunningApp['type']) || 'python',
         status: app.status as 'running' | 'stopped' | 'error',
         startTime: new Date(app.deploy_time),
         resources: {

@@ -10,6 +10,7 @@ import { FC, useRef, useEffect, useState } from 'react'
 import {
   TbCode,
   TbBinary,
+  TbBrain,
   TbTerminal,
   TbPlayerPlay,
   TbPlayerStop,
@@ -237,8 +238,14 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
                 <div className="px-6 py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1">
-                      <div className={`p-2 rounded-lg ${app.type === 'python' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                        {app.type === 'python' ? <TbCode className="w-5 h-5" /> : <TbBinary className="w-5 h-5" />}
+                      <div className={`p-2 rounded-lg ${
+                        app.type === 'python' ? 'bg-blue-100 text-blue-600' :
+                        app.type === 'mock-service' ? 'bg-green-100 text-green-600' :
+                        'bg-purple-100 text-purple-600'
+                      }`}>
+                        {app.type === 'python' ? <TbCode className="w-5 h-5" /> :
+                         app.type === 'mock-service' ? <TbBrain className="w-5 h-5" /> :
+                         <TbBinary className="w-5 h-5" />}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
@@ -261,7 +268,7 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
                           </button>
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                          <span>Type: {app.type}</span>
+                          <span className="capitalize">Type: {app.type === 'mock-service' ? 'Mock Service' : app.type}</span>
                           <span>Version: {app.version}</span>
                           {app.created_at && <span>Created: {new Date(app.created_at).toLocaleString()}</span>}
                           <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
