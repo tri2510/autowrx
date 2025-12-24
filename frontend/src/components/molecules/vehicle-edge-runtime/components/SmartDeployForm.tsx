@@ -309,14 +309,26 @@ class TestApp(VehicleApp):
             await asyncio.sleep(2)
             await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(True)
             await asyncio.sleep(1)
-            value = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
-            print("Light value ", value.value)
+
+            # --- ADDED LINE: Print the Low Beam status ---
+            low_beam_val = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
+            print("Low Beam value: ", low_beam_val.value)
+
+            # --- ADDED LINE: Print the High Beam status ---
+            high_beam_val = await self.Vehicle.Body.Lights.Beam.High.IsOn.get()
+            print("High Beam value: ", high_beam_val.value)
+            # ----------------------------------------------
 
             await asyncio.sleep(2)
             await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(False)
             await asyncio.sleep(1)
-            value = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
-            print("Light value ", value.value)
+
+            low_beam_val = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
+            print("Low Beam value: ", low_beam_val.value)
+
+            # Print High Beam again to check status
+            high_beam_val = await self.Vehicle.Body.Lights.Beam.High.IsOn.get()
+            print("High Beam value: ", high_beam_val.value)
 
 
 # Correct way to run the app
