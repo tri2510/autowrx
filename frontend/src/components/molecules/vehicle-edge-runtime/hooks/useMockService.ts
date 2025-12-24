@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 // Types for Mock Service messages
-export type MockMode = 'echo-all' | 'echo-specific' | 'random' | 'static' | 'off'
+export type MockMode = 'echo-all' | 'echo-specific'
 
 export interface MockServiceStatus {
   running: boolean
@@ -100,21 +100,6 @@ export const MOCK_MODE_DESCRIPTIONS: Record<MockMode, { title: string; descripti
     title: 'Echo Specific',
     description: 'Echoes only specific signals. Test specific vehicle signals in isolation.',
     icon: '🎯'
-  },
-  'random': {
-    title: 'Random',
-    description: 'Generates random values for all signals. Simulate varying sensor data.',
-    icon: '🎲'
-  },
-  'static': {
-    title: 'Static',
-    description: 'Sets static default values (no updates). Initialize signals to known states.',
-    icon: '📌'
-  },
-  'off': {
-    title: 'Off',
-    description: 'Service runs but doesn\'t update any signals. Test with real hardware.',
-    icon: '⏸️'
   }
 }
 

@@ -407,7 +407,7 @@ const MockServiceControl: FC<MockServiceControlProps> = ({ className = '' }) => 
             <li>Managed as a separate application with full lifecycle control</li>
             <li>Connects to KUKSA Databroker to simulate vehicle signals</li>
             <li>Perfect for testing without real vehicle hardware</li>
-            <li>Multiple modes: echo, random, static, or disabled</li>
+            <li>Two modes: Echo All (all signals) or Echo Specific (selected signals)</li>
             <li>Can be started/stopped independently of deployed apps</li>
           </ul>
         </div>
