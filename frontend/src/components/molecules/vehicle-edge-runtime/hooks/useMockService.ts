@@ -13,10 +13,15 @@ export type MockMode = 'echo-all' | 'echo-specific' | 'random' | 'static' | 'off
 
 export interface MockServiceStatus {
   running: boolean
-  status: 'running' | 'stopped' | 'error'
+  status: 'running' | 'stopped' | 'error' | 'starting' | 'stopping'
   mode: MockMode
   image?: string
   containerId?: string
+  appName?: string
+  appId?: string
+  uptime?: string
+  cpu?: string
+  memory?: string
   timestamp?: string
 }
 

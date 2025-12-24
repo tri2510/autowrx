@@ -47,6 +47,7 @@ const MockServiceControl: FC<MockServiceControlProps> = ({ className = '' }) => 
 
   const isRunning = status?.running || false
   const currentMode = status?.mode || 'off'
+  const appStatus = status?.status || 'stopped'
 
   // Handle mode selection
   const handleModeChange = (mode: MockMode) => {
@@ -173,11 +174,31 @@ const MockServiceControl: FC<MockServiceControlProps> = ({ className = '' }) => 
           <div className="flex items-center space-x-2">
             <TbBrain className="w-5 h-5" />
             <CardTitle>Mock Service</CardTitle>
+            {isRunning && status?.appId && (
+              <Badge variant="outline" className="text-xs font-mono">
+                {status.appId}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center space-x-2">
-            <Badge variant={isRunning ? "default" : "secondary"} className="flex items-center space-x-1">
-              <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-              <span>{isRunning ? 'Running' : 'Stopped'}</span>
+            <Badge
+              variant={
+                appStatus === 'running' ? "default" :
+                appStatus === 'starting' ? "secondary" :
+                appStatus === 'stopping' ? "secondary" :
+                appStatus === 'error' ? "destructive" :
+                "secondary"
+              }
+              className="flex items-center space-x-1"
+            >
+              <span className={`w-2 h-2 rounded-full ${
+                appStatus === 'running' ? 'bg-green-500 animate-pulse' :
+                appStatus === 'starting' ? 'bg-yellow-500 animate-pulse' :
+                appStatus === 'stopping' ? 'bg-orange-500 animate-pulse' :
+                appStatus === 'error' ? 'bg-red-500' :
+                'bg-gray-400'
+              }`} />
+              <span className="capitalize">{appStatus}</span>
             </Badge>
             <Button
               variant="ghost"
@@ -192,7 +213,7 @@ const MockServiceControl: FC<MockServiceControlProps> = ({ className = '' }) => 
         </div>
         <CardDescription>
           {isRunning
-            ? `Mock service is running in ${MOCK_MODE_DESCRIPTIONS[currentMode]?.title || currentMode} mode`
+            ? `Mock service is ${appStatus} in ${MOCK_MODE_DESCRIPTIONS[currentMode]?.title || currentMode} mode`
             : 'Start mock service to simulate vehicle signals for testing'
           }
         </CardDescription>
@@ -346,14 +367,34 @@ const MockServiceControl: FC<MockServiceControlProps> = ({ className = '' }) => 
         {/* Service Info */}
         {status && (
           <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/30 rounded-lg">
-            <div className="flex justify-between">
-              <span>Container:</span>
-              <span className="font-mono">{status.image || 'vehicle-simple-mock-service:latest'}</span>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex justify-between">
+                <span>Container:</span>
+                <span className="font-mono text-right" title={status.image}>{status.image?.split(':')[0] || 'vehicle-simple-mock-service'}</span>
+              </div>
+              {status.uptime && (
+                <div className="flex justify-between">
+                  <span>Uptime:</span>
+                  <span className="font-mono">{status.uptime}</span>
+                </div>
+              )}
+              {status.cpu && (
+                <div className="flex justify-between">
+                  <span>CPU:</span>
+                  <span className="font-mono">{status.cpu}</span>
+                </div>
+              )}
+              {status.memory && (
+                <div className="flex justify-between">
+                  <span>Memory:</span>
+                  <span className="font-mono">{status.memory}</span>
+                </div>
+              )}
             </div>
             {status.containerId && (
-              <div className="flex justify-between">
+              <div className="flex justify-between mt-2 pt-2 border-t">
                 <span>Container ID:</span>
-                <span className="font-mono truncate ml-2">{status.containerId}</span>
+                <span className="font-mono text-right truncate ml-2 max-w-[200px]" title={status.containerId}>{status.containerId}</span>
               </div>
             )}
           </div>
@@ -363,10 +404,11 @@ const MockServiceControl: FC<MockServiceControlProps> = ({ className = '' }) => 
         <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
           <p className="font-medium mb-1">About Mock Service:</p>
           <ul className="space-y-1 list-disc list-inside">
-            <li>Runs as a separate Docker container</li>
+            <li>Managed as a separate application with full lifecycle control</li>
             <li>Connects to KUKSA Databroker to simulate vehicle signals</li>
             <li>Perfect for testing without real vehicle hardware</li>
-            <li>Signals are echoed from actuators back to sensors</li>
+            <li>Multiple modes: echo, random, static, or disabled</li>
+            <li>Can be started/stopped independently of deployed apps</li>
           </ul>
         </div>
       </CardContent>
