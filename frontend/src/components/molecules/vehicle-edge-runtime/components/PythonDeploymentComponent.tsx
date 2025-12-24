@@ -25,7 +25,7 @@ import {
   TbCode,
   TbBinary
 } from 'react-icons/tb'
-import SmartDeployForm, { SmartDeployment, SignalValidation } from './SmartDeployForm'
+import SmartDeployForm, { SmartDeployment } from './SmartDeployForm'
 
 interface PythonDeploymentComponentProps {
   selectedKit: any
@@ -50,18 +50,10 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
     type: 'python',
     code: '',
     dependencies: [],
-    signals: [],
     environment: 'development'
   })
 
   const [detectedDependencies, setDetectedDependencies] = useState<string[]>([])
-  const [signalValidation, setSignalValidation] = useState<SignalValidation>({
-    valid: [],
-    invalid: [],
-    warnings: [],
-    total: 0
-  })
-  const [isValidatingSignals, setIsValidatingSignals] = useState(false)
   const [deploymentResult, setDeploymentResult] = useState<{
     status: 'success' | 'error'
     message: string
@@ -381,19 +373,7 @@ const PythonDeploymentComponent: FC<PythonDeploymentComponentProps> = ({
         onSubmit={handleDeploy}
         isDeploying={isDeploying}
         detectedDependencies={detectedDependencies}
-        signalValidation={signalValidation}
         onDetectDependencies={handleCodeChange}
-        onValidateSignals={(signals) => {
-          // Here you would implement signal validation logic
-          // For now, just create a basic validation object
-          const validation: SignalValidation = {
-            valid: (signals || []).map(path => ({ path, access: 'subscribe' as const })),
-            invalid: [],
-            warnings: [],
-            total: (signals || []).length
-          }
-          setSignalValidation(validation)
-        }}
         selectedKit={selectedKit}
         isRuntimeConnected={isRuntimeConnected}
         autoDetectEnabled={autoDetectEnabled}

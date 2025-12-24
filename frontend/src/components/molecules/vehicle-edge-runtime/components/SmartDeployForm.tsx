@@ -10,10 +10,9 @@ import { FC, useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/atoms/button'
 import { Input } from '@/components/atoms/input'
 import { Textarea } from '@/components/atoms/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/atoms/select'
 import { Badge } from '@/components/atoms/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
-import { TbCode, TbRocket, TbLoader, TbPlus, TbX, TbDownload } from 'react-icons/tb'
+import { TbCode, TbRocket, TbLoader, TbDownload } from 'react-icons/tb'
 import EnhancedDependencyManager from './EnhancedDependencyManager'
 import MockServiceControl from './MockServiceControl'
 
@@ -23,30 +22,14 @@ export interface SmartDeployment {
   type: 'python'
   code: string
   dependencies: string[]
-  signals: string[]
   environment?: string
-}
-
-export interface Signal {
-  path: string
-  access: 'subscribe' | 'get'
-  rate_hz?: number
-}
-
-export interface SignalValidation {
-  valid: Signal[]
-  invalid: Signal[]
-  warnings: string[]
-  total: number
 }
 
 interface SmartDeployFormProps {
   onSubmit: (deployment: SmartDeployment) => void
   isDeploying: boolean
   detectedDependencies?: string[]
-  signalValidation?: SignalValidation
   onDetectDependencies?: (code: string) => void
-  onValidateSignals?: (signals: string[]) => void
   selectedKit?: any
   isRuntimeConnected?: boolean
   autoDetectEnabled?: boolean
@@ -57,9 +40,7 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   onSubmit,
   isDeploying,
   detectedDependencies = [],
-  signalValidation,
   onDetectDependencies,
-  onValidateSignals,
   selectedKit,
   isRuntimeConnected = false,
   autoDetectEnabled = false,
@@ -70,11 +51,8 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
     name: 'Your Vehicle Application',
     type: 'python',
     code: '',
-    dependencies: [],
-    signals: []
+    dependencies: []
   })
-
-  const [newSignal, setNewSignal] = useState('')
   // Default dependencies for vehicle applications
   const DEFAULT_DEPENDENCIES = ['kuksa_client==0.4.3', 'velocitas-sdk==0.14.1']
   const [allDependencies, setAllDependencies] = useState<string[]>(DEFAULT_DEPENDENCIES)
@@ -98,14 +76,7 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
       }, 500)
       return () => clearTimeout(timeoutId)
     }
-
-    if (field === 'signals' && onValidateSignals) {
-      const timeoutId = setTimeout(() => {
-        onValidateSignals(value)
-      }, 300)
-      return () => clearTimeout(timeoutId)
-    }
-  }, [onDetectDependencies, onValidateSignals])
+  }, [onDetectDependencies])
 
   // Handle dependency changes from the enhanced manager
   const handleDependenciesChange = useCallback((dependencies: string[]) => {
@@ -119,24 +90,6 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
     const manualDeps = depsWithDefaults.filter(dep => !DEFAULT_DEPENDENCIES.includes(dep) && !detectedDependencies.includes(dep))
     handleInputChange('dependencies', manualDeps)
   }, [detectedDependencies, handleInputChange, DEFAULT_DEPENDENCIES])
-
-  const addSignal = useCallback(() => {
-    if (newSignal.trim() && !formData.signals.includes(newSignal.trim())) {
-      handleInputChange('signals', [...formData.signals, newSignal.trim()])
-      setNewSignal('')
-      if (onValidateSignals) {
-        onValidateSignals([...formData.signals, newSignal.trim()])
-      }
-    }
-  }, [newSignal, formData.signals, handleInputChange, onValidateSignals])
-
-  const removeSignal = useCallback((signal: string) => {
-    const newSignals = formData.signals.filter(s => s !== signal)
-    handleInputChange('signals', newSignals)
-    if (onValidateSignals) {
-      onValidateSignals(newSignals)
-    }
-  }, [formData.signals, handleInputChange, onValidateSignals])
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
@@ -156,70 +109,6 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Vehicle Signals</CardTitle>
-          <CardDescription>
-            Specify the vehicle signals your application needs to access
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex space-x-2 mb-3">
-            <Input
-              placeholder="Enter signal path (e.g., Vehicle.Speed)"
-              value={newSignal}
-              onChange={(e) => setNewSignal(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSignal())}
-            />
-            <Button type="button" onClick={addSignal} disabled={!newSignal.trim()}>
-              <TbPlus className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {formData.signals.map(signal => (
-              <Badge
-                key={signal}
-                variant={signalValidation?.valid && signalValidation.valid.some(s => s.path === signal) ? "default" : "destructive"}
-                className="flex items-center space-x-1"
-              >
-                <span>{signal}</span>
-                <button
-                  type="button"
-                  onClick={() => removeSignal(signal)}
-                  className="ml-1 text-current opacity-70 hover:opacity-100"
-                >
-                  <TbX className="w-3 h-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-          {signalValidation && (
-            <div className="space-y-2">
-              {signalValidation.invalid && signalValidation.invalid.length > 0 && (
-                <div className="text-sm text-red-600">
-                  <p>Invalid signals:</p>
-                  <ul className="list-disc list-inside">
-                    {signalValidation.invalid.map(sig => (
-                      <li key={sig.path}>{sig.path}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {signalValidation.warnings && signalValidation.warnings.length > 0 && (
-                <div className="text-sm text-yellow-600">
-                  <p>Warnings:</p>
-                  <ul className="list-disc list-inside">
-                    {signalValidation.warnings.map((warning, idx) => (
-                      <li key={idx}>{warning}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       <MockServiceControl />
 
       <Card>
@@ -477,11 +366,6 @@ if __name__ == "__main__":
       />
 
       <div className="flex justify-end">
-        {signalValidation && signalValidation.invalid && signalValidation.invalid.length > 0 && (
-          <div className="text-sm text-yellow-600 mb-2">
-            ⚠️ {signalValidation.invalid.length} signal{signalValidation.invalid.length !== 1 ? 's' : ''} unavailable. Deployment may have limited functionality.
-          </div>
-        )}
         <Button
           type="submit"
           disabled={!isFormValid || isDeploying}
