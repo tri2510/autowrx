@@ -226,10 +226,7 @@ const ApplicationsTab: FC<ApplicationsTabProps> = ({
           {vehicleApps.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <TbCode className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No applications deployed yet</p>
-              <Button onClick={onDeployNewApp} className="mt-4">
-                Deploy First Application
-              </Button>
+              <p className="text-muted-foreground">No applications deployed yet</p>
             </div>
           ) : (
             vehicleApps.map((app) => (
