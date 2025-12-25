@@ -58,8 +58,8 @@ const deploymentTypes: DeploymentTypeConfig[] = [
     name: 'Binary Application',
     description: 'Deploy pre-compiled binary applications with automatic containerization.',
     icon: <TbBinary className="w-6 h-6" />,
-    badge: 'Coming Soon',
-    badgeColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    badge: 'In Development',
+    badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
     features: [
       'Binary file upload with base64 encoding',
       'URL download support for binaries',
@@ -74,8 +74,8 @@ const deploymentTypes: DeploymentTypeConfig[] = [
     name: 'Docker Container',
     description: 'Deploy existing Docker images or custom container configurations.',
     icon: <TbPackage className="w-6 h-6" />,
-    badge: 'Coming Soon',
-    badgeColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    badge: 'In Development',
+    badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
     features: [
       'Deploy existing Docker images',
       'Custom Docker command execution',
@@ -184,7 +184,7 @@ const DeploymentTypeSelector: FC<DeploymentTypeSelectorProps> = ({
                       disabled
                       className="w-full"
                     >
-                      Coming Soon
+                      Planned for Future Release
                     </Button>
                   )}
                 </div>
@@ -198,7 +198,7 @@ const DeploymentTypeSelector: FC<DeploymentTypeSelectorProps> = ({
       <div className="text-center">
         <p className="text-sm text-muted-foreground">
           <TbInfoCircle className="inline-block w-4 h-4 mr-1" />
-          Binary and Docker deployment options will be available in future updates.
+          Python applications are fully supported. Binary and Docker options are planned for future releases.
         </p>
       </div>
     </div>
