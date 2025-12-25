@@ -218,29 +218,6 @@ docker ps | grep kit-manager
     }
   }
 
-  const testKitConnection = async (kit: VehicleEdgeRuntimeKit) => {
-    setConnectionTest({ testing: true })
-
-    try {
-      // Test if the kit is responding by checking its last_seen status
-      const isResponsive = kit.is_online && (Date.now() - kit.last_seen < 60000) // Online and seen within last minute
-
-      setConnectionTest({
-        testing: false,
-        success: isResponsive,
-        message: isResponsive
-          ? `Successfully connected to ${kit.name}! Device is online and responsive.`
-          : `Device ${kit.name} is ${kit.is_online ? 'online but not responding' : 'offline'}. Last seen: ${kit.last_seen ? new Date(kit.last_seen).toLocaleString() : 'Never'}`
-      })
-    } catch (error) {
-      setConnectionTest({
-        testing: false,
-        success: false,
-        message: 'Failed to test kit connection'
-      })
-    }
-  }
-
   const testKitManagerConnection = async () => {
     setConnectionTest({ testing: true })
 
@@ -531,15 +508,6 @@ docker ps | grep kit-manager
                       <div className="text-xs text-muted-foreground">
                         {kit.last_seen ? `Last seen: ${new Date(kit.last_seen).toLocaleString()}` : 'Never seen'}
                       </div>
-                      {kit.is_online && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => testKitConnection(kit)}
-                        >
-                          Test
-                        </Button>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -567,23 +535,6 @@ docker ps | grep kit-manager
                     Show Offline Devices ({detectedKits.length})
                   </Button>
                 )}
-              </div>
-            )}
-
-            {connectionTest.message && (
-              <div className={`p-3 rounded-lg ${
-                connectionTest.success
-                  ? 'bg-green-100 border border-green-200 text-green-800 dark:bg-green-900 dark:border-green-800 dark:text-green-200'
-                  : 'bg-red-100 border border-red-200 text-red-800 dark:bg-red-900 dark:border-red-800 dark:text-red-200'
-              }`}>
-                <div className="flex items-start space-x-2">
-                  {connectionTest.success ? (
-                    <TbCheck className="w-5 h-5 mt-0.5" />
-                  ) : (
-                    <TbAlertTriangle className="w-5 h-5 mt-0.5" />
-                  )}
-                  <p className="text-sm">{connectionTest.message}</p>
-                </div>
               </div>
             )}
           </div>
