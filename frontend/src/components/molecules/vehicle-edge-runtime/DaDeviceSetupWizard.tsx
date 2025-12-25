@@ -588,9 +588,9 @@ docker ps | grep kit-manager
                   <div className="flex items-start space-x-2">
                     <TbCheck className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-400" />
                     <div>
-                      <strong>Devices Found:</strong> {detectedKits.length} devices discovered
+                      <strong>Devices Found:</strong> {detectedKits.length} connected
                       <div className="text-sm mt-1">
-                        Online: {detectedKits.filter(kit => kit.is_online).length} / {detectedKits.length}
+                        {detectedKits.filter(kit => kit.is_online).length} online, {detectedKits.filter(kit => !kit.is_online).length} offline
                       </div>
                     </div>
                   </div>
