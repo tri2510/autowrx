@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Edge Runtime - Platform Overview</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a3d62 0%, #0d4d6f 100%);
+            color: #333;
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px 40px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .slide.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .slide-number {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            font-size: 14px;
+            color: #999;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #0a3d62;
+            margin-bottom: 15px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 22px;
+            color: #0d4d6f;
+            margin-bottom: 15px;
+            font-weight: 600;
+            border-bottom: 3px solid #0a3d62;
+            padding-bottom: 6px;
+        }
+
+        h3 {
+            font-size: 18px;
+            color: #0a3d62;
+            margin-bottom: 10px;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            color: #334155;
+        }
+
+        ul, ol {
+            font-size: 14px;
+            line-height: 1.4;
+            margin-left: 20px;
+            margin-bottom: 10px;
+            color: #334155;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        .highlight {
+            background: #6b8e23;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .architecture-diagram {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .component-box {
+            background: white;
+            border: 2px solid #0a3d62;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 6px;
+            display: inline-block;
+            min-width: 150px;
+            box-shadow: 0 4px 6px rgba(10, 61, 98, 0.1);
+        }
+
+        .component-box h3 {
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #0a3d62;
+        }
+
+        .component-box h4 {
+            font-size: 15px;
+            margin-top: 0;
+            margin-bottom: 6px;
+            color: #0a3d62;
+        }
+
+        .component-box.primary h4 {
+            color: white;
+        }
+
+        .component-box.secondary h4 {
+            color: white;
+        }
+
+        .component-box.tertiary h4 {
+            color: white;
+        }
+
+        .component-box.primary {
+            background: linear-gradient(135deg, #0a3d62 0%, #0d4d6f 100%);
+            color: white;
+            border-color: #0d4d6f;
+        }
+
+        .component-box.primary h3 {
+            color: white;
+        }
+
+        .component-box.primary p {
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .component-box.secondary {
+            background: linear-gradient(135deg, #6b8e23 0%, #7a9e32 100%);
+            color: white;
+            border-color: #7a9e32;
+        }
+
+        .component-box.secondary h3 {
+            color: white;
+        }
+
+        .component-box.secondary p {
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .component-box.tertiary {
+            background: linear-gradient(135deg, #1e5a74 0%, #2a6f8a 100%);
+            color: white;
+            border-color: #2a6f8a;
+        }
+
+        .component-box.tertiary h3 {
+            color: white;
+        }
+
+        .component-box.tertiary p {
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .arrow {
+            font-size: 40px;
+            color: #0a3d62;
+            margin: 0 15px;
+        }
+
+        .workflow-step {
+            background: #f8fafc;
+            border-left: 4px solid #0a3d62;
+            padding: 10px 12px;
+            margin: 8px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .workflow-step strong {
+            color: #0d4d6f;
+            font-size: 16px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .nav-button {
+            background: white;
+            color: #0a3d62;
+            border: 3px solid #0a3d62;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(10, 61, 98, 0.2);
+        }
+
+        .nav-button:hover {
+            background: #0a3d62;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(10, 61, 98, 0.3);
+        }
+
+        .nav-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #0a3d62 0%, #0d4d6f 100%);
+            transition: width 0.3s;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 12px;
+            border-radius: 10px;
+            border-left: 4px solid #0a3d62;
+        }
+
+        .feature-card h4 {
+            color: #0a3d62;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .feature-card p {
+            font-size: 13px;
+            margin-bottom: 0;
+            line-height: 1.3;
+            color: #334155;
+        }
+
+        .tab-visual {
+            background: #2d2d2d;
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .tab {
+            background: #1e1e1e;
+            padding: 10px 20px;
+            display: inline-block;
+            border-radius: 8px 8px 0 0;
+            margin-right: 10px;
+            border-top: 3px solid transparent;
+        }
+
+        .tab.active {
+            border-top-color: #667eea;
+            background: #2d2d2d;
+        }
+
+        .code-editor {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 0 8px 8px 8px;
+            margin-top: 10px;
+        }
+
+        .deployment-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .flow-step {
+            background: white;
+            border: 2px solid #0a3d62;
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            min-width: 150px;
+            box-shadow: 0 4px 10px rgba(10, 61, 98, 0.3);
+        }
+
+        .flow-step-number {
+            background: #0a3d62;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 4px;
+        }
+
+        .status-badge.running {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .status-badge.paused {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .status-badge.stopped {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .final-architecture {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .tier {
+            margin: 10px 0;
+        }
+
+        .tier-label {
+            background: #0a3d62;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            display: inline-block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .tier-content {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .emoji {
+            font-size: 50px;
+            text-align: center;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active" data-slide="1">
+            <div class="slide-number">1 / 8</div>
+            <div style="text-align: center; padding: 60px 0;">
+                <h1 style="font-size: 52px; margin-bottom: 30px;">Vehicle Edge Runtime</h1>
+                <h2 style="border: none; color: #0a3d62; font-size: 32px;">Platform Overview</h2>
+                <p style="font-size: 22px; margin-top: 40px; color: #64748b;">End-to-End Vehicle Application Deployment Platform</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Final Architecture - MOVED TO BEGINNING -->
+        <div class="slide" data-slide="2">
+            <div class="slide-number">2 / 8</div>
+            <h1>Platform Architecture</h1>
+            <h2>Complete System Overview</h2>
+
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 12px;">
+                <!-- Row 1: User Interface -->
+                <div style="display: flex; justify-content: center;">
+                    <div class="component-box tertiary" style="width: 320px; padding: 8px;">
+                        <h4 style="margin: 0 0 3px 0; font-size: 14px;">playground.digital.auto</h4>
+                        <p style="margin: 0; font-size: 10px;">Frontend Web Interface • Code editor • Deployment UI</p>
+                    </div>
+                </div>
+
+                <div style="text-align: center; color: #0a3d62; margin: 2px 0; font-size: 14px;">↓ WebSocket ↓</div>
+
+                <!-- Row 2: Kit Manager -->
+                <div style="display: flex; justify-content: center;">
+                    <div class="component-box tertiary" style="width: 280px; padding: 8px;">
+                        <h4 style="margin: 0 0 3px 0; font-size: 14px;">Kit Manager</h4>
+                        <p style="margin: 0; font-size: 10px;">Public Server • Manages vehicle edge devices</p>
+                    </div>
+                </div>
+
+                <div style="text-align: center; color: #0a3d62; margin: 2px 0; font-size: 14px;">↓ WebSocket ↓</div>
+
+                <!-- Row 3: Vehicle Edge Runtime Device (contains everything) -->
+                <div style="border: 3px solid #0a3d62; border-radius: 12px; padding: 10px; background: linear-gradient(135deg, #f0f8ff 0%, #e6f2ff 100%);">
+                    <div style="text-align: center; margin-bottom: 6px;">
+                        <h3 style="margin: 0; color: #0a3d62; font-size: 14px;">Vehicle Edge Runtime Device</h3>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <!-- VER Runtime -->
+                        <div style="display: flex; justify-content: center;">
+                            <div class="component-box primary" style="width: 260px; padding: 8px;">
+                                <h4 style="margin: 0 0 3px 0; font-size: 13px;">Vehicle Edge Runtime</h4>
+                                <p style="margin: 0; font-size: 10px;">Container Runtime • Main communication to Kit Manager</p>
+                            </div>
+                        </div>
+
+                        <!-- Running Apps -->
+                        <div style="border: 2px dashed #0a3d62; border-radius: 6px; padding: 5px 6px; background: white;">
+                            <h4 style="color: #0a3d62; margin: 0 0 3px 0; font-size: 10px;">Running Vehicle Apps</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 2px; justify-content: center;">
+                                <div class="status-badge running" style="font-size: 8px; padding: 2px 4px; margin: 0;">Speed Monitor</div>
+                                <div class="status-badge running" style="font-size: 8px; padding: 2px 4px; margin: 0;">Battery Health</div>
+                                <div class="status-badge paused" style="font-size: 8px; padding: 2px 4px; margin: 0;">Trip Logger</div>
+                                <div class="status-badge running" style="font-size: 8px; padding: 2px 4px; margin: 0;">Route Optimizer</div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; color: #0a3d62; margin: 2px 0; font-size: 10px;">↓ gRPC/GraphQL ↓</div>
+
+                        <!-- KUKSA + Mock Services -->
+                        <div style="display: flex; justify-content: center; gap: 8px;">
+                            <div class="component-box secondary" style="width: 150px; padding: 6px;">
+                                <h4 style="margin: 0 0 2px 0; font-size: 11px;">KUKSA Data Broker</h4>
+                                <p style="margin: 0; font-size: 9px;">Vehicle Signal Server (VSS)</p>
+                            </div>
+
+                            <div class="component-box" style="width: 130px; border-color: #28a745; padding: 6px;">
+                                <h4 style="margin: 0 0 2px 0; font-size: 11px;">Mock Services</h4>
+                                <p style="margin: 0; font-size: 9px;">Vehicle Data • CAN bus</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 10px; justify-content: center;">
+                <div style="background: #f8fafc; padding: 5px 8px; border-radius: 5px; font-size: 10px; border-left: 2px solid #0a3d62;">
+                    <strong style="font-size: 10px;">Multi-Device</strong><br>
+                    <span style="color: #666; font-size: 9px;">Manage multiple edge devices</span>
+                </div>
+                <div style="background: #f8fafc; padding: 5px 8px; border-radius: 5px; font-size: 10px; border-left: 2px solid #6b8e23;">
+                    <strong style="font-size: 10px;">Real-Time</strong><br>
+                    <span style="color: #666; font-size: 9px;">WebSocket & gRPC</span>
+                </div>
+                <div style="background: #f8fafc; padding: 5px 8px; border-radius: 5px; font-size: 10px; border-left: 2px solid #28a745;">
+                    <strong style="font-size: 10px;">VSS Compliant</strong><br>
+                    <span style="color: #666; font-size: 9px;">Vehicle signals</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Supported Application Types -->
+        <div class="slide" data-slide="3">
+            <div class="slide-number">3 / 8</div>
+            <h1>Supported Application Types</h1>
+            <h2>Deploy Any Workload to the Edge</h2>
+
+            <div class="feature-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 40px;">
+                <div class="feature-card" style="border-left-color: #28a745;">
+                    <h4 style="color: #28a745; font-size: 22px;">Python Application</h4>
+                    <p style="font-size: 16px; margin-top: 12px;"><strong>Best for:</strong></p>
+                    <ul style="font-size: 15px;">
+                        <li>Quick prototyping</li>
+                        <li>Data processing</li>
+                        <li>Signal monitoring</li>
+                        <li>AI/ML models</li>
+                    </ul>
+                    <p style="font-size: 15px; margin-top: 12px;"><strong>Features:</strong></p>
+                    <ul style="font-size: 15px;">
+                        <li>Auto-dependency detection</li>
+                        <li>Vehicle signal validation</li>
+                        <li>Velocitas SDK integration</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card" style="border-left-color: #ffc107;">
+                    <h4 style="color: #ffc107; font-size: 22px;">Binary Application</h4>
+                    <p style="font-size: 16px; margin-top: 12px;"><strong>Best for:</strong></p>
+                    <ul style="font-size: 15px;">
+                        <li>Compiled executables</li>
+                        <li>C/C++ applications</li>
+                        <li>Rust programs</li>
+                        <li>Performance-critical apps</li>
+                    </ul>
+                    <p style="font-size: 15px; margin-top: 12px;"><strong>Features:</strong></p>
+                    <ul style="font-size: 15px;">
+                        <li>Binary file upload</li>
+                        <li>Execution parameters</li>
+                        <li>Runtime configuration</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card" style="border-left-color: #007bff;">
+                    <h4 style="color: #007bff; font-size: 22px;">Docker Application</h4>
+                    <p style="font-size: 16px; margin-top: 12px;"><strong>Best for:</strong></p>
+                    <ul style="font-size: 15px;">
+                        <li>Complex applications</li>
+                        <li>Microservices</li>
+                        <li>Isolated environments</li>
+                        <li>Production deployments</li>
+                    </ul>
+                    <p style="font-size: 15px; margin-top: 12px;"><strong>Features:</strong></p>
+                    <ul style="font-size: 15px;">
+                        <li>Docker image deployment</li>
+                        <li>Port mapping</li>
+                        <li>Container configuration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Deployment Workflow Overview -->
+        <div class="slide" data-slide="4">
+            <div class="slide-number">4 / 8</div>
+            <h1>Deployment Workflow</h1>
+            <h2>From Code to Running Application</h2>
+
+            <div class="deployment-flow">
+                <div class="flow-step">
+                    <div class="flow-step-number">1</div>
+                    <strong>Prototype</strong>
+                    <p style="font-size: 15px;">Write & Test Code</p>
+                </div>
+                <div style="font-size: 30px;">→</div>
+                <div class="flow-step">
+                    <div class="flow-step-number">2</div>
+                    <strong>Configure</strong>
+                    <p style="font-size: 15px;">Set Deployment Settings</p>
+                </div>
+                <div style="font-size: 30px;">→</div>
+                <div class="flow-step">
+                    <div class="flow-step-number">3</div>
+                    <strong>Deploy</strong>
+                    <p style="font-size: 15px;">Push to Runtime</p>
+                </div>
+                <div style="font-size: 30px;">→</div>
+                <div class="flow-step">
+                    <div class="flow-step-number">4</div>
+                    <strong>Monitor</strong>
+                    <p style="font-size: 15px;">Track & Control</p>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <strong>1. Prototyping Phase</strong>
+                <ul>
+                    <li>Write vehicle application code in the editor</li>
+                    <li>Explore available vehicle signals (VSS tree)</li>
+                    <li>Test application logic locally</li>
+                </ul>
+            </div>
+
+            <div class="workflow-step">
+                <strong>2. Deployment Configuration</strong>
+                <ul>
+                    <li>Select target vehicle runtime kit</li>
+                    <li>Choose application type (Python/Binary/Docker)</li>
+                    <li>Configure dependencies and parameters</li>
+                </ul>
+            </div>
+
+            <div class="workflow-step">
+                <strong>3. Runtime Deployment</strong>
+                <ul>
+                    <li>Deploy to selected vehicle edge device</li>
+                    <li>Automatic container creation</li>
+                    <li>Integration with KUKSA data broker</li>
+                </ul>
+            </div>
+
+            <div class="workflow-step">
+                <strong>4. Monitoring & Management</strong>
+                <ul>
+                    <li>Real-time console output streaming</li>
+                    <li>Application lifecycle controls (Start/Stop/Pause/Resume)</li>
+                    <li>Live status updates via WebSocket</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 5: Application Lifecycle Management -->
+        <div class="slide" data-slide="5">
+            <div class="slide-number">5 / 8</div>
+            <h1>Application Lifecycle Management</h1>
+            <h2>Full Control Over Running Applications</h2>
+
+            <div class="architecture-diagram">
+                <h3 style="color: #333; margin-top: 0;">Application States</h3>
+                <div class="deployment-flow">
+                    <div class="flow-step">
+                        <div class="status-badge" style="background: #e2e3e5;">installed</div>
+                        <p style="font-size: 12px;">Deployed, not started</p>
+                    </div>
+                    <div style="font-size: 24px;">→</div>
+                    <div class="flow-step">
+                        <div class="status-badge" style="background: #cce5ff;">starting</div>
+                        <p style="font-size: 12px;">Initializing</p>
+                    </div>
+                    <div style="font-size: 24px;">→</div>
+                    <div class="flow-step">
+                        <div class="status-badge running">running</div>
+                        <p style="font-size: 12px;">Actively executing</p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <div class="status-badge paused">paused</div>
+                    <div class="status-badge stopped">stopped</div>
+                    <div class="status-badge" style="background: #f8d7da; color: #721c24; border-color: #dc3545;">error</div>
+                </div>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Start</h4>
+                    <p><strong>Action:</strong> Launch application</p>
+                    <p><strong>Use Case:</strong> For stopped/error apps</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Pause</h4>
+                    <p><strong>Action:</strong> Suspend execution</p>
+                    <p><strong>Use Case:</strong> Temporarily halt app</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Resume</h4>
+                    <p><strong>Action:</strong> Continue execution</p>
+                    <p><strong>Use Case:</strong> For paused apps</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Stop</h4>
+                    <p><strong>Action:</strong> Graceful shutdown</p>
+                    <p><strong>Use Case:</strong> Stop running app</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Restart</h4>
+                    <p><strong>Action:</strong> Stop + Start</p>
+                    <p><strong>Use Case:</strong> Recover from issues</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Uninstall</h4>
+                    <p><strong>Action:</strong> Remove app</p>
+                    <p><strong>Use Case:</strong> Complete removal</p>
+                </div>
+            </div>
+
+            <div style="background: #d4edda; border: 2px solid #28a745; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                <strong style="color: #155724;">Real-time Updates</strong>
+                <p style="color: #155724; margin: 10px 0;">All status changes happen in real-time via WebSocket. No page refresh needed!</p>
+            </div>
+        </div>
+
+        <!-- Slide 6: Key Platform Features -->
+        <div class="slide" data-slide="6">
+            <div class="slide-number">6 / 8</div>
+            <h1>Key Platform Features</h1>
+            <h2>Capabilities of Vehicle Edge Runtime</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Multi-Language Support</h4>
+                    <p>Deploy Python, Binary, or Docker applications with ease</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Auto-Dependency Detection</h4>
+                    <p>Automatically detects and installs Python dependencies</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Real-Time Communication</h4>
+                    <p>WebSocket-based live updates and console streaming</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Complete Lifecycle Management</h4>
+                    <p>Start, stop, pause, resume, restart, and uninstall apps</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>VSS Signal Explorer</h4>
+                    <p>Explore and validate vehicle signals before deployment</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Application Marketplace</h4>
+                    <p>One-click deployment of pre-built vehicle applications</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Multi-Device Support</h4>
+                    <p>Manage multiple vehicle edge devices via Kit Manager</p>
+                </div>
+
+                <div class="feature-card">
+                    <h4>Live Monitoring</h4>
+                    <p>Watch real-time console output and application status</p>
+                </div>
+            </div>
+
+            <div style="background: #d4edda; border: 2px solid #28a745; padding: 15px; border-radius: 10px; margin-top: 15px;">
+                <strong style="color: #155724;">Production Ready</strong>
+                <p style="color: #155724; margin: 5px 0;">All features tested and ready for deployment to real vehicle edge devices!</p>
+            </div>
+        </div>
+
+        <!-- Slide 7: Live Demo Overview -->
+        <div class="slide" data-slide="7">
+            <div class="slide-number">7 / 8</div>
+            <h1>Live Demo Overview</h1>
+            <h2>What Will Be Demonstrated</h2>
+
+            <div class="workflow-step">
+                <strong>Demo Part 1: Code Exploration</strong>
+                <ul>
+                    <li>Navigate to SDV Code tab to write vehicle application code</li>
+                    <li>Explore VSS (Vehicle Signal Specification) tree browser</li>
+                    <li>View available vehicle signals (Speed, Battery, etc.)</li>
+                </ul>
+            </div>
+
+            <div class="workflow-step">
+                <strong>Demo Part 2: Application Deployment</strong>
+                <ul>
+                    <li>Switch to Vehicle-Edge-Runtime tab</li>
+                    <li>Select deployment type (Python/Binary/Docker)</li>
+                    <li>Configure application settings and dependencies</li>
+                    <li>Deploy to vehicle edge runtime</li>
+                </ul>
+            </div>
+
+            <div class="workflow-step">
+                <strong>Demo Part 3: Runtime Management</strong>
+                <ul>
+                    <li>Monitor real-time console output from running application</li>
+                    <li>Demonstrate application lifecycle: Start, Stop, Pause, Resume</li>
+                    <li>Show multiple apps running simultaneously</li>
+                </ul>
+            </div>
+
+            <div style="background: #d4edda; border: 2px solid #28a745; padding: 15px; border-radius: 10px; margin-top: 15px;">
+                <strong style="color: #155724;">Expected Outcome</strong>
+                <p style="color: #155724; margin: 5px 0;">You will see a complete running system with Vehicle Edge Runtime, KUKSA server, mock services, and multiple vehicle applications communicating in real-time!</p>
+            </div>
+        </div>
+
+        <!-- Slide 8: Summary -->
+        <div class="slide" data-slide="8">
+            <div class="slide-number">8 / 8</div>
+            <div style="text-align: center; padding: 40px 0;">
+                <h1 style="font-size: 36px; margin-bottom: 15px;">Ready to Deploy</h1>
+                <h2 style="border: none; color: #0d4d6f; font-size: 20px;">From Idea to Running Vehicle App in Minutes</h2>
+            </div>
+
+            <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin: 20px 0;">
+                <div style="background: linear-gradient(135deg, #0a3d62 0%, #0d4d6f 100%); color: white; padding: 18px; border-radius: 12px; width: 200px;">
+                    <h3 style="color: white; margin-top: 0; font-size: 16px;">1. Prototype</h3>
+                    <p style="color: white; font-size: 13px;">Write code and explore vehicle signals</p>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #6b8e23 0%, #7a9e32 100%); color: white; padding: 18px; border-radius: 12px; width: 200px;">
+                    <h3 style="color: white; margin-top: 0; font-size: 16px;">2. Deploy</h3>
+                    <p style="color: white; font-size: 13px;">Configure and deploy to edge runtime</p>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #6b8e23 0%, #7a9e32 100%); color: white; padding: 18px; border-radius: 12px; width: 200px;">
+                    <h3 style="color: white; margin-top: 0; font-size: 16px;">3. Monitor</h3>
+                    <p style="color: white; font-size: 13px;">Watch real-time console output</p>
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin: 15px 0;">
+                <h3 style="color: #0a3d62; margin-top: 0; font-size: 16px;">Platform Capabilities</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; text-align: left; font-size: 13px;">
+                    <div>Multi-language support (Python/Binary/Docker)</div>
+                    <div>Auto-dependency detection</div>
+                    <div>Real-time WebSocket communication</div>
+                    <div>Live console streaming</div>
+                    <div>Complete app lifecycle management</div>
+                    <div>VSS signal explorer</div>
+                </div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); padding: 15px; border-radius: 12px; border: 2px solid #28a745; margin-top: 15px;">
+                <h3 style="color: #155724; margin-top: 0; font-size: 16px;">Complete System</h3>
+                <p style="font-size: 14px; color: #155724; margin: 5px 0;">
+                    Running vehicle edge runtime with KUKSA server, mock services, and multiple vehicle applications communicating in real-time!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-button" id="prevBtn" onclick="previousSlide()">← Previous</button>
+        <button class="nav-button" id="nextBtn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 8;
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+
+            if (n > totalSlides) currentSlide = 1;
+            if (n < 1) currentSlide = totalSlides;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[currentSlide - 1].classList.add('active');
+
+            // Update progress bar
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = currentSlide === 1;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides;
+        }
+
+        function nextSlide() {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+
+        function previousSlide() {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight' || event.key === ' ') {
+                nextSlide();
+            } else if (event.key === 'ArrowLeft') {
+                previousSlide();
+            }
+        });
+
+        // Initialize
+        showSlide(currentSlide);
+    </script>
+</body>
+</html>
