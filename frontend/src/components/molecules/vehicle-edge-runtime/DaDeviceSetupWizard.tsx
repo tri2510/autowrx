@@ -165,15 +165,19 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
 
   const generateInstallationCommand = () => {
     const commands: Record<string, string> = {
-      'raspberry-pi': `git clone https://github.com/your-org/vehicle-edge-runtime.git
+      'raspberry-pi': `# 1. Clone the repository
+git clone https://github.com/tri2510/vehicle-edge-runtime.git
 cd vehicle-edge-runtime
-chmod +x scripts/setup-runtime.sh
-./scripts/setup-runtime.sh`,
 
-      'linux-pc': `git clone https://github.com/your-org/vehicle-edge-runtime.git
+# 2. Start the runtime with Docker Compose
+docker compose up -d --build`,
+
+      'linux-pc': `# 1. Clone the repository
+git clone https://github.com/tri2510/vehicle-edge-runtime.git
 cd vehicle-edge-runtime
-chmod +x scripts/setup-runtime.sh
-./scripts/setup-runtime.sh`,
+
+# 2. Start the runtime with Docker Compose
+docker compose up -d --build`,
 
       'existing': `# If kit-manager is running, skip to discovery step
 # Otherwise check if running:
@@ -392,13 +396,35 @@ docker ps | grep kit-manager
                   </div>
                 </div>
 
-                <div className="bg-muted border border-border rounded-lg p-4">
-                  <p className="text-sm">
-                    <strong>What happens:</strong> Script installs everything automatically (Node.js, Python, Docker, dependencies, configures system, starts service)
-                  </p>
-                  <p className="text-sm mt-2 text-muted-foreground">
-                    Takes 5-15 minutes. Runtime will be available at http://localhost:3090
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-muted border border-border rounded-lg p-4">
+                    <h4 className="font-medium mb-2">What happens</h4>
+                    <ul className="text-sm space-y-1">
+                      <li>• Clones the repository</li>
+                      <li>• Builds Docker containers</li>
+                      <li>• Starts all services</li>
+                    </ul>
+                  </div>
+                  <div className="bg-muted border border-border rounded-lg p-4">
+                    <h4 className="font-medium mb-2">Requirements</h4>
+                    <ul className="text-sm space-y-1">
+                      <li>• Docker installed</li>
+                      <li>• Docker Compose installed</li>
+                      <li>• Internet connection</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <TbInfoCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <div className="text-blue-800 dark:text-blue-200">
+                      <p className="text-sm font-medium mb-1">After setup completes:</p>
+                      <p className="text-sm">
+                        Runtime will be available at <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">http://localhost:3090</code>
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </>
             )}
