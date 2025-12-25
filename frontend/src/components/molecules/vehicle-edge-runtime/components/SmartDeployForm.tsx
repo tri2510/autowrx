@@ -16,7 +16,7 @@ import { TbCode, TbRocket, TbLoader, TbDownload, TbEdit } from 'react-icons/tb'
 import EnhancedDependencyManager from './EnhancedDependencyManager'
 import MockServiceControl from './MockServiceControl'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 export interface SmartDeployment {
   id: string
@@ -103,7 +103,6 @@ if __name__ == "__main__":
     code: VELOCITAS_EXAMPLE_CODE,
     dependencies: []
   })
-  const [isEditingCode, setIsEditingCode] = useState(false)
   // Default dependencies for vehicle applications
   const DEFAULT_DEPENDENCIES = ['kuksa_client==0.4.3', 'velocitas-sdk==0.14.1']
   const [allDependencies, setAllDependencies] = useState<string[]>(DEFAULT_DEPENDENCIES)
@@ -398,69 +397,54 @@ if __name__ == "__main__":
             </div>
           </div>
 
-          {/* Code Editor with Syntax Highlighting */}
-          <div className="relative">
-            {!isEditingCode ? (
-              /* Syntax Highlighted View */
-              <div className="relative group">
-                <div
-                  className="rounded-md border border-input cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => setIsEditingCode(true)}
-                  title="Click to edit code"
-                >
-                  <SyntaxHighlighter
-                    language="python"
-                    style={vscDarkPlus}
-                    customStyle={{
-                      margin: 0,
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
-                      minHeight: '200px'
-                    }}
-                    showLineNumbers
-                  >
-                    {formData.code || '# Enter your Python application code here...'}
-                  </SyntaxHighlighter>
-                </div>
-                {/* Edit overlay hint */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setIsEditingCode(true)
-                    }}
-                  >
-                    <TbEdit className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              /* Editable Textarea */
-              <div className="relative">
-                <Textarea
-                  placeholder="Enter your Python application code here..."
-                  value={formData.code}
-                  onChange={(e) => handleInputChange('code', e.target.value)}
-                  className="min-h-[200px] font-mono text-sm"
-                  required
-                  autoFocus
-                />
-                <div className="absolute top-2 right-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setIsEditingCode(false)}
-                  >
-                    Done
-                  </Button>
-                </div>
-              </div>
-            )}
+          {/* Code Editor with Syntax Highlighting - Always Editable */}
+          <div className="relative group">
+            {/* Background: Syntax Highlighted Display */}
+            <div
+              className="rounded-md border border-input overflow-hidden"
+              style={{
+                background: '#ffffff',
+              }}
+            >
+              <SyntaxHighlighter
+                language="python"
+                style={oneLight}
+                customStyle={{
+                  margin: 0,
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  minHeight: '200px',
+                  padding: '1rem',
+                  background: 'transparent'
+                }}
+                showLineNumbers
+              >
+                {formData.code || '# Enter your Python application code here...'}
+              </SyntaxHighlighter>
+            </div>
+
+            {/* Foreground: Editable Textarea Overlay */}
+            <textarea
+              value={formData.code}
+              onChange={(e) => handleInputChange('code', e.target.value)}
+              className="absolute inset-0 w-full h-full p-4 font-mono text-sm leading-relaxed resize-none bg-transparent text-transparent caret-text-foreground"
+              style={{
+                minHeight: '200px',
+                paddingTop: '1rem',
+                paddingBottom: '1rem',
+                paddingLeft: '3.5rem', // Space for line numbers
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                fontSize: '0.875rem',
+                lineHeight: '1.5'
+              }}
+              spellCheck={false}
+              required
+            />
+
+            {/* Helper text */}
+            <div className="absolute bottom-2 right-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Start typing to edit
+            </div>
           </div>
           {detectedDependencies && detectedDependencies.length > 0 && (
             <div className="mt-2">
