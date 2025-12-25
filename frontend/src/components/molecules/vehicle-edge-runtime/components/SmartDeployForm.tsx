@@ -12,9 +12,11 @@ import { Input } from '@/components/atoms/input'
 import { Textarea } from '@/components/atoms/textarea'
 import { Badge } from '@/components/atoms/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card'
-import { TbCode, TbRocket, TbLoader, TbDownload } from 'react-icons/tb'
+import { TbCode, TbRocket, TbLoader, TbDownload, TbEdit } from 'react-icons/tb'
 import EnhancedDependencyManager from './EnhancedDependencyManager'
 import MockServiceControl from './MockServiceControl'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 export interface SmartDeployment {
   id: string
@@ -101,6 +103,7 @@ if __name__ == "__main__":
     code: VELOCITAS_EXAMPLE_CODE,
     dependencies: []
   })
+  const [isEditingCode, setIsEditingCode] = useState(false)
   // Default dependencies for vehicle applications
   const DEFAULT_DEPENDENCIES = ['kuksa_client==0.4.3', 'velocitas-sdk==0.14.1']
   const [allDependencies, setAllDependencies] = useState<string[]>(DEFAULT_DEPENDENCIES)
@@ -394,13 +397,71 @@ if __name__ == "__main__":
               </Button>
             </div>
           </div>
-          <Textarea
-            placeholder="Enter your Python application code here..."
-            value={formData.code}
-            onChange={(e) => handleInputChange('code', e.target.value)}
-            className="min-h-[200px] font-mono"
-            required
-          />
+
+          {/* Code Editor with Syntax Highlighting */}
+          <div className="relative">
+            {!isEditingCode ? (
+              /* Syntax Highlighted View */
+              <div className="relative group">
+                <div
+                  className="rounded-md border border-input cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => setIsEditingCode(true)}
+                  title="Click to edit code"
+                >
+                  <SyntaxHighlighter
+                    language="python"
+                    style={vscDarkPlus}
+                    customStyle={{
+                      margin: 0,
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      minHeight: '200px'
+                    }}
+                    showLineNumbers
+                  >
+                    {formData.code || '# Enter your Python application code here...'}
+                  </SyntaxHighlighter>
+                </div>
+                {/* Edit overlay hint */}
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsEditingCode(true)
+                    }}
+                  >
+                    <TbEdit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              /* Editable Textarea */
+              <div className="relative">
+                <Textarea
+                  placeholder="Enter your Python application code here..."
+                  value={formData.code}
+                  onChange={(e) => handleInputChange('code', e.target.value)}
+                  className="min-h-[200px] font-mono text-sm"
+                  required
+                  autoFocus
+                />
+                <div className="absolute top-2 right-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsEditingCode(false)}
+                  >
+                    Done
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
           {detectedDependencies && detectedDependencies.length > 0 && (
             <div className="mt-2">
               <p className="text-sm text-green-600 mb-2">Auto-detected dependencies:</p>
