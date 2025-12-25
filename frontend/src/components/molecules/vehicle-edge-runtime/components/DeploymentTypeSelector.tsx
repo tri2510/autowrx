@@ -93,17 +93,17 @@ const DeploymentTypeSelector: FC<DeploymentTypeSelectorProps> = ({
   disabled = false
 }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h3 className="text-xl font-semibold text-foreground">Choose Deployment Type</h3>
-        <p className="text-muted-foreground">
-          Select the type of application you want to deploy to your Vehicle Edge Runtime.
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold text-foreground">Deployment Type</h3>
+        <p className="text-sm text-muted-foreground">
+          Select how you want to deploy your application
         </p>
       </div>
 
-      {/* Deployment Type Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Deployment Type Options - Vertical List */}
+      <div className="space-y-3">
         {deploymentTypes.map((type) => {
           const isAvailable = type.status === 'available'
           const isSelected = selectedType === type.id
@@ -119,7 +119,7 @@ const DeploymentTypeSelector: FC<DeploymentTypeSelectorProps> = ({
                     : 'cursor-not-allowed opacity-60'
               } ${
                 isSelected
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                   : 'border-border'
               }`}
               onClick={() => {
@@ -128,65 +128,61 @@ const DeploymentTypeSelector: FC<DeploymentTypeSelectorProps> = ({
                 }
               }}
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2 rounded-lg ${
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  {/* Icon */}
+                  <div className={`p-2 rounded-lg flex-shrink-0 ${
                     isSelected
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted'
                   }`}>
                     {type.icon}
                   </div>
-                  <Badge
-                    variant="secondary"
-                    className={type.badgeColor}
-                  >
-                    {type.badge}
-                  </Badge>
-                </div>
 
-                <CardTitle className="text-lg">{type.name}</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
-                  {type.description}
-                </CardDescription>
-              </CardHeader>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-semibold text-foreground">{type.name}</h4>
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs ${type.badgeColor}`}
+                      >
+                        {type.badge}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {type.description}
+                    </p>
 
-              <CardContent className="pt-0 space-y-4">
-                {/* Features */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-foreground flex items-center">
-                    <TbInfoCircle className="w-4 h-4 mr-1" />
-                    Features
-                  </h4>
-                  <ul className="space-y-1">
-                    {type.features.map((feature, idx) => (
-                      <li key={idx} className="text-xs text-muted-foreground flex items-start">
-                        <span className="w-1 h-1 rounded-full bg-muted-foreground mt-1.5 mr-2 flex-shrink-0"></span>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                    {/* Features - Compact */}
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      {type.features.slice(0, 3).map((feature, idx) => (
+                        <span key={idx} className="flex items-center">
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground mr-1.5"></span>
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
 
-                {/* Action Button */}
-                <div className="pt-2">
-                  {isAvailable ? (
-                    <Button
-                      variant={isSelected ? "default" : "outline"}
-                      className="w-full"
-                      disabled={disabled}
-                    >
-                      {isSelected ? 'Selected' : 'Choose This Type'}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      disabled
-                      className="w-full"
-                    >
-                      For Other Scenarios
-                    </Button>
-                  )}
+                  {/* Action Indicator */}
+                  <div className="flex-shrink-0">
+                    {isAvailable ? (
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        isSelected
+                          ? 'border-primary bg-primary'
+                          : 'border-muted-foreground'
+                      }`}>
+                        {isSelected && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        <TbInfoCircle className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -195,10 +191,10 @@ const DeploymentTypeSelector: FC<DeploymentTypeSelectorProps> = ({
       </div>
 
       {/* Info Message */}
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground">
-          <TbInfoCircle className="inline-block w-4 h-4 mr-1" />
-          Python code deployment is available here. Binary and Docker options are for different application types.
+      <div className="pt-2">
+        <p className="text-xs text-muted-foreground">
+          <TbInfoCircle className="inline-block w-3 h-3 mr-1" />
+          Python code deployment is available. Binary and Docker are for different application types.
         </p>
       </div>
     </div>
