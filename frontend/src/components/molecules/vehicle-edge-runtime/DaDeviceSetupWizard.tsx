@@ -70,36 +70,36 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
   const setupSteps: SetupStep[] = [
     {
       id: 'welcome',
-      title: 'Welcome to Vehicle Edge Runtime Setup',
-      description: 'Deploy Vehicle Edge Runtime devices using our automated setup script',
+      title: 'Setup Vehicle Edge Runtime',
+      description: '3 simple steps to get started',
       icon: TbDeviceDesktop,
       status: 'completed'
     },
     {
       id: 'kit_manager',
-      title: 'Connect to Kit Manager',
-      description: 'Verify connection to the kit-manager service',
+      title: 'Connect Kit Manager',
+      description: 'Verify connection',
       icon: TbServer,
       status: currentStep > 0 ? 'completed' : 'in_progress'
     },
     {
       id: 'installation',
-      title: 'Install Runtime Device',
-      description: 'Set up your Vehicle Edge Runtime device',
+      title: 'Install Runtime',
+      description: 'One command on your device',
       icon: TbTerminal,
       status: currentStep > 1 ? 'completed' : 'pending'
     },
     {
       id: 'discovery',
       title: 'Discover Devices',
-      description: 'Find Vehicle Edge Runtime devices via kit-manager',
+      description: 'Find and connect',
       icon: TbWifi,
       status: currentStep > 2 ? 'completed' : 'pending'
     },
     {
       id: 'complete',
-      title: 'Setup Complete',
-      description: 'Your Vehicle Edge Runtime devices are ready to use',
+      title: 'Ready!',
+      description: 'Start deploying apps',
       icon: TbRocket,
       status: 'pending'
     }
@@ -109,71 +109,50 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
     {
       id: 'raspberry-pi',
       name: 'Raspberry Pi',
-      description: 'Raspberry Pi 4/5 with Ubuntu, Debian, or Raspberry Pi OS (64-bit)',
+      description: 'Raspberry Pi 4/5 with Ubuntu, Debian, or Pi OS',
       icon: TbCpu,
       requirements: [
-        'Ubuntu 18.04+, Debian 10+, CentOS 7+, RHEL 7+, Fedora 30+, or Raspberry Pi OS',
-        'Any architecture: x86_64, arm64, armv7 (auto-detected)',
-        '1GB RAM minimum (2GB+ recommended)',
-        '2GB free disk space minimum',
-        'Network connection for package downloads',
-        'User account with sudo privileges (or root access)'
+        '2GB+ RAM',
+        '2GB+ free disk space',
+        'Network connection',
+        'Sudo access'
       ],
       installationSteps: [
-        'Clone the Vehicle Edge Runtime repository with setup scripts',
-        'Run automated setup script (./scripts/setup-runtime.sh)',
-        'Script auto-detects system and architecture',
-        'Installs all dependencies: Node.js, Python, Docker, etc.',
-        'Creates Python virtual environment with required packages',
-        'Builds and configures the Vehicle Edge Runtime application',
-        'Sets up systemd service for auto-start on boot',
-        'Configures firewall rules for security',
-        'Creates management scripts and test applications',
-        'Provides complete setup summary with next steps'
+        'Run setup script (installs everything)',
+        'Runtime auto-starts on boot',
+        'Ready at http://localhost:3090'
       ]
     },
     {
       id: 'linux-pc',
       name: 'Linux PC/Server',
-      description: 'Ubuntu, Debian, or compatible Linux distributions (x86_64)',
+      description: 'Ubuntu, Debian, or compatible Linux',
       icon: TbDeviceDesktop,
       requirements: [
-        'Ubuntu 20.04+, Debian 11+, CentOS 7+, RHEL 7+, Fedora 30+, or compatible',
-        'x86_64 (Intel/AMD) architecture (auto-detected)',
-        '1GB RAM minimum (4GB+ recommended)',
-        '2GB free disk space minimum',
-        'Network connection for package downloads',
-        'User account with sudo privileges'
+        '1GB+ RAM (4GB+ recommended)',
+        '2GB+ free disk space',
+        'Network connection',
+        'Sudo access'
       ],
       installationSteps: [
-        'Clone the Vehicle Edge Runtime repository with setup scripts',
-        'Run automated setup script (./scripts/setup-runtime.sh)',
-        'Script auto-detects Linux distribution',
-        'Installs all dependencies: Node.js, Python, Docker, etc.',
-        'Creates Python virtual environment with required packages',
-        'Builds and configures the Vehicle Edge Runtime application',
-        'Sets up systemd service for auto-start on boot',
-        'Configures firewall rules and security',
-        'Creates management scripts and test applications',
-        'Provides complete setup with performance optimizations'
+        'Run setup script (installs everything)',
+        'Runtime auto-starts on boot',
+        'Ready at http://localhost:3090'
       ]
     },
     {
       id: 'existing',
-      name: 'Existing Runtime Devices',
-      description: 'I already have Vehicle Edge Runtime devices connected',
+      name: 'Already Connected',
+      description: 'I have Vehicle Edge Runtime devices running',
       icon: TbNetwork,
       requirements: [
-        'Kit Manager service running (docker ps | grep kit-manager)',
-        'Vehicle Edge Runtime devices already connected to kit-manager',
-        'Network access to kit-manager on port 3090'
+        'Kit Manager running',
+        'Devices already connected'
       ],
       installationSteps: [
-        'Skip installation step',
-        'Verify kit-manager connection',
-        'Discover existing devices through kit-manager',
-        'Test device connectivity and status',
-        'Ready for deployment and management'
+        'Skip to device discovery',
+        'Verify connections',
+        'Start deploying'
       ]
     }
   ]
@@ -186,61 +165,21 @@ const DaDeviceSetupWizard: FC<DeviceSetupWizardProps> = ({ onClose, onComplete }
 
   const generateInstallationCommand = () => {
     const commands: Record<string, string> = {
-      'raspberry-pi': `# Automated Vehicle Edge Runtime Setup (Recommended)
-# This script will automatically install everything needed on your Raspberry Pi
-
-# Step 1: Clone the repository with setup scripts
-git clone https://github.com/your-org/vehicle-edge-runtime.git
+      'raspberry-pi': `git clone https://github.com/your-org/vehicle-edge-runtime.git
 cd vehicle-edge-runtime
-
-# Step 2: Run the automated setup script (does everything!)
 chmod +x scripts/setup-runtime.sh
-./scripts/setup-runtime.sh
+./scripts/setup-runtime.sh`,
 
-# The setup script automatically handles:
-# ✅ System detection and requirements checking
-# ✅ Installs Node.js, Python, Docker, and all dependencies
-# ✅ Sets up Python virtual environment with required packages
-# ✅ Creates and configures the Vehicle Edge Runtime application
-# ✅ Sets up systemd service for auto-start on boot
-# ✅ Configures firewall rules
-# ✅ Creates management scripts (start.sh, stop.sh)
-# ✅ Optimizes for Raspberry Pi (ARM64 architecture)
-
-# After setup completes:
-# 🚀 Runtime will be available at: http://localhost:3090
-# 📊 Health check: http://localhost:3090/health
-# 🔌 WebSocket: ws://localhost:3090
-# 🔧 Management: sudo systemctl start/stop/status vehicle-edge-runtime`,
-
-      'linux-pc': `# Automated Vehicle Edge Runtime Setup (Recommended)
-# This script will automatically install everything needed on your Linux PC
-
-# Step 1: Clone the repository with setup scripts
-git clone https://github.com/your-org/vehicle-edge-runtime.git
+      'linux-pc': `git clone https://github.com/your-org/vehicle-edge-runtime.git
 cd vehicle-edge-runtime
-
-# Step 2: Run the automated setup script (does everything!)
 chmod +x scripts/setup-runtime.sh
-./scripts/setup-runtime.sh
+./scripts/setup-runtime.sh`,
 
-# The setup script automatically handles:
-# ✅ System detection (Ubuntu, Debian, CentOS, RHEL, Fedora)
-# ✅ Installs Node.js, Python, Docker, and all dependencies
-# ✅ Sets up Python virtual environment with required packages
-# ✅ Creates and configures the Vehicle Edge Runtime application
-# ✅ Sets up systemd service for auto-start on boot
-# ✅ Configures firewall rules for security
-# ✅ Creates management scripts and test applications
-# ✅ Optimizes for your specific architecture (x86_64/ARM64)
+      'existing': `# If kit-manager is running, skip to discovery step
+# Otherwise check if running:
+docker ps | grep kit-manager
 
-# After setup completes:
-# 🚀 Runtime will be available at: http://localhost:3090
-# 📊 Health check: http://localhost:3090/health
-# 🔌 WebSocket: ws://localhost:3090
-# 🔧 Management: sudo systemctl start/stop/status vehicle-edge-runtime`,
-
-      'existing': '# Skip installation - kit-manager should already be connected\n\n# If kit-manager is not running:\ndocker ps | grep kit-manager  # Check if running\n# If not running, start it:\ndocker run -d --name kit-manager -p 3090:3090 kit-manager:sim\n\n# Verify connection:\ncurl http://localhost:3090/listAllKits\n\n# Check device status:\ncurl http://localhost:3090/listAllClient\n\n# To add new devices to existing setup:\ncd /path/to/vehicle-edge-runtime\n./scripts/setup-runtime.sh'
+# Runtime will be at: http://localhost:3090`
     }
 
     setInstallationCommand(commands[selectedDeviceType.id] || '')
@@ -365,29 +304,26 @@ chmod +x scripts/setup-runtime.sh
         return (
           <div className="text-center py-8">
             <TbDeviceDesktop className="w-16 h-16 mx-auto mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Welcome to Vehicle Edge Runtime Setup</h3>
-            <p className="text-muted-foreground mb-6">
-              This wizard will guide you through deploying Vehicle Edge Runtime on any Linux device using our automated setup script.
+            <h3 className="text-xl font-semibold mb-2">Setup Vehicle Edge Runtime</h3>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              One command to install everything. Start deploying vehicle apps in minutes.
             </p>
-            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-left max-w-2xl mx-auto">
-              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">🚀 What this wizard provides:</h4>
-              <ul className="list-disc list-inside text-blue-800 dark:text-blue-200 space-y-1">
-                <li><strong>Automated Setup:</strong> One-command installation for all requirements</li>
-                <li><strong>Universal Support:</strong> Works on Raspberry Pi, Linux PC, and servers</li>
-                <li><strong>Zero Configuration:</strong> Everything is installed and configured automatically</li>
-                <li><strong>Production Ready:</strong> Includes systemd service for reliable operation</li>
-                <li><strong>Developer Friendly:</strong> Includes test applications and examples</li>
-              </ul>
-            </div>
-
-            <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 text-left max-w-2xl mx-auto">
-              <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">✨ What you'll need:</h4>
-              <ul className="list-disc list-inside text-green-800 dark:text-green-200 space-y-1">
-                <li><strong>Target Device:</strong> Raspberry Pi, Ubuntu/Debian/CentOS/RHEL/Fedora Linux system</li>
-                <li><strong>Minimum Specs:</strong> 1GB RAM, 2GB free disk space, sudo access</li>
-                <li><strong>Network:</strong> Internet connection for package downloads</li>
-                <li><strong>Optional:</strong> Vehicle hardware (CAN bus, GPS, sensors) for vehicle integration</li>
-              </ul>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+              <div className="bg-muted rounded-lg p-4">
+                <div className="text-2xl mb-2">📦</div>
+                <div className="font-medium mb-1">Install</div>
+                <div className="text-sm text-muted-foreground">One command on your device</div>
+              </div>
+              <div className="bg-muted rounded-lg p-4">
+                <div className="text-2xl mb-2">🔗</div>
+                <div className="font-medium mb-1">Connect</div>
+                <div className="text-sm text-muted-foreground">Auto-discover devices</div>
+              </div>
+              <div className="bg-muted rounded-lg p-4">
+                <div className="text-2xl mb-2">🚀</div>
+                <div className="font-medium mb-1">Deploy</div>
+                <div className="text-sm text-muted-foreground">Start building apps</div>
+              </div>
             </div>
           </div>
         )
@@ -396,17 +332,9 @@ chmod +x scripts/setup-runtime.sh
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Connect to Kit Manager</h3>
+              <h3 className="text-lg font-semibold mb-2">Connect Kit Manager</h3>
               <p className="text-muted-foreground">
-                Verify that the kit-manager service is running and accessible.
-              </p>
-            </div>
-
-            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">About Kit Manager</h4>
-              <p className="text-blue-800 dark:text-blue-200 text-sm">
-                The kit-manager service acts as the central hub for managing Vehicle Edge Runtime devices.
-                It handles device discovery, application deployment, and real-time communication.
+                Verify connection to the kit-manager service
               </p>
             </div>
 
@@ -434,7 +362,7 @@ chmod +x scripts/setup-runtime.sh
                   )}
                   <div>
                     <p className="font-medium mb-2">
-                      {connectionTest.success ? 'Connection Successful' : 'Connection Failed'}
+                      {connectionTest.success ? 'Connected!' : 'Connection Failed'}
                     </p>
                     <p className="text-sm">{connectionTest.message}</p>
                   </div>
@@ -442,34 +370,11 @@ chmod +x scripts/setup-runtime.sh
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="bg-muted border border-border rounded-lg p-4">
-                <h4 className="font-medium mb-2">Kit Manager Endpoint</h4>
-                <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
-                  ws://localhost:3090
-                </div>
-              </div>
-              <div className="bg-muted border border-border rounded-lg p-4">
-                <h4 className="font-medium mb-2">HTTP API</h4>
-                <div className="font-mono text-xs bg-background dark:bg-background border border-border p-2 rounded mt-1">
-                  http://localhost:3090/listAllKits
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-              <div className="flex items-start space-x-2">
-                <TbInfoCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                <div className="text-yellow-800 dark:text-yellow-200">
-                  <h4 className="font-medium mb-2">Troubleshooting</h4>
-                  <ul className="text-sm space-y-1">
-                    <li>• Check if kit-manager is running: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">docker ps | grep kit-manager</code></li>
-                    <li>• If not running, start it: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">docker run -d --name kit-manager -p 3090:3090 kit-manager:sim</code></li>
-                    <li>• Ensure port 3090 is accessible and not blocked by firewall</li>
-                    <li>• Check Docker is running and has sufficient resources</li>
-                  </ul>
-                </div>
-              </div>
+            <div className="bg-muted border border-border rounded-lg p-4">
+              <h4 className="font-medium mb-2">Kit Manager</h4>
+              <p className="text-sm text-muted-foreground">
+                Manages device discovery and application deployment
+              </p>
             </div>
           </div>
         )
@@ -478,25 +383,24 @@ chmod +x scripts/setup-runtime.sh
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Set Up Your Vehicle Edge Runtime Device</h3>
+              <h3 className="text-lg font-semibold mb-2">Install on Your Device</h3>
               <p className="text-muted-foreground">
-                Use our automated setup script to configure your Vehicle Edge Runtime device.
+                Run these commands on your Raspberry Pi or Linux device
               </p>
             </div>
 
             {selectedDeviceType.id === 'existing' ? (
               <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-6">
-                <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">⏭️ Skip Installation</h4>
+                <h4 className="font-medium text-green-900 dark:text-green-100 mb-2">Already Connected</h4>
                 <p className="text-green-800 dark:text-green-200">
-                  Since you already have Vehicle Edge Runtime devices connected to kit-manager,
-                  let's skip to device discovery. Click "Next" to continue.
+                  Click "Next" to discover your devices
                 </p>
               </div>
             ) : (
               <>
                 <div className="bg-muted border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium">Installation Commands</h4>
+                    <h4 className="font-medium">Run on your device</h4>
                     <Button
                       variant="outline"
                       size="sm"
@@ -511,84 +415,13 @@ chmod +x scripts/setup-runtime.sh
                   </div>
                 </div>
 
-                {(selectedDeviceType.id === 'raspberry-pi' || selectedDeviceType.id === 'linux-pc') && (
-                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">🚀 Fully Automated Setup (Zero-Configuration)</h4>
-                    <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-                      <div className="font-mono bg-blue-100 dark:bg-blue-900 p-2 rounded text-xs">
-                        <div>git clone https://github.com/your-org/vehicle-edge-runtime.git</div>
-                        <div>cd vehicle-edge-runtime</div>
-                        <div>chmod +x scripts/setup-runtime.sh</div>
-                        <div>./scripts/setup-runtime.sh  # One-command setup!</div>
-                        <div># Everything installed and configured automatically</div>
-                      </div>
-                      <div className="text-xs space-y-1">
-                        <p><strong>✨ What the script does automatically:</strong></p>
-                        <ul className="list-disc list-inside ml-4 space-y-1">
-                          <li>Detects your system and architecture</li>
-                          <li>Installs Node.js, Python, Docker, and all dependencies</li>
-                          <li>Sets up Python virtual environment with required packages</li>
-                          <li>Creates and configures the Vehicle Edge Runtime application</li>
-                          <li>Sets up systemd service for auto-start on boot</li>
-                          <li>Configures firewall rules for security</li>
-                          <li>Creates management scripts and test applications</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">What the script does:</h4>
-                  <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-                    <p><strong>🔧 System Configuration:</strong></p>
-                    <ul className="list-disc list-inside ml-4 space-y-1">
-                      <li>Detects operating system, architecture, and system requirements</li>
-                      <li>Installs package manager dependencies (apt, dnf, yum, etc.)</li>
-                      <li>Sets up Docker with proper user permissions</li>
-                      <li>Creates necessary directories and file permissions</li>
-                    </ul>
-
-                    <p><strong>🐍 Runtime Environment:</strong></p>
-                    <ul className="list-disc list-inside ml-4 space-y-1">
-                      <li>Installs Node.js (latest stable version)</li>
-                      <li>Sets up Python virtual environment with all required packages</li>
-                      <li>Installs Vehicle Edge Runtime dependencies (Flask, Socket.IO, etc.)</li>
-                      <li>Creates optimized configuration based on device specifications</li>
-                    </ul>
-
-                    <p><strong>🚀 Service Setup:</strong></p>
-                    <ul className="list-disc list-inside ml-4 space-y-1">
-                      <li>Creates and configures the Vehicle Edge Runtime application</li>
-                      <li>Sets up systemd service for automatic startup</li>
-                      <li>Configures firewall rules for secure operation</li>
-                      <li>Creates management scripts (start.sh, stop.sh)</li>
-                      <li>Includes test applications and examples</li>
-                    </ul>
-
-                    <p><strong>📋 Platform Optimization:</strong></p>
-                    <ul className="list-disc list-inside ml-4 space-y-1">
-                      <li>Raspberry Pi: ARM64 optimizations, resource limits for embedded systems</li>
-                      <li>Linux PC/Server: Performance optimizations for production workloads</li>
-                      <li>Universal: Works on any supported Linux distribution</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                  <div className="flex items-start space-x-2">
-                    <TbInfoCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                    <div className="text-yellow-800 dark:text-yellow-200">
-                      <h4 className="font-medium mb-2">Setup Process:</h4>
-                      <ul className="text-sm space-y-1">
-                        <li>• <strong>Time Required:</strong> 5-15 minutes depending on internet speed</li>
-                        <li>• <strong>Internet Required:</strong> For downloading packages and dependencies</li>
-                        <li>• <strong>Interactive Setup:</strong> Script provides progress updates and asks for confirmation</li>
-                        <li>• <strong>Automatic Reboot:</strong> Some configurations may require system restart</li>
-                        <li>• <strong>Service Start:</strong> Runtime starts automatically after setup completion</li>
-                      </ul>
-                    </div>
-                  </div>
+                <div className="bg-muted border border-border rounded-lg p-4">
+                  <p className="text-sm">
+                    <strong>What happens:</strong> Script installs everything automatically (Node.js, Python, Docker, dependencies, configures system, starts service)
+                  </p>
+                  <p className="text-sm mt-2 text-muted-foreground">
+                    Takes 5-15 minutes. Runtime will be available at http://localhost:3090
+                  </p>
                 </div>
               </>
             )}
