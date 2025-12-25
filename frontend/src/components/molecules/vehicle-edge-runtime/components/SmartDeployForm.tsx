@@ -46,11 +46,59 @@ const SmartDeployForm: FC<SmartDeployFormProps> = ({
   autoDetectEnabled = false,
   onToggleAutoDetect
 }) => {
+  // Velocitas example code to be used as default
+  const VELOCITAS_EXAMPLE_CODE = `import asyncio
+from sdv import VehicleApp
+from vehicle import vehicle
+
+
+class TestApp(VehicleApp):
+    def __init__(self, vehicle_client):
+        super().__init__()
+        self.Vehicle = vehicle_client
+
+    async def on_start(self):
+        print("App started!")
+        while True:
+            await asyncio.sleep(2)
+            await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(True)
+            await asyncio.sleep(1)
+
+            # --- ADDED LINE: Print the Low Beam status ---
+            low_beam_val = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
+            print("Low Beam value: ", low_beam_val.value)
+
+            # --- ADDED LINE: Print the High Beam status ---
+            high_beam_val = await self.Vehicle.Body.Lights.Beam.High.IsOn.get()
+            print("High Beam value: ", high_beam_val.value)
+            # ----------------------------------------------
+
+            await asyncio.sleep(2)
+            await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(False)
+            await asyncio.sleep(1)
+
+            low_beam_val = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
+            print("Low Beam value: ", low_beam_val.value)
+
+            # Print High Beam again to check status
+            high_beam_val = await self.Vehicle.Body.Lights.Beam.High.IsOn.get()
+            print("High Beam value: ", high_beam_val.value)
+
+
+# Correct way to run the app
+async def main():
+    app = TestApp(vehicle)
+    await app.run()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())`
+
   const [formData, setFormData] = useState<SmartDeployment>({
     id: 'your-vehicle-app',
     name: 'Your Vehicle Application',
     type: 'python',
-    code: '',
+    code: VELOCITAS_EXAMPLE_CODE,
     dependencies: []
   })
   // Default dependencies for vehicle applications
