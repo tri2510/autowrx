@@ -16,8 +16,12 @@ export interface VehicleEdgeRuntimeKit {
 export class KitManagerService {
   private baseUrl: string
 
-  constructor(baseUrl: string = 'http://localhost:3090') {
+  constructor(baseUrl: string = 'https://kit.digitalauto.tech') {
     this.baseUrl = baseUrl
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl
   }
 
   async listKits(): Promise<{ content: VehicleEdgeRuntimeKit[] }> {

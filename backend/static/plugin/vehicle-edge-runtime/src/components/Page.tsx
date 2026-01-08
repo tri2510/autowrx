@@ -49,7 +49,7 @@ interface PageProps {
 
 // Default service URLs
 const DEFAULT_RUNTIME_URL = 'ws://localhost:3002/runtime'
-const DEFAULT_KIT_MANAGER_URL = 'http://localhost:3090'
+const DEFAULT_KIT_MANAGER_URL = 'https://kit.digitalauto.tech'
 
 // Example templates dropdown options
 const TEMPLATE_OPTIONS = [
@@ -66,6 +66,8 @@ export default function Page({ data, config, api }: PageProps) {
   const {
     isRuntimeConnected,
     isKitManagerConnected,
+    isKitManagerLoading,
+    kitManagerError,
     kits,
     selectedKit,
     vehicleApps,
@@ -505,14 +507,64 @@ export default function Page({ data, config, api }: PageProps) {
       <div style={styles.header}>
         <h1 style={styles.headerTitle}>{Icons.Rocket()} Vehicle Edge Runtime</h1>
         <div style={styles.connectionStatus}>
-          <div style={styles.statusItem}>
-            {isKitManagerConnected ? Icons.Wifi() : Icons.WifiOff()}
-            <span>Kit Manager</span>
+          {/* Kit Manager Status */}
+          <div
+            style={{
+              ...styles.statusItem,
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              backgroundColor: isKitManagerLoading
+                ? '#fff3cd'
+                : isKitManagerConnected
+                ? '#d4edda'
+                : kitManagerError
+                ? '#f8d7da'
+                : '#e2e3e5'
+            }}
+          >
+            {isKitManagerLoading ? (
+              <>
+                {Icons.Loading()}
+                <span>Connecting...</span>
+              </>
+            ) : isKitManagerConnected ? (
+              <>
+                {Icons.Wifi()}
+                <span>Kit Manager {Icons.Check()}</span>
+              </>
+            ) : (
+              <>
+                {Icons.WifiOff()}
+                <span>Kit Manager {kitManagerError ? '❌' : '⏸'}</span>
+              </>
+            )}
           </div>
-          <div style={styles.statusItem}>
-            {isRuntimeConnected ? Icons.Wifi() : Icons.WifiOff()}
-            <span>Runtime</span>
+
+          {/* Runtime Status */}
+          <div
+            style={{
+              ...styles.statusItem,
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              backgroundColor: isRuntimeConnected ? '#d4edda' : '#e2e3e5'
+            }}
+          >
+            {isRuntimeConnected ? (
+              <>
+                {Icons.Wifi()}
+                <span>Runtime {Icons.Check()}</span>
+              </>
+            ) : (
+              <>
+                {Icons.WifiOff()}
+                <span>Runtime</span>
+              </>
+            )}
           </div>
+
+          {/* Device Selector */}
           {kits.length > 0 && (
             <select
               value={selectedKit?.kit_id || ''}
@@ -534,6 +586,33 @@ export default function Page({ data, config, api }: PageProps) {
           )}
         </div>
       </div>
+
+      {/* Kit Manager Error Banner */}
+      {kitManagerError && (
+        <div style={{
+          backgroundColor: '#f8d7da',
+          borderBottom: '1px solid #f5c6cb',
+          padding: '10px 20px',
+          fontSize: '13px',
+          color: '#721c24',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          {Icons.Alert()} {kitManagerError}
+          <button
+            onClick={connectKitManager}
+            style={{
+              ...styles.button,
+              ...styles.buttonSmall,
+              marginLeft: 'auto',
+              backgroundColor: '#721c24'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Split Container */}
       <div ref={splitContainerRef} style={styles.splitContainer}>

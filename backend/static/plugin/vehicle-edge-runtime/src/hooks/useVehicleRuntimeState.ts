@@ -7,6 +7,8 @@ interface VehicleRuntimeState {
   // Connection status
   isRuntimeConnected: boolean
   isKitManagerConnected: boolean
+  isKitManagerLoading: boolean
+  kitManagerError: string | null
 
   // Devices
   kits: VehicleEdgeRuntimeKit[]
@@ -33,6 +35,8 @@ interface VehicleRuntimeState {
 export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: string): VehicleRuntimeState {
   const [isRuntimeConnected, setIsRuntimeConnected] = useState(false)
   const [isKitManagerConnected, setIsKitManagerConnected] = useState(false)
+  const [isKitManagerLoading, setIsKitManagerLoading] = useState(false)
+  const [kitManagerError, setKitManagerError] = useState<string | null>(null)
   const [kits, setKits] = useState<VehicleEdgeRuntimeKit[]>([])
   const [selectedKit, setSelectedKit] = useState<VehicleEdgeRuntimeKit | null>(null)
   const [vehicleApps, setVehicleApps] = useState<VehicleApp[]>([])
@@ -91,16 +95,26 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
 
   // Connect to Kit Manager and fetch devices
   const connectKitManager = useCallback(async () => {
+    setIsKitManagerLoading(true)
+    setKitManagerError(null)
+
     try {
-      setConnectionError(null)
       const kitManager = kitManagerServiceRef.current
-      if (!kitManager) return
+      if (!kitManager) {
+        setKitManagerError('Kit Manager service not initialized')
+        setIsKitManagerConnected(false)
+        setIsKitManagerLoading(false)
+        return
+      }
+
+      console.log('[KitManager] Connecting to', kitManager.getBaseUrl())
 
       const response = await kitManager.listKits()
       const kitsList = response.content || []
 
       setKits(kitsList)
       setIsKitManagerConnected(true)
+      setKitManagerError(null)
 
       // Auto-select first online kit
       const onlineKits = kitsList.filter(k => k.is_online)
@@ -108,11 +122,14 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
         setSelectedKit(onlineKits[0])
       }
 
-      console.log('[KitManager] Loaded', kitsList.length, 'kits')
+      console.log('[KitManager] ✅ Connected - Loaded', kitsList.length, 'kits', `(${onlineKits.length} online)`)
     } catch (error) {
-      console.error('[KitManager] Connection failed:', error)
-      setConnectionError(error instanceof Error ? error.message : 'Failed to connect to Kit Manager')
+      console.error('[KitManager] ❌ Connection failed:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Failed to connect to Kit Manager'
+      setKitManagerError(errorMsg)
       setIsKitManagerConnected(false)
+    } finally {
+      setIsKitManagerLoading(false)
     }
   }, [selectedKit])
 
@@ -204,6 +221,8 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
   return {
     isRuntimeConnected,
     isKitManagerConnected,
+    isKitManagerLoading,
+    kitManagerError,
     kits,
     selectedKit,
     vehicleApps,

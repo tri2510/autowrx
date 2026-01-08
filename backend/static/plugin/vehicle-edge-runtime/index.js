@@ -246,8 +246,11 @@
   // src/services/kitManager.service.ts
   var KitManagerService = class {
     baseUrl;
-    constructor(baseUrl = "http://localhost:3090") {
+    constructor(baseUrl = "https://kit.digitalauto.tech") {
       this.baseUrl = baseUrl;
+    }
+    getBaseUrl() {
+      return this.baseUrl;
     }
     async listKits() {
       try {
@@ -285,6 +288,8 @@
   function useVehicleRuntimeState(websocketUrl, kitManagerUrl) {
     const [isRuntimeConnected, setIsRuntimeConnected] = (0, import_react.useState)(false);
     const [isKitManagerConnected, setIsKitManagerConnected] = (0, import_react.useState)(false);
+    const [isKitManagerLoading, setIsKitManagerLoading] = (0, import_react.useState)(false);
+    const [kitManagerError, setKitManagerError] = (0, import_react.useState)(null);
     const [kits, setKits] = (0, import_react.useState)([]);
     const [selectedKit, setSelectedKit] = (0, import_react.useState)(null);
     const [vehicleApps, setVehicleApps] = (0, import_react.useState)([]);
@@ -325,24 +330,34 @@
       }
     }, []);
     const connectKitManager = (0, import_react.useCallback)(async () => {
+      setIsKitManagerLoading(true);
+      setKitManagerError(null);
       try {
-        setConnectionError(null);
         const kitManager = kitManagerServiceRef.current;
-        if (!kitManager)
+        if (!kitManager) {
+          setKitManagerError("Kit Manager service not initialized");
+          setIsKitManagerConnected(false);
+          setIsKitManagerLoading(false);
           return;
+        }
+        console.log("[KitManager] Connecting to", kitManager.getBaseUrl());
         const response = await kitManager.listKits();
         const kitsList = response.content || [];
         setKits(kitsList);
         setIsKitManagerConnected(true);
+        setKitManagerError(null);
         const onlineKits = kitsList.filter((k) => k.is_online);
         if (onlineKits.length > 0 && !selectedKit) {
           setSelectedKit(onlineKits[0]);
         }
-        console.log("[KitManager] Loaded", kitsList.length, "kits");
+        console.log("[KitManager] \u2705 Connected - Loaded", kitsList.length, "kits", `(${onlineKits.length} online)`);
       } catch (error) {
-        console.error("[KitManager] Connection failed:", error);
-        setConnectionError(error instanceof Error ? error.message : "Failed to connect to Kit Manager");
+        console.error("[KitManager] \u274C Connection failed:", error);
+        const errorMsg = error instanceof Error ? error.message : "Failed to connect to Kit Manager";
+        setKitManagerError(errorMsg);
         setIsKitManagerConnected(false);
+      } finally {
+        setIsKitManagerLoading(false);
       }
     }, [selectedKit]);
     const selectKit = (0, import_react.useCallback)((kit) => {
@@ -411,6 +426,8 @@
     return {
       isRuntimeConnected,
       isKitManagerConnected,
+      isKitManagerLoading,
+      kitManagerError,
       kits,
       selectedKit,
       vehicleApps,
@@ -783,7 +800,7 @@ print("\u{1F4CA} Application execution finished")`
     Sparkles: () => "\u2728"
   };
   var DEFAULT_RUNTIME_URL = "ws://localhost:3002/runtime";
-  var DEFAULT_KIT_MANAGER_URL = "http://localhost:3090";
+  var DEFAULT_KIT_MANAGER_URL = "https://kit.digitalauto.tech";
   var TEMPLATE_OPTIONS = [
     { id: "velocitas", label: "Velocitas Vehicle App", icon: "\u{1F697}" },
     { id: "kuksaSetValue", label: "KUKSA Set Value", icon: "\u{1F4E1}" },
@@ -796,6 +813,8 @@ print("\u{1F4CA} Application execution finished")`
     const {
       isRuntimeConnected,
       isKitManagerConnected,
+      isKitManagerLoading,
+      kitManagerError,
       kits,
       selectedKit,
       vehicleApps,
@@ -1193,14 +1212,56 @@ print("\u{1F4CA} Application execution finished")`
           " Vehicle Edge Runtime"
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.connectionStatus, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.statusItem, children: [
-            isKitManagerConnected ? Icons.Wifi() : Icons.WifiOff(),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Kit Manager" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.statusItem, children: [
-            isRuntimeConnected ? Icons.Wifi() : Icons.WifiOff(),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Runtime" })
-          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "div",
+            {
+              style: {
+                ...styles.statusItem,
+                padding: "4px 8px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                backgroundColor: isKitManagerLoading ? "#fff3cd" : isKitManagerConnected ? "#d4edda" : kitManagerError ? "#f8d7da" : "#e2e3e5"
+              },
+              children: isKitManagerLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                Icons.Loading(),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Connecting..." })
+              ] }) : isKitManagerConnected ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                Icons.Wifi(),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                  "Kit Manager ",
+                  Icons.Check()
+                ] })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                Icons.WifiOff(),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                  "Kit Manager ",
+                  kitManagerError ? "\u274C" : "\u23F8"
+                ] })
+              ] })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "div",
+            {
+              style: {
+                ...styles.statusItem,
+                padding: "4px 8px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                backgroundColor: isRuntimeConnected ? "#d4edda" : "#e2e3e5"
+              },
+              children: isRuntimeConnected ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                Icons.Wifi(),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                  "Runtime ",
+                  Icons.Check()
+                ] })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                Icons.WifiOff(),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Runtime" })
+              ] })
+            }
+          ),
           kits.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "select",
             {
@@ -1223,6 +1284,33 @@ print("\u{1F4CA} Application execution finished")`
             }
           )
         ] })
+      ] }),
+      kitManagerError && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+        backgroundColor: "#f8d7da",
+        borderBottom: "1px solid #f5c6cb",
+        padding: "10px 20px",
+        fontSize: "13px",
+        color: "#721c24",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px"
+      }, children: [
+        Icons.Alert(),
+        " ",
+        kitManagerError,
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "button",
+          {
+            onClick: connectKitManager,
+            style: {
+              ...styles.button,
+              ...styles.buttonSmall,
+              marginLeft: "auto",
+              backgroundColor: "#721c24"
+            },
+            children: "Retry"
+          }
+        )
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { ref: splitContainerRef, style: styles.splitContainer, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.leftPanel(leftPanelWidth), children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.panelContent, children: [
