@@ -1,16 +1,31 @@
 # Vehicle Edge Runtime Plugin
 
-A digital.auto plugin for deploying and managing vehicle edge applications.
+A digital.auto plugin for deploying and managing vehicle edge applications with **real service connections**.
+
+## 📚 Documentation
+
+- **[REFERENCE.md](./REFERENCE.md)** - Complete reference guide with:
+  - Original implementation reference
+  - Service endpoints & APIs
+  - Deployment procedures
+  - Troubleshooting guide
 
 ## Features
 
-- 🚀 **Deploy Applications** - Deploy Python, Binary, and Docker applications to vehicle edge runtimes
+- 🚀 **Deploy Applications** - Deploy Python applications to vehicle edge runtimes
 - 📱 **Application Management** - View, start, stop, and uninstall deployed applications
 - 💻 **Console Output** - Real-time console logging from deployments
-- 📶 **Connection Management** - Select and connect to multiple vehicle edge runtimes
-- 🔄 **Auto-refresh** - Automatically updates application status
+- 📶 **Connection Management** - Select and connect to multiple vehicle edge devices
+- 🔄 **Real-time Updates** - WebSocket-based live app status updates
+- 🔌 **Real Service Connections** - Connects to actual Kit Manager and Vehicle Runtime services
 
 ## Quick Start
+
+### Prerequisites
+
+Ensure the following services are running:
+- **Kit Manager**: `http://localhost:3090`
+- **Vehicle Runtime**: `ws://localhost:3002/runtime`
 
 ### Build the Plugin
 
@@ -22,91 +37,167 @@ npm install
 ./build.sh
 ```
 
-This will generate `index.js` - the compiled plugin bundle.
+This generates `index.js` (~39KB) - the compiled plugin bundle.
 
-### Test Locally
+### Development Server (with CORS)
 
 ```bash
-# Serve the plugin locally
-npx serve .
+# Start Express server with CORS
+node server.js
 
-# Or using Python
-python3 -m http.server 3000
-
-# Plugin will be available at:
-# http://localhost:3000/index.js
+# Server runs on http://localhost:3000
+# Plugin available at http://localhost:3000/index.js
 ```
 
-### Deploy
+### Deploy to Autowrx
 
-1. **Host the plugin** - Choose one of:
-   - GitHub Pages
-   - Netlify/Vercel
-   - Your own server
-   - CDN (Cloudflare, AWS S3)
+#### Option 1: Backend Static File Serving (Recommended)
 
-2. **Register in digital.auto**:
-   - Navigate to plugin management
-   - Create new plugin entry
-   - Set URL to your hosted plugin
-   - Use slug: `vehicle-edge-runtime`
+1. **Build the plugin** (if not already built)
+   ```bash
+   ./build.sh
+   ```
+
+2. **Register plugin via Plugin Management UI**:
+   - Navigate to Plugin Management page
+   - Click "Add Plugin"
+   - Fill in:
+     - **Name**: `Vehicle Edge Runtime`
+     - **Slug**: `vehicle-edge-runtime`
+     - **URL**: `/plugin/vehicle-edge-runtime/index.js`
+   - Save
+
+3. **Access the plugin**:
+   ```
+   http://localhost:3210/model/:modelId/library/prototype/:prototypeId/plug?plugid=vehicle-edge-runtime
+   ```
+
+#### Option 2: External Hosting (Development)
+
+1. **Start dev server**:
+   ```bash
+   node server.js  # Runs on port 3000
+   ```
+
+2. **Register plugin with external URL**:
+   - **URL**: `http://localhost:3000/index.js`
+
+3. **Refresh plugin page** to load from external server.
 
 ## Development
 
 ### Project Structure
 
 ```
-vehicle-edge-runtime-plugin/
+vehicle-edge-runtime/
 ├── src/
 │   ├── components/
-│   │   └── Page.tsx          # Main plugin component
+│   │   └── Page.tsx                      # Main UI component
 │   ├── hooks/
-│   │   ├── useVehicleRuntime.ts  # WebSocket connection hook
-│   │   └── useConsoleOutput.ts   # Console logging hook
+│   │   ├── useVehicleRuntimeState.ts     # Real service connections
+│   │   ├── useVehicleRuntime.ts          # WebSocket (reference)
+│   │   └── useConsoleOutput.ts           # Console logging
+│   ├── services/
+│   │   ├── runtime.service.ts            # Vehicle Runtime WebSocket client
+│   │   └── kitManager.service.ts         # Kit Manager REST client
 │   ├── types/
-│   │   └── index.ts          # TypeScript type definitions
+│   │   └── index.ts                      # Type definitions
 │   ├── utils/
-│   │   └── helpers.ts        # Utility functions
-│   └── index.ts              # Plugin entry point
-├── build.sh                   # Build script
-├── package.json               # Dependencies
-├── tsconfig.json              # TypeScript config
-└── README.md                  # This file
+│   │   └── helpers.ts                    # Utility functions
+│   └── index.ts                          # Plugin entry point
+├── index.js                              # Built plugin bundle (output)
+├── index.js.map                          # Source map
+├── build.sh                              # Build script
+├── server.js                             # Dev server with CORS
+├── test.html                             # Standalone test page
+├── package.json                          # Dependencies
+├── tsconfig.json                         # TypeScript config
+├── README.md                             # This file
+└── REFERENCE.md                          # Complete reference guide
 ```
 
-### Adding Features
+### Real Service Connections
 
-The plugin is built with:
-- **React** - UI components
-- **TypeScript** - Type safety
-- **esbuild** - Fast bundling
+The plugin connects to two services:
 
-To add new features:
+#### 1. Kit Manager (`http://localhost:3090`)
+- REST API for device discovery
+- Endpoints:
+  - `GET /listAllKits` - Get all registered kits
+  - `POST /convertCode` - Convert Python code
 
-1. Update `src/components/Page.tsx` with new UI
-2. Add custom hooks to `src/hooks/`
-3. Update types in `src/types/index.ts`
+#### 2. Vehicle Runtime (`ws://localhost:3002/runtime`)
+- WebSocket for app management
+- Operations:
+  - Deploy Python apps
+  - List deployed apps
+  - Start/Stop/Pause/Resume/Uninstall apps
+  - Subscribe to console output
+  - Get runtime state
 
-### Current Limitations (To Be Connected)
+See [REFERENCE.md](./REFERENCE.md) for detailed API documentation.
 
-This plugin currently uses mock data for:
-- Kit/device discovery
-- WebSocket connections to kit-manager
-- Vehicle Edge Runtime API calls
+### Configuration
 
-To connect to real services:
-1. Update `useVehicleRuntime` hook with real WebSocket URLs
-2. Replace mock deployment with real API calls
-3. Connect to the kit-manager service for device discovery
+Default service URLs:
+```typescript
+const DEFAULT_RUNTIME_URL = 'ws://localhost:3002/runtime'
+const DEFAULT_KIT_MANAGER_URL = 'http://localhost:3090'
+```
+
+Override via plugin config when registering:
+```javascript
+{
+  runtimeUrl: 'ws://custom-host:3002/runtime',
+  kitManagerUrl: 'http://custom-host:3090'
+}
+```
+
+### Development Workflow
+
+```bash
+# Terminal 1: Dev server with CORS
+node server.js
+
+# Terminal 2: Watch and rebuild
+npm run dev
+
+# Terminal 3: Start services (if testing)
+# Kit Manager
+cd /path/to/kit-manager && npm start
+
+# Vehicle Runtime
+cd /path/to/vehicle-runtime && npm start
+```
+
+## Troubleshooting
+
+### Plugin fails to load
+1. Check plugin URL is accessible: `curl http://localhost:3000/index.js`
+2. Check CORS headers: `curl -I http://localhost:3000/index.js | grep -i access-control`
+3. Verify plugin registration: `window.DAPlugins` in browser console
+
+### Connection errors
+1. Verify services are running:
+   ```bash
+   curl http://localhost:3090/listAllKits
+   ```
+2. Check service URLs in plugin configuration
+3. Check browser console for WebSocket errors
+
+### Real-time updates not working
+1. Check WebSocket connection in browser Network tab (WS tab)
+2. Verify event listeners are registered
+3. Check console for WebSocket errors
+
+See [REFERENCE.md](./REFERENCE.md) for complete troubleshooting guide.
 
 ## Architecture
 
 ### Plugin Registration
 
-The plugin registers globally as `window.DAPlugins['vehicle-edge-runtime']`:
-
 ```typescript
-{
+window.DAPlugins['page-plugin'] = {
   components: { Page },
   mount: (el, props) => void,
   unmount: (el) => void
@@ -115,40 +206,37 @@ The plugin registers globally as `window.DAPlugins['vehicle-edge-runtime']`:
 
 ### Props Interface
 
-The plugin receives these props from the host:
-
 ```typescript
 interface PluginProps {
   data?: {
-    model?: any      // Current model data
-    prototype?: any  // Current prototype data
+    model?: any
+    prototype?: any
   }
   config?: {
-    plugin_id?: string  // Plugin identifier
+    plugin_id?: string
+    runtimeUrl?: string       // Override Vehicle Runtime URL
+    kitManagerUrl?: string    // Override Kit Manager URL
   }
-  api?: {
-    updateModel?: (updates) => Promise<any>
-    updatePrototype?: (updates) => Promise<any>
-    // ... other API methods
-  }
+  api?: PluginAPI              // Plugin API methods
 }
 ```
 
-## Deployment Checklist
+## Original Implementation
 
-- [ ] Build plugin: `./build.sh`
-- [ ] Test plugin locally
-- [ ] Host plugin (GitHub Pages, Netlify, etc.)
-- [ ] Register in digital.auto admin
-- [ ] Test in production environment
-- [ ] Connect to real kit-manager service
-- [ ] Connect to real Vehicle Runtime service
+This plugin is based on the vehicle-edge-runtime dashboard from:
+- **Branch**: `feature/270-new-deployment-extension`
+- **Location**: `frontend/src/components/molecules/vehicle-edge-runtime/`
+- **Files**: 51 files, ~2200 lines
+
+The plugin simplifies the original to a focused deployment and apps management tool while maintaining real service connections.
 
 ## License
 
 MIT
 
 ## Support
+
+For detailed documentation, see [REFERENCE.md](./REFERENCE.md).
 
 For issues or questions:
 1. Check browser console for errors
