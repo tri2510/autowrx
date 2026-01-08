@@ -190,6 +190,7 @@ export class VehicleRuntimeService {
   }): Promise<string> {
     const request = {
       type: 'deploy_request',
+      id: 'deploy-' + Date.now(),
       code: config.code,
       language: 'python' as const,
       vehicleId: 'default-vehicle',

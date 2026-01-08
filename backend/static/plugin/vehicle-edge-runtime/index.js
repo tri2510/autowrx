@@ -164,6 +164,7 @@
     async deployPythonApp(config) {
       const request = {
         type: "deploy_request",
+        id: "deploy-" + Date.now(),
         code: config.code,
         language: "python",
         vehicleId: "default-vehicle",
