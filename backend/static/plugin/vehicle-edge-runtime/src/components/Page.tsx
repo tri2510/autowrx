@@ -38,7 +38,8 @@ const Icons = {
   Search: () => '🔍',
   ChevronDown: () => '▼',
   ChevronRight: () => '▶',
-  Sparkles: () => '✨'
+  Sparkles: () => '✨',
+  Brain: () => '🧠'
 }
 
 interface PageProps {
@@ -72,6 +73,8 @@ export default function Page({ data, config, api }: PageProps) {
     selectedKit,
     vehicleApps,
     isRefreshingApps,
+    isDeployingKuksa,
+    isDeployingMock,
     connectionError,
     connectRuntime,
     connectKitManager,
@@ -80,8 +83,15 @@ export default function Page({ data, config, api }: PageProps) {
     startApp,
     stopApp,
     uninstallApp,
-    deployApp
+    deployApp,
+    deployKuksa,
+    deployMock
   } = useVehicleRuntimeState(runtimeUrl, kitManagerUrl)
+
+  // Filter to only show Edge-Runtime devices
+  const edgeRuntimeKits = React.useMemo(() => {
+    return kits.filter(kit => kit.name.includes('Edge-Runtime'))
+  }, [kits])
 
   // Deployment state
   const [appId, setAppId] = React.useState('my-vehicle-app')
@@ -274,6 +284,36 @@ export default function Page({ data, config, api }: PageProps) {
       addSuccess(`Application ${appId} uninstalled`)
     } catch (error) {
       addError(`Failed to uninstall app: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Handle deploy KUKSA server
+  const handleDeployKuksa = async () => {
+    if (!isRuntimeConnected) {
+      addError('Runtime not connected')
+      return
+    }
+    try {
+      addEntry('Deploying KUKSA Databroker server...', 'info')
+      const appId = await deployKuksa()
+      addSuccess(`KUKSA Databroker deployed! App ID: ${appId}`)
+    } catch (error) {
+      addError(`Failed to deploy KUKSA: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Handle deploy Mock service
+  const handleDeployMock = async () => {
+    if (!isRuntimeConnected) {
+      addError('Runtime not connected')
+      return
+    }
+    try {
+      addEntry('Deploying Mock service...', 'info')
+      const appId = await deployMock('echo-all')
+      addSuccess(`Mock service deployed! App ID: ${appId}`)
+    } catch (error) {
+      addError(`Failed to deploy Mock service: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -541,6 +581,19 @@ export default function Page({ data, config, api }: PageProps) {
                 <span>Kit Manager {kitManagerError ? '❌' : '⏸'}</span>
               </>
             )}
+            <button
+              onClick={connectKitManager}
+              style={{
+                ...styles.button,
+                ...styles.buttonSmall,
+                marginLeft: '4px',
+                padding: '2px 6px',
+                minWidth: '20px'
+              }}
+              title="Refresh Kit Manager"
+            >
+              {Icons.Refresh()}
+            </button>
           </div>
 
           {/* Runtime Status */}
@@ -567,7 +620,7 @@ export default function Page({ data, config, api }: PageProps) {
           </div>
 
           {/* Device Selector */}
-          {kits.length > 0 && (
+          {isKitManagerConnected && (
             <select
               value={selectedKit?.kit_id || ''}
               onChange={(e) => handleKitChange(e.target.value)}
@@ -578,12 +631,18 @@ export default function Page({ data, config, api }: PageProps) {
                 fontSize: '12px'
               }}
             >
-              <option value="" disabled>Select device...</option>
-              {kits.map(kit => (
-                <option key={kit.kit_id} value={kit.kit_id}>
-                  {kit.name} {kit.is_online ? '🟢' : '🔴'}
-                </option>
-              ))}
+              {edgeRuntimeKits.length > 0 ? (
+                <>
+                  <option value="" disabled>Select Edge-Runtime device...</option>
+                  {edgeRuntimeKits.map(kit => (
+                    <option key={kit.kit_id} value={kit.kit_id}>
+                      {kit.name} {kit.is_online ? '🟢' : '🔴'}
+                    </option>
+                  ))}
+                </>
+              ) : (
+                <option value="" disabled>No edge runtime</option>
+              )}
             </select>
           )}
         </div>
@@ -829,6 +888,43 @@ export default function Page({ data, config, api }: PageProps) {
         {/* Right Panel - Applications */}
         <div style={styles.rightPanel(leftPanelWidth)}>
           <div style={styles.panelContent}>
+            {/* Service Buttons */}
+            <div style={{ ...styles.card, marginBottom: '16px' }}>
+              <div style={styles.cardHeader}>
+                <span>{Icons.Server()} Services</span>
+              </div>
+              <div style={{ ...styles.cardBody, padding: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleDeployKuksa}
+                    disabled={!isRuntimeConnected || isDeployingKuksa}
+                    style={{
+                      ...styles.button,
+                      flex: 1,
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      ...(isDeployingKuksa || !isRuntimeConnected ? styles.buttonDisabled : {})
+                    }}
+                  >
+                    {isDeployingKuksa ? `${Icons.Loading()} KUKSA...` : `${Icons.Server()} KUKSA`}
+                  </button>
+                  <button
+                    onClick={handleDeployMock}
+                    disabled={!isRuntimeConnected || isDeployingMock}
+                    style={{
+                      ...styles.button,
+                      flex: 1,
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      ...(isDeployingMock || !isRuntimeConnected ? styles.buttonDisabled : {})
+                    }}
+                  >
+                    {isDeployingMock ? `${Icons.Loading()} Mock...` : `${Icons.Brain()} Mock`}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <span>

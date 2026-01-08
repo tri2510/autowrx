@@ -189,12 +189,25 @@
       return this.sendMessage(request);
     }
     async startApp(appId) {
+      if (appId === "VEA-mock-service" || appId.includes("mock")) {
+        return this.sendMessage({
+          type: "mock_service_start",
+          id: `mock-start-${Date.now()}`,
+          mode: "echo-all"
+        });
+      }
       return this.sendMessage({
         type: "run_app",
         appId
       });
     }
     async stopApp(appId) {
+      if (appId === "VEA-mock-service" || appId.includes("mock")) {
+        return this.sendMessage({
+          type: "mock_service_stop",
+          id: `mock-stop-${Date.now()}`
+        });
+      }
       return this.sendMessage({
         type: "stop_app",
         appId
@@ -240,6 +253,58 @@
     }
     removeAllListeners() {
       this.messageHandlers.clear();
+    }
+    // Service deployment methods
+    async deployKuksaServer() {
+      const request = {
+        type: "deploy_request",
+        id: `deploy-kuksa-${Date.now()}`,
+        prototype: {
+          id: "VEA-kuksa-databroker",
+          name: "KUKSA Databroker",
+          type: "docker",
+          description: "Eclipse KUKSA Vehicle Signal Databroker",
+          config: {
+            dockerCommand: [
+              "run",
+              "-d",
+              "--name",
+              "VEA-kuksa-databroker",
+              "--network",
+              "host",
+              "-p",
+              "55555:55555",
+              "-p",
+              "8090:8090",
+              "ghcr.io/eclipse-kuksa/kuksa-databroker:0.4.4",
+              "--insecure"
+            ]
+          }
+        },
+        vehicle_id: "default-vehicle"
+      };
+      const response = await this.sendMessage(request);
+      const isSuccess = !response || typeof response === "object" && !response.error && response.type !== "error";
+      if (isSuccess) {
+        return response?.executionId || response?.id || "VEA-kuksa-databroker";
+      } else {
+        throw new Error(response?.error || response?.result || "KUKSA deployment failed");
+      }
+    }
+    async deployMockService(mode = "echo-all", signals) {
+      const request = {
+        type: "mock_service_start",
+        id: `mock-start-${Date.now()}`,
+        mode,
+        ...signals && { signals }
+      };
+      const response = await this.sendMessage(request);
+      const isSuccess = !response || response.success === true || typeof response === "object" && !response.error && response.type !== "error";
+      if (isSuccess) {
+        return response?.status?.appId || response?.id || "VEA-mock-service";
+      } else {
+        throw new Error(response?.error || response?.message || "Mock service deployment failed");
+      }
     }
   };
 
@@ -294,6 +359,8 @@
     const [selectedKit, setSelectedKit] = (0, import_react.useState)(null);
     const [vehicleApps, setVehicleApps] = (0, import_react.useState)([]);
     const [isRefreshingApps, setIsRefreshingApps] = (0, import_react.useState)(false);
+    const [isDeployingKuksa, setIsDeployingKuksa] = (0, import_react.useState)(false);
+    const [isDeployingMock, setIsDeployingMock] = (0, import_react.useState)(false);
     const [connectionError, setConnectionError] = (0, import_react.useState)(null);
     const runtimeServiceRef = (0, import_react.useRef)(null);
     const kitManagerServiceRef = (0, import_react.useRef)(null);
@@ -345,11 +412,11 @@
         setKits(kitsList);
         setIsKitManagerConnected(true);
         setKitManagerError(null);
-        const onlineKits = kitsList.filter((k) => k.is_online);
-        if (onlineKits.length > 0 && !selectedKit) {
-          setSelectedKit(onlineKits[0]);
+        const onlineEdgeRuntimeKits = kitsList.filter((k) => k.is_online && k.name.includes("Edge-Runtime"));
+        if (onlineEdgeRuntimeKits.length > 0 && !selectedKit) {
+          setSelectedKit(onlineEdgeRuntimeKits[0]);
         }
-        console.log("[KitManager] \u2705 Connected - Loaded", kitsList.length, "kits", `(${onlineKits.length} online)`);
+        console.log("[KitManager] \u2705 Connected - Loaded", kitsList.length, "kits", `(${onlineEdgeRuntimeKits.length} Edge-Runtime online)`);
       } catch (error) {
         console.error("[KitManager] \u274C Connection failed:", error);
         const errorMsg = error instanceof Error ? error.message : "Failed to connect to Kit Manager";
@@ -385,6 +452,15 @@
         setIsRefreshingApps(false);
       }
     }, []);
+    (0, import_react.useEffect)(() => {
+      if (!isRuntimeConnected)
+        return;
+      refreshApps();
+      const interval = setInterval(() => {
+        refreshApps();
+      }, 1e4);
+      return () => clearInterval(interval);
+    }, [isRuntimeConnected, refreshApps]);
     const startApp = (0, import_react.useCallback)(async (appId) => {
       try {
         await runtimeServiceRef.current?.startApp(appId);
@@ -422,6 +498,32 @@
         throw error;
       }
     }, [refreshApps]);
+    const deployKuksa = (0, import_react.useCallback)(async () => {
+      setIsDeployingKuksa(true);
+      try {
+        const appId = await runtimeServiceRef.current?.deployKuksaServer();
+        await refreshApps();
+        return appId || "VEA-kuksa-databroker";
+      } catch (error) {
+        console.error("[VehicleRuntime] Failed to deploy KUKSA:", error);
+        throw error;
+      } finally {
+        setIsDeployingKuksa(false);
+      }
+    }, [refreshApps]);
+    const deployMock = (0, import_react.useCallback)(async (mode = "echo-all", signals) => {
+      setIsDeployingMock(true);
+      try {
+        const appId = await runtimeServiceRef.current?.deployMockService(mode, signals);
+        await refreshApps();
+        return appId || "VEA-mock-service";
+      } catch (error) {
+        console.error("[VehicleRuntime] Failed to deploy Mock service:", error);
+        throw error;
+      } finally {
+        setIsDeployingMock(false);
+      }
+    }, [refreshApps]);
     return {
       isRuntimeConnected,
       isKitManagerConnected,
@@ -431,6 +533,8 @@
       selectedKit,
       vehicleApps,
       isRefreshingApps,
+      isDeployingKuksa,
+      isDeployingMock,
       connectionError,
       connectRuntime,
       connectKitManager,
@@ -439,7 +543,9 @@
       startApp,
       stopApp,
       uninstallApp,
-      deployApp
+      deployApp,
+      deployKuksa,
+      deployMock
     };
   }
 
@@ -796,7 +902,8 @@ print("\u{1F4CA} Application execution finished")`
     Search: () => "\u{1F50D}",
     ChevronDown: () => "\u25BC",
     ChevronRight: () => "\u25B6",
-    Sparkles: () => "\u2728"
+    Sparkles: () => "\u2728",
+    Brain: () => "\u{1F9E0}"
   };
   var DEFAULT_RUNTIME_URL = "ws://localhost:3002/runtime";
   var DEFAULT_KIT_MANAGER_URL = "https://kit.digitalauto.tech";
@@ -818,6 +925,8 @@ print("\u{1F4CA} Application execution finished")`
       selectedKit,
       vehicleApps,
       isRefreshingApps,
+      isDeployingKuksa,
+      isDeployingMock,
       connectionError,
       connectRuntime,
       connectKitManager,
@@ -826,8 +935,13 @@ print("\u{1F4CA} Application execution finished")`
       startApp,
       stopApp,
       uninstallApp,
-      deployApp
+      deployApp,
+      deployKuksa,
+      deployMock
     } = useVehicleRuntimeState(runtimeUrl, kitManagerUrl);
+    const edgeRuntimeKits = React.useMemo(() => {
+      return kits.filter((kit) => kit.name.includes("Edge-Runtime"));
+    }, [kits]);
     const [appId, setAppId] = React.useState("my-vehicle-app");
     const [appName, setAppName] = React.useState("My Vehicle App");
     const [appCode, setAppCode] = React.useState(EXAMPLE_TEMPLPS.velocitas);
@@ -976,6 +1090,32 @@ print("\u{1F4CA} Application execution finished")`
         addSuccess(`Application ${appId2} uninstalled`);
       } catch (error) {
         addError(`Failed to uninstall app: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    };
+    const handleDeployKuksa = async () => {
+      if (!isRuntimeConnected) {
+        addError("Runtime not connected");
+        return;
+      }
+      try {
+        addEntry("Deploying KUKSA Databroker server...", "info");
+        const appId2 = await deployKuksa();
+        addSuccess(`KUKSA Databroker deployed! App ID: ${appId2}`);
+      } catch (error) {
+        addError(`Failed to deploy KUKSA: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    };
+    const handleDeployMock = async () => {
+      if (!isRuntimeConnected) {
+        addError("Runtime not connected");
+        return;
+      }
+      try {
+        addEntry("Deploying Mock service...", "info");
+        const appId2 = await deployMock("echo-all");
+        addSuccess(`Mock service deployed! App ID: ${appId2}`);
+      } catch (error) {
+        addError(`Failed to deploy Mock service: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     };
     const styles = {
@@ -1208,7 +1348,7 @@ print("\u{1F4CA} Application execution finished")`
           " Vehicle Edge Runtime"
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.connectionStatus, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "div",
             {
               style: {
@@ -1218,22 +1358,39 @@ print("\u{1F4CA} Application execution finished")`
                 fontSize: "11px",
                 backgroundColor: isKitManagerLoading ? "#fff3cd" : isKitManagerConnected ? "#d4edda" : kitManagerError ? "#f8d7da" : "#e2e3e5"
               },
-              children: isKitManagerLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-                Icons.Loading(),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Connecting..." })
-              ] }) : isKitManagerConnected ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-                Icons.Wifi(),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                  "Kit Manager ",
-                  Icons.Check()
-                ] })
-              ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-                Icons.WifiOff(),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                  "Kit Manager ",
-                  kitManagerError ? "\u274C" : "\u23F8"
-                ] })
-              ] })
+              children: [
+                isKitManagerLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                  Icons.Loading(),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Connecting..." })
+                ] }) : isKitManagerConnected ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                  Icons.Wifi(),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                    "Kit Manager ",
+                    Icons.Check()
+                  ] })
+                ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                  Icons.WifiOff(),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                    "Kit Manager ",
+                    kitManagerError ? "\u274C" : "\u23F8"
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    onClick: connectKitManager,
+                    style: {
+                      ...styles.button,
+                      ...styles.buttonSmall,
+                      marginLeft: "4px",
+                      padding: "2px 6px",
+                      minWidth: "20px"
+                    },
+                    title: "Refresh Kit Manager",
+                    children: Icons.Refresh()
+                  }
+                )
+              ]
             }
           ),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -1258,7 +1415,7 @@ print("\u{1F4CA} Application execution finished")`
               ] })
             }
           ),
-          kits.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          isKitManagerConnected && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             "select",
             {
               value: selectedKit?.kit_id || "",
@@ -1269,14 +1426,14 @@ print("\u{1F4CA} Application execution finished")`
                 borderRadius: "4px",
                 fontSize: "12px"
               },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "Select device..." }),
-                kits.map((kit) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: kit.kit_id, children: [
+              children: edgeRuntimeKits.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "Select Edge-Runtime device..." }),
+                edgeRuntimeKits.map((kit) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: kit.kit_id, children: [
                   kit.name,
                   " ",
                   kit.is_online ? "\u{1F7E2}" : "\u{1F534}"
                 ] }, kit.kit_id))
-              ]
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "No edge runtime" })
             }
           )
         ] })
@@ -1534,91 +1691,131 @@ print("\u{1F4CA} Application execution finished")`
             children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.resizeHandleLine })
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.rightPanel(leftPanelWidth), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.panelContent, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              Icons.Package(),
-              " Deployed Applications (",
-              vehicleApps.length,
-              ")",
-              isRefreshingApps && ` (${Icons.Loading()})`
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "button",
-              {
-                onClick: refreshApps,
-                style: { ...styles.button, ...styles.buttonSmall },
-                children: [
-                  Icons.Refresh(),
-                  " Refresh"
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.cardBody, children: vehicleApps.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { textAlign: "center", padding: "40px 20px", color: "#666" }, children: [
-            Icons.Package(),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { marginTop: "12px", marginBottom: "16px" }, children: "No applications deployed yet." }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { fontSize: "12px", color: "#999" }, children: "Use the form on the left to deploy your first application." })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.grid, children: vehicleApps.map((app) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.appCard, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { style: { margin: "0 0 4px 0", fontSize: "14px", wordBreak: "break-word" }, children: app.name }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: "0 0 2px 0", fontSize: "11px", color: "#666" }, children: app.type }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: "0 0 4px 0", fontSize: "10px", color: "#999" }, children: [
-                  "ID: ",
-                  app.app_id
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, fontSize: "10px", color: "#999" }, children: formatTimestamp(app.deploy_time) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
-                ...styles.badge(getStatusColor(app.status).split(" ")[1]),
-                color: getStatusColor(app.status).split(" ")[0],
-                flexShrink: 0
-              }, children: app.status })
-            ] }),
-            app.resources && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: "11px", color: "#666", marginBottom: "8px", padding: "6px", backgroundColor: "#f8f9fa", borderRadius: "4px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                "CPU: ",
-                app.resources.cpu_limit || "N/A"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                "Memory: ",
-                app.resources.memory_limit || "N/A"
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "6px" }, children: [
-              app.status === "stopped" || app.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.rightPanel(leftPanelWidth), children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.panelContent, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.card, marginBottom: "16px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.cardHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+              Icons.Server(),
+              " Services"
+            ] }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.cardBody, padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "button",
                 {
-                  onClick: () => handleStartApp(app.app_id),
-                  style: { ...styles.button, ...styles.buttonSmall, flex: 1 },
-                  children: [
-                    Icons.Play(),
-                    " Start"
-                  ]
-                }
-              ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  onClick: () => handleStopApp(app.app_id),
-                  style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary, flex: 1 },
-                  children: [
-                    Icons.Stop(),
-                    " Stop"
-                  ]
+                  onClick: handleDeployKuksa,
+                  disabled: !isRuntimeConnected || isDeployingKuksa,
+                  style: {
+                    ...styles.button,
+                    flex: 1,
+                    padding: "8px 12px",
+                    fontSize: "12px",
+                    ...isDeployingKuksa || !isRuntimeConnected ? styles.buttonDisabled : {}
+                  },
+                  children: isDeployingKuksa ? `${Icons.Loading()} KUKSA...` : `${Icons.Server()} KUKSA`
                 }
               ),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "button",
                 {
-                  onClick: () => handleUninstallApp(app.app_id),
-                  style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonDanger },
-                  children: Icons.Trash()
+                  onClick: handleDeployMock,
+                  disabled: !isRuntimeConnected || isDeployingMock,
+                  style: {
+                    ...styles.button,
+                    flex: 1,
+                    padding: "8px 12px",
+                    fontSize: "12px",
+                    ...isDeployingMock || !isRuntimeConnected ? styles.buttonDisabled : {}
+                  },
+                  children: isDeployingMock ? `${Icons.Loading()} Mock...` : `${Icons.Brain()} Mock`
                 }
               )
-            ] })
-          ] }, app.app_id)) }) })
-        ] }) }) })
+            ] }) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                Icons.Package(),
+                " Deployed Applications (",
+                vehicleApps.length,
+                ")",
+                isRefreshingApps && ` (${Icons.Loading()})`
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  onClick: refreshApps,
+                  style: { ...styles.button, ...styles.buttonSmall },
+                  children: [
+                    Icons.Refresh(),
+                    " Refresh"
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.cardBody, children: vehicleApps.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { textAlign: "center", padding: "40px 20px", color: "#666" }, children: [
+              Icons.Package(),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { marginTop: "12px", marginBottom: "16px" }, children: "No applications deployed yet." }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { fontSize: "12px", color: "#999" }, children: "Use the form on the left to deploy your first application." })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.grid, children: vehicleApps.map((app) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.appCard, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { style: { margin: "0 0 4px 0", fontSize: "14px", wordBreak: "break-word" }, children: app.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: "0 0 2px 0", fontSize: "11px", color: "#666" }, children: app.type }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: "0 0 4px 0", fontSize: "10px", color: "#999" }, children: [
+                    "ID: ",
+                    app.app_id
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, fontSize: "10px", color: "#999" }, children: formatTimestamp(app.deploy_time) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
+                  ...styles.badge(getStatusColor(app.status).split(" ")[1]),
+                  color: getStatusColor(app.status).split(" ")[0],
+                  flexShrink: 0
+                }, children: app.status })
+              ] }),
+              app.resources && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: "11px", color: "#666", marginBottom: "8px", padding: "6px", backgroundColor: "#f8f9fa", borderRadius: "4px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                  "CPU: ",
+                  app.resources.cpu_limit || "N/A"
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                  "Memory: ",
+                  app.resources.memory_limit || "N/A"
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "6px" }, children: [
+                app.status === "stopped" || app.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "button",
+                  {
+                    onClick: () => handleStartApp(app.app_id),
+                    style: { ...styles.button, ...styles.buttonSmall, flex: 1 },
+                    children: [
+                      Icons.Play(),
+                      " Start"
+                    ]
+                  }
+                ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "button",
+                  {
+                    onClick: () => handleStopApp(app.app_id),
+                    style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary, flex: 1 },
+                    children: [
+                      Icons.Stop(),
+                      " Stop"
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    onClick: () => handleUninstallApp(app.app_id),
+                    style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonDanger },
+                    children: Icons.Trash()
+                  }
+                )
+              ] })
+            ] }, app.app_id)) }) })
+          ] })
+        ] }) })
       ] }),
       connectionError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.card, margin: "16px", backgroundColor: "#fee", borderColor: "#fcc" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.cardBody, color: "#c33", padding: "12px" }, children: [
         Icons.Alert(),

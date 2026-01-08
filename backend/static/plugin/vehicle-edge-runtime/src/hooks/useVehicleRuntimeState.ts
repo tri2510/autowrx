@@ -18,6 +18,10 @@ interface VehicleRuntimeState {
   vehicleApps: VehicleApp[]
   isRefreshingApps: boolean
 
+  // Service deployment
+  isDeployingKuksa: boolean
+  isDeployingMock: boolean
+
   // Errors
   connectionError: string | null
 
@@ -30,6 +34,8 @@ interface VehicleRuntimeState {
   stopApp: (appId: string) => Promise<void>
   uninstallApp: (appId: string) => Promise<void>
   deployApp: (config: { name: string; displayName?: string; code: string; dependencies?: string[] }) => Promise<string>
+  deployKuksa: () => Promise<string>
+  deployMock: (mode?: 'echo-all' | 'echo-specific', signals?: string[]) => Promise<string>
 }
 
 export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: string): VehicleRuntimeState {
@@ -41,6 +47,8 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
   const [selectedKit, setSelectedKit] = useState<VehicleEdgeRuntimeKit | null>(null)
   const [vehicleApps, setVehicleApps] = useState<VehicleApp[]>([])
   const [isRefreshingApps, setIsRefreshingApps] = useState(false)
+  const [isDeployingKuksa, setIsDeployingKuksa] = useState(false)
+  const [isDeployingMock, setIsDeployingMock] = useState(false)
   const [connectionError, setConnectionError] = useState<string | null>(null)
 
   // Service instances
@@ -118,13 +126,13 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
       setIsKitManagerConnected(true)
       setKitManagerError(null)
 
-      // Auto-select first online kit
-      const onlineKits = kitsList.filter(k => k.is_online)
-      if (onlineKits.length > 0 && !selectedKit) {
-        setSelectedKit(onlineKits[0])
+      // Auto-select first online Edge-Runtime kit
+      const onlineEdgeRuntimeKits = kitsList.filter(k => k.is_online && k.name.includes('Edge-Runtime'))
+      if (onlineEdgeRuntimeKits.length > 0 && !selectedKit) {
+        setSelectedKit(onlineEdgeRuntimeKits[0])
       }
 
-      console.log('[KitManager] ✅ Connected - Loaded', kitsList.length, 'kits', `(${onlineKits.length} online)`)
+      console.log('[KitManager] ✅ Connected - Loaded', kitsList.length, 'kits', `(${onlineEdgeRuntimeKits.length} Edge-Runtime online)`)
     } catch (error) {
       console.error('[KitManager] ❌ Connection failed:', error)
       const errorMsg = error instanceof Error ? error.message : 'Failed to connect to Kit Manager'
@@ -169,6 +177,21 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
       setIsRefreshingApps(false)
     }
   }, [])
+
+  // Periodic refresh for applications (every 10 seconds when runtime is connected)
+  useEffect(() => {
+    if (!isRuntimeConnected) return
+
+    // Initial refresh
+    refreshApps()
+
+    // Set up interval
+    const interval = setInterval(() => {
+      refreshApps()
+    }, 10000) // 10 seconds
+
+    return () => clearInterval(interval)
+  }, [isRuntimeConnected, refreshApps])
 
   // Start application
   const startApp = useCallback(async (appId: string) => {
@@ -220,6 +243,36 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     }
   }, [refreshApps])
 
+  // Deploy KUKSA server
+  const deployKuksa = useCallback(async (): Promise<string> => {
+    setIsDeployingKuksa(true)
+    try {
+      const appId = await runtimeServiceRef.current?.deployKuksaServer()
+      await refreshApps()
+      return appId || 'VEA-kuksa-databroker'
+    } catch (error) {
+      console.error('[VehicleRuntime] Failed to deploy KUKSA:', error)
+      throw error
+    } finally {
+      setIsDeployingKuksa(false)
+    }
+  }, [refreshApps])
+
+  // Deploy Mock service
+  const deployMock = useCallback(async (mode: 'echo-all' | 'echo-specific' = 'echo-all', signals?: string[]): Promise<string> => {
+    setIsDeployingMock(true)
+    try {
+      const appId = await runtimeServiceRef.current?.deployMockService(mode, signals)
+      await refreshApps()
+      return appId || 'VEA-mock-service'
+    } catch (error) {
+      console.error('[VehicleRuntime] Failed to deploy Mock service:', error)
+      throw error
+    } finally {
+      setIsDeployingMock(false)
+    }
+  }, [refreshApps])
+
   return {
     isRuntimeConnected,
     isKitManagerConnected,
@@ -229,6 +282,8 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     selectedKit,
     vehicleApps,
     isRefreshingApps,
+    isDeployingKuksa,
+    isDeployingMock,
     connectionError,
     connectRuntime,
     connectKitManager,
@@ -237,6 +292,8 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     startApp,
     stopApp,
     uninstallApp,
-    deployApp
+    deployApp,
+    deployKuksa,
+    deployMock
   }
 }

@@ -220,6 +220,14 @@ export class VehicleRuntimeService {
   }
 
   async startApp(appId: string): Promise<any> {
+    // Mock service uses special command
+    if (appId === 'VEA-mock-service' || appId.includes('mock')) {
+      return this.sendMessage({
+        type: 'mock_service_start',
+        id: `mock-start-${Date.now()}`,
+        mode: 'echo-all'
+      })
+    }
     return this.sendMessage({
       type: 'run_app',
       appId
@@ -227,6 +235,13 @@ export class VehicleRuntimeService {
   }
 
   async stopApp(appId: string): Promise<any> {
+    // Mock service uses special command
+    if (appId === 'VEA-mock-service' || appId.includes('mock')) {
+      return this.sendMessage({
+        type: 'mock_service_stop',
+        id: `mock-stop-${Date.now()}`
+      })
+    }
     return this.sendMessage({
       type: 'stop_app',
       appId
@@ -282,5 +297,65 @@ export class VehicleRuntimeService {
 
   removeAllListeners(): void {
     this.messageHandlers.clear()
+  }
+
+  // Service deployment methods
+  async deployKuksaServer(): Promise<string> {
+    const request = {
+      type: 'deploy_request',
+      id: `deploy-kuksa-${Date.now()}`,
+      prototype: {
+        id: 'VEA-kuksa-databroker',
+        name: 'KUKSA Databroker',
+        type: 'docker',
+        description: 'Eclipse KUKSA Vehicle Signal Databroker',
+        config: {
+          dockerCommand: [
+            'run', '-d',
+            '--name', 'VEA-kuksa-databroker',
+            '--network', 'host',
+            '-p', '55555:55555',
+            '-p', '8090:8090',
+            'ghcr.io/eclipse-kuksa/kuksa-databroker:0.4.4',
+            '--insecure'
+          ]
+        }
+      },
+      vehicle_id: 'default-vehicle'
+    }
+
+    const response = await this.sendMessage(request)
+
+    // Success if: response is null/undefined, or no error field and type is not 'error'
+    const isSuccess = !response ||
+      (typeof response === 'object' && !response.error && response.type !== 'error')
+
+    if (isSuccess) {
+      return response?.executionId || response?.id || 'VEA-kuksa-databroker'
+    } else {
+      throw new Error(response?.error || response?.result || 'KUKSA deployment failed')
+    }
+  }
+
+  async deployMockService(mode: 'echo-all' | 'echo-specific' = 'echo-all', signals?: string[]): Promise<string> {
+    const request = {
+      type: 'mock_service_start',
+      id: `mock-start-${Date.now()}`,
+      mode,
+      ...(signals && { signals })
+    }
+
+    const response = await this.sendMessage(request)
+
+    // Success if: response is null/undefined, or success=true, or no error field
+    const isSuccess = !response ||
+      response.success === true ||
+      (typeof response === 'object' && !response.error && response.type !== 'error')
+
+    if (isSuccess) {
+      return response?.status?.appId || response?.id || 'VEA-mock-service'
+    } else {
+      throw new Error(response?.error || response?.message || 'Mock service deployment failed')
+    }
   }
 }
