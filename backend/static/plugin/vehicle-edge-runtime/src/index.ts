@@ -17,8 +17,9 @@ export function unmount(el: HTMLElement) {
 }
 
 // Register plugin globally for digital.auto
+// NOTE: PluginPageRender expects the key to be 'page-plugin'
 if (typeof window !== 'undefined') {
   ;(window as any).DAPlugins = (window as any).DAPlugins || {}
-  ;(window as any).DAPlugins['vehicle-edge-runtime'] = { components, mount, unmount }
-  console.log('Vehicle Edge Runtime plugin registered')
+  ;(window as any).DAPlugins['page-plugin'] = { components, mount, unmount }
+  console.log('Vehicle Edge Runtime plugin registered as page-plugin')
 }

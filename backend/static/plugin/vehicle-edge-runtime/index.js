@@ -662,8 +662,8 @@ print("\u{1F4CA} Application execution finished")`,
   if (typeof window !== "undefined") {
     ;
     window.DAPlugins = window.DAPlugins || {};
-    window.DAPlugins["vehicle-edge-runtime"] = { components, mount, unmount };
-    console.log("Vehicle Edge Runtime plugin registered");
+    window.DAPlugins["page-plugin"] = { components, mount, unmount };
+    console.log("Vehicle Edge Runtime plugin registered as page-plugin");
   }
 })();
 //# sourceMappingURL=index.js.map
