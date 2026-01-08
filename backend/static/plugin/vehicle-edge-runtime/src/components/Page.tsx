@@ -48,7 +48,7 @@ interface PageProps {
 }
 
 // Default service URLs
-const DEFAULT_RUNTIME_URL = 'ws://localhost:3002/runtime'
+const DEFAULT_RUNTIME_URL = 'ws://localhost:3002/runtime'  // Vehicle Runtime is local to edge device
 const DEFAULT_KIT_MANAGER_URL = 'https://kit.digitalauto.tech'
 
 // Example templates dropdown options
@@ -138,18 +138,20 @@ export default function Page({ data, config, api }: PageProps) {
   // Initialize connections on mount
   React.useEffect(() => {
     const initializeConnections = async () => {
-      addEntry('Connecting to services...', 'info')
-      try {
-        await connectKitManager()
-        addSuccess('Connected to Kit Manager')
-        await connectRuntime()
-        addSuccess('Connected to Vehicle Runtime')
-      } catch (error) {
-        addError(`Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      }
+      addEntry('Connecting to Kit Manager...', 'info')
+
+      // Connect to Kit Manager (required for device discovery)
+      await connectKitManager()
+
+      // Connect to Vehicle Runtime (optional - only for deployment)
+      // Don't block UI if Runtime is not available
+      connectRuntime().catch(error => {
+        console.warn('[Plugin] Vehicle Runtime not available:', error)
+        addEntry('Vehicle Runtime not available - deployment disabled', 'info')
+      })
     }
     initializeConnections()
-  }, [connectKitManager, connectRuntime, addEntry, addSuccess, addError])
+  }, [connectKitManager, connectRuntime, addEntry])
 
   // Auto-detect dependencies when code changes
   React.useEffect(() => {

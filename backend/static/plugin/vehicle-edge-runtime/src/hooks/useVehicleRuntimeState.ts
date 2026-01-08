@@ -87,8 +87,10 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
       })
 
     } catch (error) {
-      console.error('[VehicleRuntime] Connection failed:', error)
-      setConnectionError(error instanceof Error ? error.message : 'Failed to connect to Vehicle Runtime')
+      // Runtime is optional - use warn instead of error
+      console.warn('[VehicleRuntime] Not available (optional):', error)
+      // Don't set general connectionError since Runtime is optional
+      // Runtime unavailability will be indicated by isRuntimeConnected state
       setIsRuntimeConnected(false)
     }
   }, [])

@@ -102,7 +102,7 @@
         this.isConnected = false;
       };
       this.ws.onerror = (error) => {
-        console.error("[VehicleRuntime] WebSocket error:", error);
+        console.warn("[VehicleRuntime] WebSocket connection failed (optional service)");
         this.isConnected = false;
       };
     }
@@ -324,8 +324,7 @@
           setVehicleApps(appsArray);
         });
       } catch (error) {
-        console.error("[VehicleRuntime] Connection failed:", error);
-        setConnectionError(error instanceof Error ? error.message : "Failed to connect to Vehicle Runtime");
+        console.warn("[VehicleRuntime] Not available (optional):", error);
         setIsRuntimeConnected(false);
       }
     }, []);
@@ -869,18 +868,15 @@ print("\u{1F4CA} Application execution finished")`
     const { entries: consoleEntries, addEntry, addSuccess, addError, clear: clearConsole } = useConsoleOutput();
     React.useEffect(() => {
       const initializeConnections = async () => {
-        addEntry("Connecting to services...", "info");
-        try {
-          await connectKitManager();
-          addSuccess("Connected to Kit Manager");
-          await connectRuntime();
-          addSuccess("Connected to Vehicle Runtime");
-        } catch (error) {
-          addError(`Connection error: ${error instanceof Error ? error.message : "Unknown error"}`);
-        }
+        addEntry("Connecting to Kit Manager...", "info");
+        await connectKitManager();
+        connectRuntime().catch((error) => {
+          console.warn("[Plugin] Vehicle Runtime not available:", error);
+          addEntry("Vehicle Runtime not available - deployment disabled", "info");
+        });
       };
       initializeConnections();
-    }, [connectKitManager, connectRuntime, addEntry, addSuccess, addError]);
+    }, [connectKitManager, connectRuntime, addEntry]);
     React.useEffect(() => {
       if (autoDetectEnabled && appCode) {
         const timeoutId = setTimeout(() => {

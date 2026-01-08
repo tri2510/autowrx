@@ -109,7 +109,7 @@ export class VehicleRuntimeService {
     }
 
     this.ws.onerror = (error) => {
-      console.error('[VehicleRuntime] WebSocket error:', error)
+      console.warn('[VehicleRuntime] WebSocket connection failed (optional service)')
       this.isConnected = false
     }
   }
