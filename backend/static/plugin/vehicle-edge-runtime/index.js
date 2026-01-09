@@ -1840,152 +1840,83 @@ print("\u{1F4CA} Application execution finished")`
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
                 Icons.Terminal(),
-                " Console Output"
+                " Console Output",
+                selectedConsoleApp && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { marginLeft: "8px", fontSize: "12px", fontWeight: "normal", color: "#666" }, children: [
+                  "\u2192 ",
+                  vehicleApps.find((a) => a.app_id === selectedConsoleApp)?.name || selectedConsoleApp
+                ] })
               ] }),
-              selectedConsoleApp && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  onClick: () => {
-                    if (selectedConsoleApp) {
-                      unsubscribeAppConsole(selectedConsoleApp);
-                    }
-                    setSelectedConsoleApp(null);
-                  },
-                  style: { ...styles.button, ...styles.buttonSmall, padding: "4px 8px", fontSize: "11px" },
-                  children: [
-                    Icons.X(),
-                    " Close"
-                  ]
-                }
-              )
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.cardBody, padding: "0", display: "flex", flexDirection: "column", height: "400px" }, children: !selectedConsoleApp ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, display: "flex", flexDirection: "column" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                display: "flex",
-                gap: "4px",
-                padding: "8px 8px 0",
-                borderBottom: "1px solid #e5e5e5",
-                backgroundColor: "#f8f9fa",
-                overflowX: "auto",
-                flexWrap: "wrap"
-              }, children: vehicleApps.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { padding: "20px", textAlign: "center", color: "#999", fontSize: "12px", width: "100%" }, children: "No applications available" }) : vehicleApps.map((app) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "button",
-                {
-                  onClick: () => {
-                    setSelectedConsoleApp(app.app_id);
-                    subscribeAppConsole(app.app_id);
-                  },
-                  style: {
-                    ...styles.button,
-                    ...styles.buttonSmall,
-                    ...styles.buttonSecondary,
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    backgroundColor: "#fff",
-                    border: "1px solid #ddd",
-                    borderRadius: "6px 6px 0 0",
-                    borderBottom: "none",
-                    marginBottom: "-1px",
-                    position: "relative",
-                    zIndex: 1,
-                    whiteSpace: "nowrap"
-                  },
-                  title: `View console for ${app.name}`,
-                  children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      backgroundColor: app.status === "running" ? "#22c55e" : "#6b7280"
-                    } }),
-                    app.name
-                  ] })
-                },
-                app.app_id
-              )) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "40px 20px",
-                color: "#999",
-                textAlign: "center"
-              }, children: [
-                Icons.Terminal(),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { marginTop: "12px", marginBottom: "4px", fontSize: "14px", fontWeight: "500" }, children: "Select an application to view its console output" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { fontSize: "12px", color: "#aaa" }, children: "Click on any application tab above to see real-time logs" })
-              ] })
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, display: "flex", flexDirection: "column" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                display: "flex",
-                alignItems: "center",
-                padding: "8px 12px",
-                backgroundColor: "#1e1e1e",
-                borderBottom: "1px solid #333",
-                color: "#fff",
-                fontSize: "12px"
-              }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
-                  Icons.Terminal(),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { style: { color: "#4ec9b0" }, children: vehicleApps.find((a) => a.app_id === selectedConsoleApp)?.name || selectedConsoleApp }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: "#666" }, children: "|" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#888", fontSize: "11px" }, children: [
-                    (appConsoleOutputs[selectedConsoleApp] || []).length,
-                    " lines"
-                  ] })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginLeft: "auto", display: "flex", gap: "4px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              selectedConsoleApp && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "4px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                   "button",
                   {
                     onClick: () => clearAppConsole(selectedConsoleApp),
-                    style: {
-                      ...styles.button,
-                      ...styles.buttonSmall,
-                      padding: "4px 8px",
-                      fontSize: "10px",
-                      backgroundColor: "transparent",
-                      color: "#888",
-                      border: "1px solid #444"
-                    },
+                    style: { ...styles.button, ...styles.buttonSmall, padding: "4px 8px", fontSize: "11px" },
                     title: "Clear console output",
                     children: "Clear"
                   }
-                ) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                flex: 1,
-                backgroundColor: "#1e1e1e",
-                overflowY: "auto",
-                padding: "12px",
-                fontFamily: "monospace",
-                fontSize: "11px",
-                lineHeight: "1.4"
-              }, children: (appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { color: "#666", fontStyle: "italic", textAlign: "center", padding: "40px 0" }, children: "Waiting for console output..." }) : (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "div",
-                {
-                  style: {
-                    color: line.stream === "stderr" ? "#f48771" : "#d4d4d4",
-                    marginBottom: "2px",
-                    wordBreak: "break-all",
-                    whiteSpace: "pre-wrap"
-                  },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#6a9955", fontSize: "10px" }, children: [
-                      "[",
-                      new Date(line.timestamp).toLocaleTimeString(),
-                      " ",
-                      line.stream,
-                      "]"
-                    ] }),
-                    " ",
-                    line.content
-                  ]
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "button",
+                  {
+                    onClick: () => {
+                      if (selectedConsoleApp) {
+                        unsubscribeAppConsole(selectedConsoleApp);
+                      }
+                      setSelectedConsoleApp(null);
+                    },
+                    style: { ...styles.button, ...styles.buttonSmall, padding: "4px 8px", fontSize: "11px" },
+                    children: [
+                      Icons.X(),
+                      " Close"
+                    ]
+                  }
+                )
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.cardBody, padding: "0", height: "350px", display: "flex", flexDirection: "column" }, children: !selectedConsoleApp ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#999",
+              textAlign: "center"
+            }, children: [
+              Icons.Terminal(),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { marginTop: "12px", marginBottom: "4px", fontSize: "14px", fontWeight: "500" }, children: "Click on an application to view its console" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { fontSize: "12px", color: "#aaa" }, children: "Console output will appear here" })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+              flex: 1,
+              backgroundColor: "#1e1e1e",
+              overflowY: "auto",
+              padding: "12px",
+              fontFamily: "monospace",
+              fontSize: "11px",
+              lineHeight: "1.4"
+            }, children: (appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { color: "#666", fontStyle: "italic", textAlign: "center", padding: "40px 0" }, children: "Waiting for console output..." }) : (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                style: {
+                  color: line.stream === "stderr" ? "#f48771" : "#d4d4d4",
+                  marginBottom: "2px",
+                  wordBreak: "break-all",
+                  whiteSpace: "pre-wrap"
                 },
-                idx
-              )) })
-            ] }) })
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#6a9955", fontSize: "10px" }, children: [
+                    "[",
+                    new Date(line.timestamp).toLocaleTimeString(),
+                    " ",
+                    line.stream,
+                    "]"
+                  ] }),
+                  " ",
+                  line.content
+                ]
+              },
+              idx
+            )) }) })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
@@ -2017,108 +1948,145 @@ print("\u{1F4CA} Application execution finished")`
               const isStopped = app.status === "stopped" || app.status === "error";
               const isStarting = app.status === "starting";
               const statusInfo = getStatusInfo(app.status);
-              return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.appCard, borderLeft: `4px solid ${statusInfo.color}` }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "12px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { style: { margin: "0 0 4px 0", fontSize: "15px", fontWeight: "600", wordBreak: "break-word" }, children: app.name }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: "0 0 2px 0", fontSize: "11px", color: "#888" }, children: app.type }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: "0 0 4px 0", fontSize: "10px", color: "#999" }, children: [
-                      "ID: ",
-                      app.app_id
+              const isSelected = selectedConsoleApp === app.app_id;
+              return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "div",
+                {
+                  onClick: () => {
+                    if (selectedConsoleApp !== app.app_id) {
+                      setSelectedConsoleApp(app.app_id);
+                      subscribeAppConsole(app.app_id);
+                    }
+                  },
+                  style: {
+                    ...styles.appCard,
+                    borderLeft: `4px solid ${statusInfo.color}`,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    ...isSelected ? {
+                      boxShadow: "0 0 0 2px #3b82f6, 0 4px 12px rgba(59, 130, 246, 0.2)",
+                      transform: "scale(1.01)"
+                    } : {},
+                    ":hover": {
+                      transform: "scale(1.01)",
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+                    }
+                  },
+                  title: "Click to view console output",
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "12px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { style: { margin: "0 0 4px 0", fontSize: "15px", fontWeight: "600", wordBreak: "break-word" }, children: app.name }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: "0 0 2px 0", fontSize: "11px", color: "#888" }, children: app.type }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: "0 0 4px 0", fontSize: "10px", color: "#999" }, children: [
+                          "ID: ",
+                          app.app_id
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, fontSize: "10px", color: "#999" }, children: formatTimestamp(app.deploy_time) })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "4px 10px",
+                        borderRadius: "20px",
+                        backgroundColor: statusInfo.bgColor,
+                        border: `1px solid ${statusInfo.borderColor}`
+                      }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          backgroundColor: statusInfo.dotColor,
+                          animation: isStarting ? "pulse 1.5s infinite" : "none"
+                        } }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          color: statusInfo.textColor,
+                          textTransform: "capitalize"
+                        }, children: statusInfo.label })
+                      ] })
                     ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, fontSize: "10px", color: "#999" }, children: formatTimestamp(app.deploy_time) })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "4px 10px",
-                    borderRadius: "20px",
-                    backgroundColor: statusInfo.bgColor,
-                    border: `1px solid ${statusInfo.borderColor}`
-                  }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      backgroundColor: statusInfo.dotColor,
-                      animation: isStarting ? "pulse 1.5s infinite" : "none"
-                    } }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      color: statusInfo.textColor,
-                      textTransform: "capitalize"
-                    }, children: statusInfo.label })
-                  ] })
-                ] }),
-                app.resources && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: "11px", color: "#666", marginBottom: "12px", padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                    "CPU: ",
-                    app.resources.cpu_limit || "N/A"
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                    "Memory: ",
-                    app.resources.memory_limit || "N/A"
-                  ] })
-                ] }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
-                  isStopped ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "button",
-                    {
-                      onClick: () => handleStartApp(app.app_id),
-                      style: {
-                        ...styles.button,
-                        flex: 1,
-                        padding: "8px 12px",
-                        backgroundColor: "#22c55e",
-                        fontSize: "13px",
-                        fontWeight: "600"
-                      },
-                      title: "Start this application",
-                      children: [
-                        Icons.Play(),
-                        " Start"
-                      ]
-                    }
-                  ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "button",
-                    {
-                      onClick: () => handleStopApp(app.app_id),
-                      style: {
-                        ...styles.button,
-                        flex: 1,
-                        padding: "8px 12px",
-                        backgroundColor: isRunning ? "#ef4444" : "#f97316",
-                        fontSize: "13px",
-                        fontWeight: "600"
-                      },
-                      title: isRunning ? "Stop this application" : "Stop this application",
-                      children: [
-                        Icons.Stop(),
-                        " ",
-                        isRunning ? "Stop" : "Kill"
-                      ]
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "button",
-                    {
-                      onClick: () => handleUninstallApp(app.app_id),
-                      style: {
-                        ...styles.button,
-                        ...styles.buttonSmall,
-                        padding: "8px 12px",
-                        backgroundColor: "#dc2626",
-                        fontSize: "13px",
-                        fontWeight: "600"
-                      },
-                      title: "Uninstall this application",
-                      children: Icons.Trash()
-                    }
-                  )
-                ] })
-              ] }, app.app_id);
+                    app.resources && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: "11px", color: "#666", marginBottom: "12px", padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                        "CPU: ",
+                        app.resources.cpu_limit || "N/A"
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                        "Memory: ",
+                        app.resources.memory_limit || "N/A"
+                      ] })
+                    ] }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
+                      isStopped ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "button",
+                        {
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            handleStartApp(app.app_id);
+                          },
+                          style: {
+                            ...styles.button,
+                            flex: 1,
+                            padding: "8px 12px",
+                            backgroundColor: "#22c55e",
+                            fontSize: "13px",
+                            fontWeight: "600"
+                          },
+                          title: "Start this application",
+                          children: [
+                            Icons.Play(),
+                            " Start"
+                          ]
+                        }
+                      ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "button",
+                        {
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            handleStopApp(app.app_id);
+                          },
+                          style: {
+                            ...styles.button,
+                            flex: 1,
+                            padding: "8px 12px",
+                            backgroundColor: isRunning ? "#ef4444" : "#f97316",
+                            fontSize: "13px",
+                            fontWeight: "600"
+                          },
+                          title: isRunning ? "Stop this application" : "Stop this application",
+                          children: [
+                            Icons.Stop(),
+                            " ",
+                            isRunning ? "Stop" : "Kill"
+                          ]
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "button",
+                        {
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            handleUninstallApp(app.app_id);
+                          },
+                          style: {
+                            ...styles.button,
+                            ...styles.buttonSmall,
+                            padding: "8px 12px",
+                            backgroundColor: "#dc2626",
+                            fontSize: "13px",
+                            fontWeight: "600"
+                          },
+                          title: "Uninstall this application",
+                          children: Icons.Trash()
+                        }
+                      )
+                    ] })
+                  ]
+                },
+                app.app_id
+              );
             }) }) })
           ] })
         ] }) })

@@ -967,169 +967,88 @@ export default function Page({ data, config, api }: PageProps) {
             {/* Unified Console Panel */}
             <div style={{ ...styles.card, marginBottom: '16px' }}>
               <div style={styles.cardHeader}>
-                <span>{Icons.Terminal()} Console Output</span>
+                <span>
+                  {Icons.Terminal()} Console Output
+                  {selectedConsoleApp && (
+                    <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 'normal', color: '#666' }}>
+                      → {vehicleApps.find(a => a.app_id === selectedConsoleApp)?.name || selectedConsoleApp}
+                    </span>
+                  )}
+                </span>
                 {selectedConsoleApp && (
-                  <button
-                    onClick={() => {
-                      if (selectedConsoleApp) {
-                        unsubscribeAppConsole(selectedConsoleApp)
-                      }
-                      setSelectedConsoleApp(null)
-                    }}
-                    style={{ ...styles.button, ...styles.buttonSmall, padding: '4px 8px', fontSize: '11px' }}
-                  >
-                    {Icons.X()} Close
-                  </button>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      onClick={() => clearAppConsole(selectedConsoleApp)}
+                      style={{ ...styles.button, ...styles.buttonSmall, padding: '4px 8px', fontSize: '11px' }}
+                      title="Clear console output"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (selectedConsoleApp) {
+                          unsubscribeAppConsole(selectedConsoleApp)
+                        }
+                        setSelectedConsoleApp(null)
+                      }}
+                      style={{ ...styles.button, ...styles.buttonSmall, padding: '4px 8px', fontSize: '11px' }}
+                    >
+                      {Icons.X()} Close
+                    </button>
+                  </div>
                 )}
               </div>
-              <div style={{ ...styles.cardBody, padding: '0', display: 'flex', flexDirection: 'column', height: '400px' }}>
+              <div style={{ ...styles.cardBody, padding: '0', height: '350px', display: 'flex', flexDirection: 'column' }}>
                 {!selectedConsoleApp ? (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    {/* Console Tabs */}
-                    <div style={{
-                      display: 'flex',
-                      gap: '4px',
-                      padding: '8px 8px 0',
-                      borderBottom: '1px solid #e5e5e5',
-                      backgroundColor: '#f8f9fa',
-                      overflowX: 'auto',
-                      flexWrap: 'wrap'
-                    }}>
-                      {vehicleApps.length === 0 ? (
-                        <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '12px', width: '100%' }}>
-                          No applications available
-                        </div>
-                      ) : (
-                        vehicleApps.map(app => (
-                          <button
-                            key={app.app_id}
-                            onClick={() => {
-                              setSelectedConsoleApp(app.app_id)
-                              subscribeAppConsole(app.app_id)
-                            }}
-                            style={{
-                              ...styles.button,
-                              ...styles.buttonSmall,
-                              ...styles.buttonSecondary,
-                              padding: '6px 12px',
-                              fontSize: '12px',
-                              backgroundColor: '#fff',
-                              border: '1px solid #ddd',
-                              borderRadius: '6px 6px 0 0',
-                              borderBottom: 'none',
-                              marginBottom: '-1px',
-                              position: 'relative',
-                              zIndex: 1,
-                              whiteSpace: 'nowrap'
-                            }}
-                            title={`View console for ${app.name}`}
-                          >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                backgroundColor: app.status === 'running' ? '#22c55e' : '#6b7280'
-                              }}></span>
-                              {app.name}
-                            </span>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                    {/* Empty State */}
-                    <div style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '40px 20px',
-                      color: '#999',
-                      textAlign: 'center'
-                    }}>
-                      {Icons.Terminal()}
-                      <p style={{ marginTop: '12px', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                        Select an application to view its console output
-                      </p>
-                      <p style={{ fontSize: '12px', color: '#aaa' }}>
-                        Click on any application tab above to see real-time logs
-                      </p>
-                    </div>
+                  <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#999',
+                    textAlign: 'center'
+                  }}>
+                    {Icons.Terminal()}
+                    <p style={{ marginTop: '12px', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                      Click on an application to view its console
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#aaa' }}>
+                      Console output will appear here
+                    </p>
                   </div>
                 ) : (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    {/* Active Tab */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '8px 12px',
-                      backgroundColor: '#1e1e1e',
-                      borderBottom: '1px solid #333',
-                      color: '#fff',
-                      fontSize: '12px'
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {Icons.Terminal()}
-                        <strong style={{ color: '#4ec9b0' }}>
-                          {vehicleApps.find(a => a.app_id === selectedConsoleApp)?.name || selectedConsoleApp}
-                        </strong>
-                        <span style={{ color: '#666' }}>|</span>
-                        <span style={{ color: '#888', fontSize: '11px' }}>
-                          {(appConsoleOutputs[selectedConsoleApp] || []).length} lines
-                        </span>
-                      </span>
-                      <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-                        <button
-                          onClick={() => clearAppConsole(selectedConsoleApp)}
-                          style={{
-                            ...styles.button,
-                            ...styles.buttonSmall,
-                            padding: '4px 8px',
-                            fontSize: '10px',
-                            backgroundColor: 'transparent',
-                            color: '#888',
-                            border: '1px solid #444'
-                          }}
-                          title="Clear console output"
-                        >
-                          Clear
-                        </button>
+                  <div style={{
+                    flex: 1,
+                    backgroundColor: '#1e1e1e',
+                    overflowY: 'auto',
+                    padding: '12px',
+                    fontFamily: 'monospace',
+                    fontSize: '11px',
+                    lineHeight: '1.4'
+                  }}>
+                    {(appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? (
+                      <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '40px 0' }}>
+                        Waiting for console output...
                       </div>
-                    </div>
-                    {/* Console Output */}
-                    <div style={{
-                      flex: 1,
-                      backgroundColor: '#1e1e1e',
-                      overflowY: 'auto',
-                      padding: '12px',
-                      fontFamily: 'monospace',
-                      fontSize: '11px',
-                      lineHeight: '1.4'
-                    }}>
-                      {(appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? (
-                        <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '40px 0' }}>
-                          Waiting for console output...
+                    ) : (
+                      (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            color: line.stream === 'stderr' ? '#f48771' : '#d4d4d4',
+                            marginBottom: '2px',
+                            wordBreak: 'break-all',
+                            whiteSpace: 'pre-wrap'
+                          }}
+                        >
+                          <span style={{ color: '#6a9955', fontSize: '10px' }}>
+                            [{new Date(line.timestamp).toLocaleTimeString()} {line.stream}]
+                          </span>{' '}
+                          {line.content}
                         </div>
-                      ) : (
-                        (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              color: line.stream === 'stderr' ? '#f48771' : '#d4d4d4',
-                              marginBottom: '2px',
-                              wordBreak: 'break-all',
-                              whiteSpace: 'pre-wrap'
-                            }}
-                          >
-                            <span style={{ color: '#6a9955', fontSize: '10px' }}>
-                              [{new Date(line.timestamp).toLocaleTimeString()} {line.stream}]
-                            </span>{' '}
-                            {line.content}
-                          </div>
-                        ))
-                      )}
-                    </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -1162,9 +1081,33 @@ export default function Page({ data, config, api }: PageProps) {
                       const isStopped = app.status === 'stopped' || app.status === 'error'
                       const isStarting = app.status === 'starting'
                       const statusInfo = getStatusInfo(app.status)
+                      const isSelected = selectedConsoleApp === app.app_id
 
                       return (
-                        <div key={app.app_id} style={{...styles.appCard, borderLeft: `4px solid ${statusInfo.color}`}}>
+                        <div
+                          key={app.app_id}
+                          onClick={() => {
+                            if (selectedConsoleApp !== app.app_id) {
+                              setSelectedConsoleApp(app.app_id)
+                              subscribeAppConsole(app.app_id)
+                            }
+                          }}
+                          style={{
+                            ...styles.appCard,
+                            borderLeft: `4px solid ${statusInfo.color}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                            ...(isSelected ? {
+                              boxShadow: '0 0 0 2px #3b82f6, 0 4px 12px rgba(59, 130, 246, 0.2)',
+                              transform: 'scale(1.01)'
+                            } : {}),
+                            ':hover': {
+                              transform: 'scale(1.01)',
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                            }
+                          }}
+                          title="Click to view console output"
+                        >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '600', wordBreak: 'break-word' }}>
@@ -1219,7 +1162,10 @@ export default function Page({ data, config, api }: PageProps) {
                           <div style={{ display: 'flex', gap: '8px' }}>
                             {isStopped ? (
                               <button
-                                onClick={() => handleStartApp(app.app_id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleStartApp(app.app_id)
+                                }}
                                 style={{
                                   ...styles.button,
                                   flex: 1,
@@ -1234,7 +1180,10 @@ export default function Page({ data, config, api }: PageProps) {
                               </button>
                             ) : (
                               <button
-                                onClick={() => handleStopApp(app.app_id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleStopApp(app.app_id)
+                                }}
                                 style={{
                                   ...styles.button,
                                   flex: 1,
@@ -1249,7 +1198,10 @@ export default function Page({ data, config, api }: PageProps) {
                               </button>
                             )}
                             <button
-                              onClick={() => handleUninstallApp(app.app_id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleUninstallApp(app.app_id)
+                              }}
                               style={{
                                 ...styles.button,
                                 ...styles.buttonSmall,
