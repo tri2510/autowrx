@@ -238,6 +238,32 @@
       };
       return this.sendMessage(request);
     }
+    // Console subscription methods
+    async subscribeConsole(appId) {
+      const request = {
+        type: "console_subscribe",
+        id: `console-sub-${appId}-${Date.now()}`,
+        appId
+      };
+      await this.sendMessage(request);
+    }
+    async unsubscribeConsole(appId) {
+      const request = {
+        type: "console_unsubscribe",
+        id: `console-unsub-${appId}-${Date.now()}`,
+        appId
+      };
+      await this.sendMessage(request);
+    }
+    async getAppOutput(appId, lines = 100) {
+      const request = {
+        type: "app_output",
+        id: `app-output-${appId}-${Date.now()}`,
+        appId,
+        lines
+      };
+      return this.sendMessage(request);
+    }
     // Event listeners
     onConsoleOutput(callback) {
       this.messageHandlers.set("console_output", callback);
@@ -360,6 +386,7 @@
     const [selectedKit, setSelectedKit] = (0, import_react.useState)(null);
     const [vehicleApps, setVehicleApps] = (0, import_react.useState)([]);
     const [isRefreshingApps, setIsRefreshingApps] = (0, import_react.useState)(false);
+    const [appConsoleOutputs, setAppConsoleOutputs] = (0, import_react.useState)({});
     const [isDeployingKuksa, setIsDeployingKuksa] = (0, import_react.useState)(false);
     const [isDeployingMock, setIsDeployingMock] = (0, import_react.useState)(false);
     const [connectionError, setConnectionError] = (0, import_react.useState)(null);
@@ -390,6 +417,24 @@
           console.log("[VehicleRuntime] Deployed apps list:", message);
           const appsArray = Array.isArray(message?.applications) ? message.applications : [];
           setVehicleApps(appsArray);
+        });
+        runtime.onConsoleOutput((message) => {
+          console.log("[VehicleRuntime] Console output:", message);
+          const appId = message.executionId || message.appId;
+          if (appId && message.output) {
+            setAppConsoleOutputs((prev) => ({
+              ...prev,
+              [appId]: [
+                ...prev[appId] || [],
+                {
+                  stream: message.stream || "stdout",
+                  content: message.output,
+                  timestamp: message.timestamp || (/* @__PURE__ */ new Date()).toISOString()
+                }
+              ].slice(-500)
+              // Keep last 500 lines per app
+            }));
+          }
         });
       } catch (error) {
         console.warn("[VehicleRuntime] Not available (optional):", error);
@@ -525,6 +570,27 @@
         setIsDeployingMock(false);
       }
     }, [refreshApps]);
+    const subscribeAppConsole = (0, import_react.useCallback)(async (appId) => {
+      try {
+        await runtimeServiceRef.current?.subscribeConsole(appId);
+        const output = await runtimeServiceRef.current?.getAppOutput(appId, 100);
+        if (output?.output) {
+          setAppConsoleOutputs((prev) => ({
+            ...prev,
+            [appId]: output.output.slice(-500)
+          }));
+        }
+      } catch (error) {
+        console.error("[VehicleRuntime] Failed to subscribe to console:", error);
+      }
+    }, []);
+    const unsubscribeAppConsole = (0, import_react.useCallback)(async (appId) => {
+      try {
+        await runtimeServiceRef.current?.unsubscribeConsole(appId);
+      } catch (error) {
+        console.error("[VehicleRuntime] Failed to unsubscribe from console:", error);
+      }
+    }, []);
     return {
       isRuntimeConnected,
       isKitManagerConnected,
@@ -534,6 +600,7 @@
       selectedKit,
       vehicleApps,
       isRefreshingApps,
+      appConsoleOutputs,
       isDeployingKuksa,
       isDeployingMock,
       connectionError,
@@ -546,79 +613,13 @@
       uninstallApp,
       deployApp,
       deployKuksa,
-      deployMock
-    };
-  }
-
-  // src/hooks/useConsoleOutput.ts
-  var import_react2 = __require("react");
-  function useConsoleOutput(maxEntries = 500) {
-    const [entries, setEntries] = (0, import_react2.useState)([]);
-    const idCounterRef = (0, import_react2.useRef)(0);
-    const addEntry = (0, import_react2.useCallback)((message, type = "info") => {
-      const entry = {
-        id: `console-${idCounterRef.current++}`,
-        timestamp: /* @__PURE__ */ new Date(),
-        message,
-        type
-      };
-      setEntries((prev) => {
-        const newEntries = [...prev, entry];
-        if (newEntries.length > maxEntries) {
-          return newEntries.slice(-maxEntries);
-        }
-        return newEntries;
-      });
-    }, [maxEntries]);
-    const clear = (0, import_react2.useCallback)(() => {
-      setEntries([]);
-      idCounterRef.current = 0;
-    }, []);
-    const addStdout = (0, import_react2.useCallback)((message) => {
-      addEntry(message, "stdout");
-    }, [addEntry]);
-    const addStderr = (0, import_react2.useCallback)((message) => {
-      addEntry(message, "stderr");
-    }, [addEntry]);
-    const addSuccess = (0, import_react2.useCallback)((message) => {
-      addEntry(message, "success");
-    }, [addEntry]);
-    const addError = (0, import_react2.useCallback)((message) => {
-      addEntry(message, "error");
-    }, [addEntry]);
-    return {
-      entries,
-      addEntry,
-      addStdout,
-      addStderr,
-      addSuccess,
-      addError,
-      clear
+      deployMock,
+      subscribeAppConsole,
+      unsubscribeAppConsole
     };
   }
 
   // src/utils/helpers.ts
-  function getStatusColor(status) {
-    switch (status) {
-      case "online":
-      case "running":
-        return "text-green-600 bg-green-100";
-      case "offline":
-      case "stopped":
-        return "text-gray-600 bg-gray-100";
-      case "connecting":
-      case "error":
-        return "text-red-600 bg-red-100";
-      case "paused":
-        return "text-yellow-600 bg-yellow-100";
-      case "installed":
-        return "text-blue-600 bg-blue-100";
-      case "starting":
-        return "text-blue-400 bg-blue-50";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
-  }
   function formatTimestamp(timestamp) {
     return new Date(timestamp).toLocaleString();
   }
@@ -959,6 +960,64 @@ print("\u{1F4CA} Application execution finished")`
     Sparkles: () => "\u2728",
     Brain: () => "\u{1F9E0}"
   };
+  function getStatusInfo(status) {
+    switch (status) {
+      case "running":
+        return {
+          label: "Running",
+          color: "#22c55e",
+          bgColor: "#dcfce7",
+          borderColor: "#86efac",
+          textColor: "#15803d",
+          dotColor: "#22c55e"
+        };
+      case "stopped":
+        return {
+          label: "Stopped",
+          color: "#6b7280",
+          bgColor: "#f3f4f6",
+          borderColor: "#d1d5db",
+          textColor: "#374151",
+          dotColor: "#6b7280"
+        };
+      case "error":
+        return {
+          label: "Error",
+          color: "#ef4444",
+          bgColor: "#fee2e2",
+          borderColor: "#fca5a5",
+          textColor: "#b91c1c",
+          dotColor: "#ef4444"
+        };
+      case "starting":
+        return {
+          label: "Starting",
+          color: "#3b82f6",
+          bgColor: "#dbeafe",
+          borderColor: "#93c5fd",
+          textColor: "#1d4ed8",
+          dotColor: "#3b82f6"
+        };
+      case "paused":
+        return {
+          label: "Paused",
+          color: "#f59e0b",
+          bgColor: "#fef3c7",
+          borderColor: "#fcd34d",
+          textColor: "#b45309",
+          dotColor: "#f59e0b"
+        };
+      default:
+        return {
+          label: status || "Unknown",
+          color: "#6b7280",
+          bgColor: "#f3f4f6",
+          borderColor: "#d1d5db",
+          textColor: "#374151",
+          dotColor: "#6b7280"
+        };
+    }
+  }
   var DEFAULT_RUNTIME_URL = "ws://localhost:3002/runtime";
   var DEFAULT_KIT_MANAGER_URL = "https://kit.digitalauto.tech";
   var TEMPLATE_OPTIONS = [
@@ -980,6 +1039,7 @@ print("\u{1F4CA} Application execution finished")`
       selectedKit,
       vehicleApps,
       isRefreshingApps,
+      appConsoleOutputs,
       isDeployingKuksa,
       isDeployingMock,
       connectionError,
@@ -992,11 +1052,14 @@ print("\u{1F4CA} Application execution finished")`
       uninstallApp,
       deployApp,
       deployKuksa,
-      deployMock
+      deployMock,
+      subscribeAppConsole,
+      unsubscribeAppConsole
     } = useVehicleRuntimeState(runtimeUrl, kitManagerUrl);
     const edgeRuntimeKits = React.useMemo(() => {
       return kits.filter((kit) => kit.name.includes("Edge-Runtime"));
     }, [kits]);
+    const [expandedConsoleApp, setExpandedConsoleApp] = React.useState(null);
     const [appId, setAppId] = React.useState("my-vehicle-app");
     const [appName, setAppName] = React.useState("My Vehicle App");
     const [appCode, setAppCode] = React.useState(EXAMPLE_TEMPLPS.velocitas);
@@ -1034,18 +1097,20 @@ print("\u{1F4CA} Application execution finished")`
         };
       }
     }, [isResizing]);
-    const { entries: consoleEntries, addEntry, addSuccess, addError, clear: clearConsole } = useConsoleOutput();
+    const logInfo = (msg) => console.log("[Plugin]", msg);
+    const logSuccess = (msg) => console.log("[Plugin] \u2705", msg);
+    const logError = (msg) => console.error("[Plugin] \u274C", msg);
     React.useEffect(() => {
       const initializeConnections = async () => {
-        addEntry("Connecting to Kit Manager...", "info");
+        logInfo("Connecting to Kit Manager...", "info");
         await connectKitManager();
         connectRuntime().catch((error) => {
           console.warn("[Plugin] Vehicle Runtime not available:", error);
-          addEntry("Vehicle Runtime not available - deployment disabled", "info");
+          logInfo("Vehicle Runtime not available - deployment disabled", "info");
         });
       };
       initializeConnections();
-    }, [connectKitManager, connectRuntime, addEntry]);
+    }, [connectKitManager, connectRuntime]);
     React.useEffect(() => {
       if (autoDetectEnabled && appCode) {
         const timeoutId = setTimeout(() => {
@@ -1065,19 +1130,19 @@ print("\u{1F4CA} Application execution finished")`
     }, [dependencies, detectedDependencies, autoDetectEnabled]);
     const handleDeploy = async () => {
       if (!selectedKit?.is_online) {
-        addError("No online runtime selected");
+        logError("No online runtime selected");
         return;
       }
       if (!appId.trim()) {
-        addError("Please enter an application ID");
+        logError("Please enter an application ID");
         return;
       }
       if (!appCode.trim()) {
-        addError("Please enter application code");
+        logError("Please enter application code");
         return;
       }
       setIsDeploying(true);
-      addEntry(`Starting deployment of Python app to ${selectedKit.name}...`, "info");
+      logInfo(`Starting deployment of Python app to ${selectedKit.name}...`, "info");
       try {
         const deployedAppId = await deployApp({
           name: appId,
@@ -1085,9 +1150,9 @@ print("\u{1F4CA} Application execution finished")`
           code: appCode,
           dependencies: allDependencies
         });
-        addSuccess(`Application "${appName}" deployed successfully! ID: ${deployedAppId}`);
+        logSuccess(`Application "${appName}" deployed successfully! ID: ${deployedAppId}`);
       } catch (error) {
-        addError(`Deployment failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+        logError(`Deployment failed: ${error instanceof Error ? error.message : "Unknown error"}`);
       } finally {
         setIsDeploying(false);
       }
@@ -1102,7 +1167,7 @@ print("\u{1F4CA} Application execution finished")`
           setAppName(templateConfig.defaultName);
         }
         setShowTemplates(false);
-        addEntry(`Loaded template: ${templateConfig?.label}`, "info");
+        logInfo(`Loaded template: ${templateConfig?.label}`, "info");
       }
     };
     const handleAddDependency = () => {
@@ -1118,26 +1183,26 @@ print("\u{1F4CA} Application execution finished")`
       const kit = kits.find((k) => k.kit_id === kitId);
       if (kit) {
         selectKit(kit);
-        addEntry(`Selected kit: ${kit.name}`, "info");
+        logInfo(`Selected kit: ${kit.name}`, "info");
         refreshApps();
       }
     };
     const handleStartApp = async (appId2) => {
       try {
-        addEntry(`Starting application: ${appId2}...`, "info");
+        logInfo(`Starting application: ${appId2}...`, "info");
         await startApp(appId2);
-        addSuccess(`Application ${appId2} started`);
+        logSuccess(`Application ${appId2} started`);
       } catch (error) {
-        addError(`Failed to start app: ${error instanceof Error ? error.message : "Unknown error"}`);
+        logError(`Failed to start app: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     };
     const handleStopApp = async (appId2) => {
       try {
-        addEntry(`Stopping application: ${appId2}...`, "info");
+        logInfo(`Stopping application: ${appId2}...`, "info");
         await stopApp(appId2);
-        addSuccess(`Application ${appId2} stopped`);
+        logSuccess(`Application ${appId2} stopped`);
       } catch (error) {
-        addError(`Failed to stop app: ${error instanceof Error ? error.message : "Unknown error"}`);
+        logError(`Failed to stop app: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     };
     const handleUninstallApp = async (appId2) => {
@@ -1145,37 +1210,37 @@ print("\u{1F4CA} Application execution finished")`
         return;
       }
       try {
-        addEntry(`Uninstalling application: ${appId2}...`, "info");
+        logInfo(`Uninstalling application: ${appId2}...`, "info");
         await uninstallApp(appId2);
-        addSuccess(`Application ${appId2} uninstalled`);
+        logSuccess(`Application ${appId2} uninstalled`);
       } catch (error) {
-        addError(`Failed to uninstall app: ${error instanceof Error ? error.message : "Unknown error"}`);
+        logError(`Failed to uninstall app: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     };
     const handleDeployKuksa = async () => {
       if (!isRuntimeConnected) {
-        addError("Runtime not connected");
+        logError("Runtime not connected");
         return;
       }
       try {
-        addEntry("Deploying KUKSA Databroker server...", "info");
+        logInfo("Deploying KUKSA Databroker server...", "info");
         const appId2 = await deployKuksa();
-        addSuccess(`KUKSA Databroker deployed! App ID: ${appId2}`);
+        logSuccess(`KUKSA Databroker deployed! App ID: ${appId2}`);
       } catch (error) {
-        addError(`Failed to deploy KUKSA: ${error instanceof Error ? error.message : "Unknown error"}`);
+        logError(`Failed to deploy KUKSA: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     };
     const handleDeployMock = async () => {
       if (!isRuntimeConnected) {
-        addError("Runtime not connected");
+        logError("Runtime not connected");
         return;
       }
       try {
-        addEntry("Deploying Mock service...", "info");
+        logInfo("Deploying Mock service...", "info");
         const appId2 = await deployMock("echo-all");
-        addSuccess(`Mock service deployed! App ID: ${appId2}`);
+        logSuccess(`Mock service deployed! App ID: ${appId2}`);
       } catch (error) {
-        addError(`Failed to deploy Mock service: ${error instanceof Error ? error.message : "Unknown error"}`);
+        logError(`Failed to deploy Mock service: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     };
     const styles = {
@@ -1358,20 +1423,6 @@ print("\u{1F4CA} Application execution finished")`
         padding: "12px",
         backgroundColor: "white"
       },
-      consoleOutput: {
-        backgroundColor: "#1e1e1e",
-        color: "#d4d4d4",
-        padding: "12px",
-        borderRadius: "4px",
-        fontFamily: "monospace",
-        fontSize: "11px",
-        maxHeight: "300px",
-        overflowY: "auto"
-      },
-      consoleLine: (type) => ({
-        marginBottom: "2px",
-        color: type === "error" ? "#f48771" : type === "success" ? "#89d185" : "#d4d4d4"
-      }),
       templateDropdown: {
         position: "relative"
       },
@@ -1715,29 +1766,7 @@ print("\u{1F4CA} Application execution finished")`
               },
               children: isDeploying ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy Application`
             }
-          ),
-          consoleEntries.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.cardHeader, padding: "8px 12px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: "13px" }, children: [
-                Icons.Terminal(),
-                " Console Output"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "button",
-                {
-                  onClick: clearConsole,
-                  style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary },
-                  children: "Clear"
-                }
-              )
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.consoleOutput, children: consoleEntries.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.consoleLine(entry.type), children: [
-              "[",
-              entry.timestamp.toLocaleTimeString(),
-              "] ",
-              entry.message
-            ] }, entry.id)) })
-          ] })
+          )
         ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           "div",
@@ -1815,65 +1844,186 @@ print("\u{1F4CA} Application execution finished")`
               Icons.Package(),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { marginTop: "12px", marginBottom: "16px" }, children: "No applications deployed yet." }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { fontSize: "12px", color: "#999" }, children: "Use the form on the left to deploy your first application." })
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.grid, children: vehicleApps.map((app) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.appCard, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { style: { margin: "0 0 4px 0", fontSize: "14px", wordBreak: "break-word" }, children: app.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: "0 0 2px 0", fontSize: "11px", color: "#666" }, children: app.type }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: "0 0 4px 0", fontSize: "10px", color: "#999" }, children: [
-                    "ID: ",
-                    app.app_id
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.grid, children: vehicleApps.map((app) => {
+              const isRunning = app.status === "running";
+              const isStopped = app.status === "stopped" || app.status === "error";
+              const isStarting = app.status === "starting";
+              const statusInfo = getStatusInfo(app.status);
+              return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.appCard, borderLeft: `4px solid ${statusInfo.color}` }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "12px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { style: { margin: "0 0 4px 0", fontSize: "15px", fontWeight: "600", wordBreak: "break-word" }, children: app.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: "0 0 2px 0", fontSize: "11px", color: "#888" }, children: app.type }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: "0 0 4px 0", fontSize: "10px", color: "#999" }, children: [
+                      "ID: ",
+                      app.app_id
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, fontSize: "10px", color: "#999" }, children: formatTimestamp(app.deploy_time) })
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, fontSize: "10px", color: "#999" }, children: formatTimestamp(app.deploy_time) })
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                    backgroundColor: statusInfo.bgColor,
+                    border: `1px solid ${statusInfo.borderColor}`
+                  }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      backgroundColor: statusInfo.dotColor,
+                      animation: isStarting ? "pulse 1.5s infinite" : "none"
+                    } }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      color: statusInfo.textColor,
+                      textTransform: "capitalize"
+                    }, children: statusInfo.label })
+                  ] })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
-                  ...styles.badge(getStatusColor(app.status).split(" ")[1]),
-                  color: getStatusColor(app.status).split(" ")[0],
-                  flexShrink: 0
-                }, children: app.status })
-              ] }),
-              app.resources && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { fontSize: "11px", color: "#666", marginBottom: "8px", padding: "6px", backgroundColor: "#f8f9fa", borderRadius: "4px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                  "CPU: ",
-                  app.resources.cpu_limit || "N/A"
+                app.resources && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: "11px", color: "#666", marginBottom: "12px", padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                    "CPU: ",
+                    app.resources.cpu_limit || "N/A"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                    "Memory: ",
+                    app.resources.memory_limit || "N/A"
+                  ] })
+                ] }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
+                  isStopped ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      onClick: () => handleStartApp(app.app_id),
+                      style: {
+                        ...styles.button,
+                        flex: 1,
+                        padding: "8px 12px",
+                        backgroundColor: "#22c55e",
+                        fontSize: "13px",
+                        fontWeight: "600"
+                      },
+                      title: "Start this application",
+                      children: [
+                        Icons.Play(),
+                        " Start"
+                      ]
+                    }
+                  ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      onClick: () => handleStopApp(app.app_id),
+                      style: {
+                        ...styles.button,
+                        flex: 1,
+                        padding: "8px 12px",
+                        backgroundColor: isRunning ? "#ef4444" : "#f97316",
+                        fontSize: "13px",
+                        fontWeight: "600"
+                      },
+                      title: isRunning ? "Stop this application" : "Stop this application",
+                      children: [
+                        Icons.Stop(),
+                        " ",
+                        isRunning ? "Stop" : "Kill"
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "button",
+                    {
+                      onClick: () => handleUninstallApp(app.app_id),
+                      style: {
+                        ...styles.button,
+                        ...styles.buttonSmall,
+                        padding: "8px 12px",
+                        backgroundColor: "#dc2626",
+                        fontSize: "13px",
+                        fontWeight: "600"
+                      },
+                      title: "Uninstall this application",
+                      children: Icons.Trash()
+                    }
+                  )
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                  "Memory: ",
-                  app.resources.memory_limit || "N/A"
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginTop: "12px", borderTop: "1px solid #e5e5e5", paddingTop: "12px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      onClick: () => {
+                        const appId2 = app.app_id;
+                        if (expandedConsoleApp === appId2) {
+                          setExpandedConsoleApp(null);
+                          unsubscribeAppConsole(appId2);
+                        } else {
+                          setExpandedConsoleApp(appId2);
+                          subscribeAppConsole(appId2);
+                        }
+                      },
+                      style: {
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "6px 10px",
+                        backgroundColor: "#f8f9fa",
+                        border: "1px solid #e5e5e5",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        transition: "background-color 0.15s"
+                      },
+                      title: expandedConsoleApp === app.app_id ? "Hide console output" : "Show console output",
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px", fontWeight: "500" }, children: [
+                          Icons.Terminal(),
+                          " Console Output ",
+                          (appConsoleOutputs[app.app_id] || []).length
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: expandedConsoleApp === app.app_id ? "\u25BC" : "\u25B6" })
+                      ]
+                    }
+                  ),
+                  expandedConsoleApp === app.app_id && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                    marginTop: "8px",
+                    backgroundColor: "#1e1e1e",
+                    borderRadius: "4px",
+                    padding: "10px",
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                    fontFamily: "monospace",
+                    fontSize: "11px",
+                    lineHeight: "1.4"
+                  }, children: (appConsoleOutputs[app.app_id] || []).length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { color: "#666", fontStyle: "italic", textAlign: "center", padding: "20px 0" }, children: "No console output yet..." }) : (appConsoleOutputs[app.app_id] || []).map((line, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "div",
+                    {
+                      style: {
+                        color: line.stream === "stderr" ? "#f48771" : "#d4d4d4",
+                        marginBottom: "2px",
+                        wordBreak: "break-all",
+                        whiteSpace: "pre-wrap"
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#888", fontSize: "10px" }, children: [
+                          "[",
+                          new Date(line.timestamp).toLocaleTimeString(),
+                          " ",
+                          line.stream,
+                          "]"
+                        ] }),
+                        " ",
+                        line.content
+                      ]
+                    },
+                    idx
+                  )) })
                 ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "6px" }, children: [
-                app.status === "stopped" || app.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                  "button",
-                  {
-                    onClick: () => handleStartApp(app.app_id),
-                    style: { ...styles.button, ...styles.buttonSmall, flex: 1 },
-                    children: [
-                      Icons.Play(),
-                      " Start"
-                    ]
-                  }
-                ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                  "button",
-                  {
-                    onClick: () => handleStopApp(app.app_id),
-                    style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary, flex: 1 },
-                    children: [
-                      Icons.Stop(),
-                      " Stop"
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "button",
-                  {
-                    onClick: () => handleUninstallApp(app.app_id),
-                    style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonDanger },
-                    children: Icons.Trash()
-                  }
-                )
-              ] })
-            ] }, app.app_id)) }) })
+              ] }, app.app_id);
+            }) }) })
           ] })
         ] }) })
       ] }),

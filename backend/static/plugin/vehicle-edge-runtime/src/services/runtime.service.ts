@@ -278,6 +278,38 @@ export class VehicleRuntimeService {
     return this.sendMessage(request)
   }
 
+  // Console subscription methods
+  async subscribeConsole(appId: string): Promise<void> {
+    const request = {
+      type: 'console_subscribe',
+      id: `console-sub-${appId}-${Date.now()}`,
+      appId
+    }
+
+    await this.sendMessage(request)
+  }
+
+  async unsubscribeConsole(appId: string): Promise<void> {
+    const request = {
+      type: 'console_unsubscribe',
+      id: `console-unsub-${appId}-${Date.now()}`,
+      appId
+    }
+
+    await this.sendMessage(request)
+  }
+
+  async getAppOutput(appId: string, lines: number = 100): Promise<any> {
+    const request = {
+      type: 'app_output',
+      id: `app-output-${appId}-${Date.now()}`,
+      appId,
+      lines
+    }
+
+    return this.sendMessage(request)
+  }
+
   // Event listeners
   onConsoleOutput(callback: (message: any) => void): void {
     this.messageHandlers.set('console_output', callback)

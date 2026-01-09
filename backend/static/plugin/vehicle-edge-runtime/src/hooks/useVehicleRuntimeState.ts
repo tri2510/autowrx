@@ -3,6 +3,12 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { VehicleRuntimeService, VehicleApp } from '../services/runtime.service'
 import { KitManagerService, VehicleEdgeRuntimeKit } from '../services/kitManager.service'
 
+export interface ConsoleLine {
+  stream: 'stdout' | 'stderr'
+  content: string
+  timestamp: string
+}
+
 interface VehicleRuntimeState {
   // Connection status
   isRuntimeConnected: boolean
@@ -17,6 +23,9 @@ interface VehicleRuntimeState {
   // Applications
   vehicleApps: VehicleApp[]
   isRefreshingApps: boolean
+
+  // Console output per app
+  appConsoleOutputs: Record<string, ConsoleLine[]>
 
   // Service deployment
   isDeployingKuksa: boolean
@@ -36,6 +45,8 @@ interface VehicleRuntimeState {
   deployApp: (config: { name: string; displayName?: string; code: string; dependencies?: string[] }) => Promise<string>
   deployKuksa: () => Promise<string>
   deployMock: (mode?: 'echo-all' | 'echo-specific', signals?: string[]) => Promise<string>
+  subscribeAppConsole: (appId: string) => Promise<void>
+  unsubscribeAppConsole: (appId: string) => Promise<void>
 }
 
 export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: string): VehicleRuntimeState {
@@ -47,6 +58,7 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
   const [selectedKit, setSelectedKit] = useState<VehicleEdgeRuntimeKit | null>(null)
   const [vehicleApps, setVehicleApps] = useState<VehicleApp[]>([])
   const [isRefreshingApps, setIsRefreshingApps] = useState(false)
+  const [appConsoleOutputs, setAppConsoleOutputs] = useState<Record<string, ConsoleLine[]>>({})
   const [isDeployingKuksa, setIsDeployingKuksa] = useState(false)
   const [isDeployingMock, setIsDeployingMock] = useState(false)
   const [connectionError, setConnectionError] = useState<string | null>(null)
@@ -92,6 +104,25 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
         console.log('[VehicleRuntime] Deployed apps list:', message)
         const appsArray = Array.isArray(message?.applications) ? message.applications : []
         setVehicleApps(appsArray)
+      })
+
+      // Listen for console output
+      runtime.onConsoleOutput((message) => {
+        console.log('[VehicleRuntime] Console output:', message)
+        const appId = message.executionId || message.appId
+        if (appId && message.output) {
+          setAppConsoleOutputs(prev => ({
+            ...prev,
+            [appId]: [
+              ...(prev[appId] || []),
+              {
+                stream: message.stream || 'stdout',
+                content: message.output,
+                timestamp: message.timestamp || new Date().toISOString()
+              }
+            ].slice(-500) // Keep last 500 lines per app
+          }))
+        }
       })
 
     } catch (error) {
@@ -273,6 +304,32 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     }
   }, [refreshApps])
 
+  // Subscribe to app console output
+  const subscribeAppConsole = useCallback(async (appId: string): Promise<void> => {
+    try {
+      await runtimeServiceRef.current?.subscribeConsole(appId)
+      // Fetch initial console output
+      const output = await runtimeServiceRef.current?.getAppOutput(appId, 100)
+      if (output?.output) {
+        setAppConsoleOutputs(prev => ({
+          ...prev,
+          [appId]: output.output.slice(-500)
+        }))
+      }
+    } catch (error) {
+      console.error('[VehicleRuntime] Failed to subscribe to console:', error)
+    }
+  }, [])
+
+  // Unsubscribe from app console output
+  const unsubscribeAppConsole = useCallback(async (appId: string): Promise<void> => {
+    try {
+      await runtimeServiceRef.current?.unsubscribeConsole(appId)
+    } catch (error) {
+      console.error('[VehicleRuntime] Failed to unsubscribe from console:', error)
+    }
+  }, [])
+
   return {
     isRuntimeConnected,
     isKitManagerConnected,
@@ -282,6 +339,7 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     selectedKit,
     vehicleApps,
     isRefreshingApps,
+    appConsoleOutputs,
     isDeployingKuksa,
     isDeployingMock,
     connectionError,
@@ -294,6 +352,8 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     uninstallApp,
     deployApp,
     deployKuksa,
-    deployMock
+    deployMock,
+    subscribeAppConsole,
+    unsubscribeAppConsole
   }
 }

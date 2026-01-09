@@ -3,7 +3,6 @@
 const React: any = (globalThis as any).React
 
 import { useVehicleRuntimeState } from '../hooks/useVehicleRuntimeState'
-import { useConsoleOutput } from '../hooks/useConsoleOutput'
 import { getStatusColor, formatTimestamp } from '../utils/helpers'
 import {
   detectPythonDependencies,
@@ -42,6 +41,66 @@ const Icons = {
   Brain: () => '🧠'
 }
 
+// Status info helper for better UI
+function getStatusInfo(status: string): { label: string; color: string; bgColor: string; borderColor: string; textColor: string; dotColor: string } {
+  switch (status) {
+    case 'running':
+      return {
+        label: 'Running',
+        color: '#22c55e',
+        bgColor: '#dcfce7',
+        borderColor: '#86efac',
+        textColor: '#15803d',
+        dotColor: '#22c55e'
+      }
+    case 'stopped':
+      return {
+        label: 'Stopped',
+        color: '#6b7280',
+        bgColor: '#f3f4f6',
+        borderColor: '#d1d5db',
+        textColor: '#374151',
+        dotColor: '#6b7280'
+      }
+    case 'error':
+      return {
+        label: 'Error',
+        color: '#ef4444',
+        bgColor: '#fee2e2',
+        borderColor: '#fca5a5',
+        textColor: '#b91c1c',
+        dotColor: '#ef4444'
+      }
+    case 'starting':
+      return {
+        label: 'Starting',
+        color: '#3b82f6',
+        bgColor: '#dbeafe',
+        borderColor: '#93c5fd',
+        textColor: '#1d4ed8',
+        dotColor: '#3b82f6'
+      }
+    case 'paused':
+      return {
+        label: 'Paused',
+        color: '#f59e0b',
+        bgColor: '#fef3c7',
+        borderColor: '#fcd34d',
+        textColor: '#b45309',
+        dotColor: '#f59e0b'
+      }
+    default:
+      return {
+        label: status || 'Unknown',
+        color: '#6b7280',
+        bgColor: '#f3f4f6',
+        borderColor: '#d1d5db',
+        textColor: '#374151',
+        dotColor: '#6b7280'
+      }
+  }
+}
+
 interface PageProps {
   data?: any
   config?: any
@@ -74,6 +133,7 @@ export default function Page({ data, config, api }: PageProps) {
     selectedKit,
     vehicleApps,
     isRefreshingApps,
+    appConsoleOutputs,
     isDeployingKuksa,
     isDeployingMock,
     connectionError,
@@ -86,13 +146,18 @@ export default function Page({ data, config, api }: PageProps) {
     uninstallApp,
     deployApp,
     deployKuksa,
-    deployMock
+    deployMock,
+    subscribeAppConsole,
+    unsubscribeAppConsole
   } = useVehicleRuntimeState(runtimeUrl, kitManagerUrl)
 
   // Filter to only show Edge-Runtime devices
   const edgeRuntimeKits = React.useMemo(() => {
     return kits.filter(kit => kit.name.includes('Edge-Runtime'))
   }, [kits])
+
+  // Console expansion state (which app's console is expanded)
+  const [expandedConsoleApp, setExpandedConsoleApp] = React.useState<string | null>(null)
 
   // Deployment state
   const [appId, setAppId] = React.useState('my-vehicle-app')
@@ -143,13 +208,15 @@ export default function Page({ data, config, api }: PageProps) {
     }
   }, [isResizing])
 
-  // Console output
-  const { entries: consoleEntries, addEntry, addSuccess, addError, clear: clearConsole } = useConsoleOutput()
+  // Simple logging functions (old console UI removed)
+  const logInfo = (msg: string) => console.log('[Plugin]', msg)
+  const logSuccess = (msg: string) => console.log('[Plugin] ✅', msg)
+  const logError = (msg: string) => console.error('[Plugin] ❌', msg)
 
   // Initialize connections on mount
   React.useEffect(() => {
     const initializeConnections = async () => {
-      addEntry('Connecting to Kit Manager...', 'info')
+      logInfo('Connecting to Kit Manager...', 'info')
 
       // Connect to Kit Manager (required for device discovery)
       await connectKitManager()
@@ -158,11 +225,11 @@ export default function Page({ data, config, api }: PageProps) {
       // Don't block UI if Runtime is not available
       connectRuntime().catch(error => {
         console.warn('[Plugin] Vehicle Runtime not available:', error)
-        addEntry('Vehicle Runtime not available - deployment disabled', 'info')
+        logInfo('Vehicle Runtime not available - deployment disabled', 'info')
       })
     }
     initializeConnections()
-  }, [connectKitManager, connectRuntime, addEntry])
+  }, [connectKitManager, connectRuntime])
 
   // Auto-detect dependencies when code changes
   React.useEffect(() => {
@@ -188,22 +255,22 @@ export default function Page({ data, config, api }: PageProps) {
   // Deploy application
   const handleDeploy = async () => {
     if (!selectedKit?.is_online) {
-      addError('No online runtime selected')
+      logError('No online runtime selected')
       return
     }
 
     if (!appId.trim()) {
-      addError('Please enter an application ID')
+      logError('Please enter an application ID')
       return
     }
 
     if (!appCode.trim()) {
-      addError('Please enter application code')
+      logError('Please enter application code')
       return
     }
 
     setIsDeploying(true)
-    addEntry(`Starting deployment of Python app to ${selectedKit.name}...`, 'info')
+    logInfo(`Starting deployment of Python app to ${selectedKit.name}...`, 'info')
 
     try {
       const deployedAppId = await deployApp({
@@ -213,9 +280,9 @@ export default function Page({ data, config, api }: PageProps) {
         dependencies: allDependencies
       })
 
-      addSuccess(`Application "${appName}" deployed successfully! ID: ${deployedAppId}`)
+      logSuccess(`Application "${appName}" deployed successfully! ID: ${deployedAppId}`)
     } catch (error) {
-      addError(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      logError(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsDeploying(false)
     }
@@ -233,7 +300,7 @@ export default function Page({ data, config, api }: PageProps) {
         setAppName(templateConfig.defaultName)
       }
       setShowTemplates(false)
-      addEntry(`Loaded template: ${templateConfig?.label}`, 'info')
+      logInfo(`Loaded template: ${templateConfig?.label}`, 'info')
     }
   }
 
@@ -255,7 +322,7 @@ export default function Page({ data, config, api }: PageProps) {
     const kit = kits.find(k => k.kit_id === kitId)
     if (kit) {
       selectKit(kit)
-      addEntry(`Selected kit: ${kit.name}`, 'info')
+      logInfo(`Selected kit: ${kit.name}`, 'info')
       refreshApps()
     }
   }
@@ -263,21 +330,21 @@ export default function Page({ data, config, api }: PageProps) {
   // Handle start/stop/uninstall apps
   const handleStartApp = async (appId: string) => {
     try {
-      addEntry(`Starting application: ${appId}...`, 'info')
+      logInfo(`Starting application: ${appId}...`, 'info')
       await startApp(appId)
-      addSuccess(`Application ${appId} started`)
+      logSuccess(`Application ${appId} started`)
     } catch (error) {
-      addError(`Failed to start app: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      logError(`Failed to start app: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   const handleStopApp = async (appId: string) => {
     try {
-      addEntry(`Stopping application: ${appId}...`, 'info')
+      logInfo(`Stopping application: ${appId}...`, 'info')
       await stopApp(appId)
-      addSuccess(`Application ${appId} stopped`)
+      logSuccess(`Application ${appId} stopped`)
     } catch (error) {
-      addError(`Failed to stop app: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      logError(`Failed to stop app: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -286,41 +353,41 @@ export default function Page({ data, config, api }: PageProps) {
       return
     }
     try {
-      addEntry(`Uninstalling application: ${appId}...`, 'info')
+      logInfo(`Uninstalling application: ${appId}...`, 'info')
       await uninstallApp(appId)
-      addSuccess(`Application ${appId} uninstalled`)
+      logSuccess(`Application ${appId} uninstalled`)
     } catch (error) {
-      addError(`Failed to uninstall app: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      logError(`Failed to uninstall app: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   // Handle deploy KUKSA server
   const handleDeployKuksa = async () => {
     if (!isRuntimeConnected) {
-      addError('Runtime not connected')
+      logError('Runtime not connected')
       return
     }
     try {
-      addEntry('Deploying KUKSA Databroker server...', 'info')
+      logInfo('Deploying KUKSA Databroker server...', 'info')
       const appId = await deployKuksa()
-      addSuccess(`KUKSA Databroker deployed! App ID: ${appId}`)
+      logSuccess(`KUKSA Databroker deployed! App ID: ${appId}`)
     } catch (error) {
-      addError(`Failed to deploy KUKSA: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      logError(`Failed to deploy KUKSA: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   // Handle deploy Mock service
   const handleDeployMock = async () => {
     if (!isRuntimeConnected) {
-      addError('Runtime not connected')
+      logError('Runtime not connected')
       return
     }
     try {
-      addEntry('Deploying Mock service...', 'info')
+      logInfo('Deploying Mock service...', 'info')
       const appId = await deployMock('echo-all')
-      addSuccess(`Mock service deployed! App ID: ${appId}`)
+      logSuccess(`Mock service deployed! App ID: ${appId}`)
     } catch (error) {
-      addError(`Failed to deploy Mock service: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      logError(`Failed to deploy Mock service: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -505,20 +572,6 @@ export default function Page({ data, config, api }: PageProps) {
       padding: '12px',
       backgroundColor: 'white'
     },
-    consoleOutput: {
-      backgroundColor: '#1e1e1e',
-      color: '#d4d4d4',
-      padding: '12px',
-      borderRadius: '4px',
-      fontFamily: 'monospace',
-      fontSize: '11px',
-      maxHeight: '300px',
-      overflowY: 'auto' as const
-    },
-    consoleLine: (type: string) => ({
-      marginBottom: '2px',
-      color: type === 'error' ? '#f48771' : type === 'success' ? '#89d185' : '#d4d4d4'
-    }),
     templateDropdown: {
       position: 'relative' as const
     },
@@ -855,28 +908,6 @@ export default function Page({ data, config, api }: PageProps) {
             >
               {isDeploying ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy Application`}
             </button>
-
-            {/* Console Output */}
-            {consoleEntries.length > 0 && (
-              <div style={styles.card}>
-                <div style={{ ...styles.cardHeader, padding: '8px 12px' }}>
-                  <span style={{ fontSize: '13px' }}>{Icons.Terminal()} Console Output</span>
-                  <button
-                    onClick={clearConsole}
-                    style={{ ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary }}
-                  >
-                    Clear
-                  </button>
-                </div>
-                <div style={styles.consoleOutput}>
-                  {consoleEntries.map(entry => (
-                    <div key={entry.id} style={styles.consoleLine(entry.type)}>
-                      [{entry.timestamp.toLocaleTimeString()}] {entry.message}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -954,64 +985,187 @@ export default function Page({ data, config, api }: PageProps) {
                   </div>
                 ) : (
                   <div style={styles.grid}>
-                    {vehicleApps.map(app => (
-                      <div key={app.app_id} style={styles.appCard}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', wordBreak: 'break-word' }}>
-                              {app.name}
-                            </h3>
-                            <p style={{ margin: '0 0 2px 0', fontSize: '11px', color: '#666' }}>
-                              {app.type}
-                            </p>
-                            <p style={{ margin: '0 0 4px 0', fontSize: '10px', color: '#999' }}>
-                              ID: {app.app_id}
-                            </p>
-                            <p style={{ margin: 0, fontSize: '10px', color: '#999' }}>
-                              {formatTimestamp(app.deploy_time)}
-                            </p>
-                          </div>
-                          <span style={{
-                            ...styles.badge(getStatusColor(app.status).split(' ')[1]),
-                            color: getStatusColor(app.status).split(' ')[0],
-                            flexShrink: 0
-                          }}>
-                            {app.status}
-                          </span>
-                        </div>
+                    {vehicleApps.map(app => {
+                      const isRunning = app.status === 'running'
+                      const isStopped = app.status === 'stopped' || app.status === 'error'
+                      const isStarting = app.status === 'starting'
+                      const statusInfo = getStatusInfo(app.status)
 
-                        {app.resources && (
-                          <div style={{ fontSize: '11px', color: '#666', marginBottom: '8px', padding: '6px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                            <div>CPU: {app.resources.cpu_limit || 'N/A'}</div>
-                            <div>Memory: {app.resources.memory_limit || 'N/A'}</div>
+                      return (
+                        <div key={app.app_id} style={{...styles.appCard, borderLeft: `4px solid ${statusInfo.color}`}}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '600', wordBreak: 'break-word' }}>
+                                {app.name}
+                              </h3>
+                              <p style={{ margin: '0 0 2px 0', fontSize: '11px', color: '#888' }}>
+                                {app.type}
+                              </p>
+                              <p style={{ margin: '0 0 4px 0', fontSize: '10px', color: '#999' }}>
+                                ID: {app.app_id}
+                              </p>
+                              <p style={{ margin: 0, fontSize: '10px', color: '#999' }}>
+                                {formatTimestamp(app.deploy_time)}
+                              </p>
+                            </div>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '4px 10px',
+                              borderRadius: '20px',
+                              backgroundColor: statusInfo.bgColor,
+                              border: `1px solid ${statusInfo.borderColor}`
+                            }}>
+                              <span style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: statusInfo.dotColor,
+                                animation: isStarting ? 'pulse 1.5s infinite' : 'none'
+                              }}></span>
+                              <span style={{
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: statusInfo.textColor,
+                                textTransform: 'capitalize'
+                              }}>
+                                {statusInfo.label}
+                              </span>
+                            </div>
                           </div>
-                        )}
 
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {app.status === 'stopped' || app.status === 'error' ? (
-                            <button
-                              onClick={() => handleStartApp(app.app_id)}
-                              style={{ ...styles.button, ...styles.buttonSmall, flex: 1 }}
-                            >
-                              {Icons.Play()} Start
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleStopApp(app.app_id)}
-                              style={{ ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary, flex: 1 }}
-                            >
-                              {Icons.Stop()} Stop
-                            </button>
+                          {app.resources && (
+                            <div style={{ fontSize: '11px', color: '#666', marginBottom: '12px', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>CPU: {app.resources.cpu_limit || 'N/A'}</span>
+                                <span>Memory: {app.resources.memory_limit || 'N/A'}</span>
+                              </div>
+                            </div>
                           )}
-                          <button
-                            onClick={() => handleUninstallApp(app.app_id)}
-                            style={{ ...styles.button, ...styles.buttonSmall, ...styles.buttonDanger }}
-                          >
-                            {Icons.Trash()}
-                          </button>
+
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {isStopped ? (
+                              <button
+                                onClick={() => handleStartApp(app.app_id)}
+                                style={{
+                                  ...styles.button,
+                                  flex: 1,
+                                  padding: '8px 12px',
+                                  backgroundColor: '#22c55e',
+                                  fontSize: '13px',
+                                  fontWeight: '600'
+                                }}
+                                title="Start this application"
+                              >
+                                {Icons.Play()} Start
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleStopApp(app.app_id)}
+                                style={{
+                                  ...styles.button,
+                                  flex: 1,
+                                  padding: '8px 12px',
+                                  backgroundColor: isRunning ? '#ef4444' : '#f97316',
+                                  fontSize: '13px',
+                                  fontWeight: '600'
+                                }}
+                                title={isRunning ? "Stop this application" : "Stop this application"}
+                              >
+                                {Icons.Stop()} {isRunning ? 'Stop' : 'Kill'}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleUninstallApp(app.app_id)}
+                              style={{
+                                ...styles.button,
+                                ...styles.buttonSmall,
+                                padding: '8px 12px',
+                                backgroundColor: '#dc2626',
+                                fontSize: '13px',
+                                fontWeight: '600'
+                              }}
+                              title="Uninstall this application"
+                            >
+                              {Icons.Trash()}
+                            </button>
+                          </div>
+
+                          {/* Console Output Section */}
+                          <div style={{ marginTop: '12px', borderTop: '1px solid #e5e5e5', paddingTop: '12px' }}>
+                            <button
+                              onClick={() => {
+                                const appId = app.app_id
+                                if (expandedConsoleApp === appId) {
+                                  setExpandedConsoleApp(null)
+                                  unsubscribeAppConsole(appId)
+                                } else {
+                                  setExpandedConsoleApp(appId)
+                                  subscribeAppConsole(appId)
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '6px 10px',
+                                backgroundColor: '#f8f9fa',
+                                border: '1px solid #e5e5e5',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.15s'
+                              }}
+                              title={expandedConsoleApp === app.app_id ? 'Hide console output' : 'Show console output'}
+                            >
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}>
+                                {Icons.Terminal()} Console Output {(appConsoleOutputs[app.app_id] || []).length}
+                              </span>
+                              <span>{expandedConsoleApp === app.app_id ? '▼' : '▶'}</span>
+                            </button>
+
+                            {expandedConsoleApp === app.app_id && (
+                              <div style={{
+                                marginTop: '8px',
+                                backgroundColor: '#1e1e1e',
+                                borderRadius: '4px',
+                                padding: '10px',
+                                maxHeight: '200px',
+                                overflowY: 'auto',
+                                fontFamily: 'monospace',
+                                fontSize: '11px',
+                                lineHeight: '1.4'
+                              }}>
+                                {(appConsoleOutputs[app.app_id] || []).length === 0 ? (
+                                  <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+                                    No console output yet...
+                                  </div>
+                                ) : (
+                                  (appConsoleOutputs[app.app_id] || []).map((line, idx) => (
+                                    <div
+                                      key={idx}
+                                      style={{
+                                        color: line.stream === 'stderr' ? '#f48771' : '#d4d4d4',
+                                        marginBottom: '2px',
+                                        wordBreak: 'break-all',
+                                        whiteSpace: 'pre-wrap'
+                                      }}
+                                    >
+                                      <span style={{ color: '#888', fontSize: '10px' }}>
+                                        [{new Date(line.timestamp).toLocaleTimeString()} {line.stream}]
+                                      </span>{' '}
+                                      {line.content}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
