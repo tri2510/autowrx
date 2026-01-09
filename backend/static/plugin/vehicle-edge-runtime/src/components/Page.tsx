@@ -965,7 +965,7 @@ export default function Page({ data, config, api }: PageProps) {
             </div>
 
             {/* Unified Console Panel */}
-            <div style={{ ...styles.card, marginBottom: '16px' }}>
+            <div style={{ ...styles.card, marginBottom: '16px', overflow: 'hidden' }}>
               <div style={styles.cardHeader}>
                 <span>
                   {Icons.Terminal()} Console Output
@@ -998,59 +998,63 @@ export default function Page({ data, config, api }: PageProps) {
                   </div>
                 )}
               </div>
-              <div style={{ ...styles.cardBody, padding: '0', height: '350px', display: 'flex', flexDirection: 'column' }}>
-                {!selectedConsoleApp ? (
-                  <div style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#999',
-                    textAlign: 'center'
-                  }}>
-                    {Icons.Terminal()}
-                    <p style={{ marginTop: '12px', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-                      Click on an application to view its console
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#aaa' }}>
-                      Console output will appear here
-                    </p>
-                  </div>
-                ) : (
-                  <div style={{
-                    flex: 1,
-                    backgroundColor: '#1e1e1e',
-                    overflowY: 'auto',
-                    padding: '12px',
-                    fontFamily: 'monospace',
-                    fontSize: '11px',
-                    lineHeight: '1.4'
-                  }}>
-                    {(appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? (
-                      <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '40px 0' }}>
-                        Waiting for console output...
-                      </div>
-                    ) : (
-                      (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            color: line.stream === 'stderr' ? '#f48771' : '#d4d4d4',
-                            marginBottom: '2px',
-                            wordBreak: 'break-all',
-                            whiteSpace: 'pre-wrap'
-                          }}
-                        >
-                          <span style={{ color: '#6a9955', fontSize: '10px' }}>
-                            [{new Date(line.timestamp).toLocaleTimeString()} {line.stream}]
-                          </span>{' '}
-                          {line.content}
+              <div style={{ ...styles.cardBody, padding: '0', overflow: 'hidden' }}>
+                <div style={{ height: '300px', display: 'flex', flexDirection: 'column' }}>
+                  {!selectedConsoleApp ? (
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#999',
+                      textAlign: 'center'
+                    }}>
+                      {Icons.Terminal()}
+                      <p style={{ marginTop: '12px', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+                        Click on an application to view its console
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#aaa' }}>
+                        Console output will appear here
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{
+                      flex: 1,
+                      backgroundColor: '#1e1e1e',
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
+                      padding: '12px',
+                      fontFamily: 'monospace',
+                      fontSize: '11px',
+                      lineHeight: '1.4'
+                    }}>
+                      {(appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? (
+                        <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '40px 0' }}>
+                          Waiting for console output...
                         </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                      ) : (
+                        (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              color: line.stream === 'stderr' ? '#f48771' : '#d4d4d4',
+                              marginBottom: '2px',
+                              wordBreak: 'break-word',
+                              whiteSpace: 'pre-wrap',
+                              overflowWrap: 'break-word'
+                            }}
+                          >
+                            <span style={{ color: '#6a9955', fontSize: '10px', flexShrink: 0 }}>
+                              [{new Date(line.timestamp).toLocaleTimeString()} {line.stream}]
+                            </span>{' '}
+                            {line.content}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

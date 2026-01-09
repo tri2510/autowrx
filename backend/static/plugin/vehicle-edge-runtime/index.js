@@ -1836,7 +1836,7 @@ print("\u{1F4CA} Application execution finished")`
               )
             ] }) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.card, marginBottom: "16px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.card, marginBottom: "16px", overflow: "hidden" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
                 Icons.Terminal(),
@@ -1874,7 +1874,7 @@ print("\u{1F4CA} Application execution finished")`
                 )
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.cardBody, padding: "0", height: "350px", display: "flex", flexDirection: "column" }, children: !selectedConsoleApp ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.cardBody, padding: "0", overflow: "hidden" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { height: "300px", display: "flex", flexDirection: "column" }, children: !selectedConsoleApp ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
               flex: 1,
               display: "flex",
               flexDirection: "column",
@@ -1890,6 +1890,7 @@ print("\u{1F4CA} Application execution finished")`
               flex: 1,
               backgroundColor: "#1e1e1e",
               overflowY: "auto",
+              overflowX: "hidden",
               padding: "12px",
               fontFamily: "monospace",
               fontSize: "11px",
@@ -1900,11 +1901,12 @@ print("\u{1F4CA} Application execution finished")`
                 style: {
                   color: line.stream === "stderr" ? "#f48771" : "#d4d4d4",
                   marginBottom: "2px",
-                  wordBreak: "break-all",
-                  whiteSpace: "pre-wrap"
+                  wordBreak: "break-word",
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "break-word"
                 },
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#6a9955", fontSize: "10px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#6a9955", fontSize: "10px", flexShrink: 0 }, children: [
                     "[",
                     new Date(line.timestamp).toLocaleTimeString(),
                     " ",
@@ -1916,7 +1918,7 @@ print("\u{1F4CA} Application execution finished")`
                 ]
               },
               idx
-            )) }) })
+            )) }) }) })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
