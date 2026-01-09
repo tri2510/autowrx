@@ -730,33 +730,128 @@ from sdv import VehicleApp
 from vehicle import vehicle
 
 
-class TestApp(VehicleApp):
+class LightControllerApp(VehicleApp):
     def __init__(self, vehicle_client):
         super().__init__()
         self.Vehicle = vehicle_client
 
     async def on_start(self):
-        print("App started!")
+        print("Light controller started!")
+        print("Cycling through light states...")
+        print("-" * 50)
+
         while True:
-            await asyncio.sleep(2)
+            # State 1: Low Beam ON, High Beam OFF
             await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(True)
-            await asyncio.sleep(1)
+            await self.Vehicle.Body.Lights.Beam.High.IsOn.set(False)
+            print(f"[Set] Low Beam: ON  | High Beam: OFF")
+            await asyncio.sleep(3)
 
-            # Print the Low Beam status
-            low_beam_val = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
-            print("Low Beam value: ", low_beam_val.value)
-
-            # Print the High Beam status
-            high_beam_val = await self.Vehicle.Body.Lights.Beam.High.IsOn.get()
-            print("High Beam value: ", high_beam_val.value)
-
-            await asyncio.sleep(2)
+            # State 2: Low Beam OFF, High Beam OFF
             await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(False)
+            await self.Vehicle.Body.Lights.Beam.High.IsOn.set(False)
+            print(f"[Set] Low Beam: OFF | High Beam: OFF")
+            await asyncio.sleep(2)
+
+            # State 3: Low Beam ON, High Beam ON
+            await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(True)
+            await self.Vehicle.Body.Lights.Beam.High.IsOn.set(True)
+            print(f"[Set] Low Beam: ON  | High Beam: ON ")
+            await asyncio.sleep(3)
+
+            # State 4: Low Beam OFF, High Beam OFF
+            await self.Vehicle.Body.Lights.Beam.Low.IsOn.set(False)
+            await self.Vehicle.Body.Lights.Beam.High.IsOn.set(False)
+            print(f"[Set] Low Beam: OFF | High Beam: OFF")
+            await asyncio.sleep(2)
+
+
+async def main():
+    app = LightControllerApp(vehicle)
+    await app.run()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())`,
+    velocitasReadSpeed: `import asyncio
+from sdv import VehicleApp
+from vehicle import vehicle
+
+
+class LightReaderApp(VehicleApp):
+    def __init__(self, vehicle_client):
+        super().__init__()
+        self.Vehicle = vehicle_client
+
+    async def on_start(self):
+        print("Light reader started!")
+        print("Reading Low Beam and High Beam status...")
+        print("-" * 50)
+
+        while True:
+            try:
+                # Read both beam states
+                low_val = await self.Vehicle.Body.Lights.Beam.Low.IsOn.get()
+                high_val = await self.Vehicle.Body.Lights.Beam.High.IsOn.get()
+
+                # Compact one-line output
+                low_status = "ON" if low_val.value else "OFF"
+                high_status = "ON" if high_val.value else "OFF"
+                print(f"[Get] Low Beam: {low_status:3s} | High Beam: {high_status:3s}")
+
+            except Exception as e:
+                print(f"[Get] Error reading lights: {e}")
+
             await asyncio.sleep(1)
 
 
 async def main():
-    app = TestApp(vehicle)
+    app = LightReaderApp(vehicle)
+    await app.run()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())`,
+    velocitasBlinkers: `import asyncio
+from sdv import VehicleApp
+from vehicle import vehicle
+
+
+class BlinkerApp(VehicleApp):
+    def __init__(self, vehicle_client):
+        super().__init__()
+        self.Vehicle = vehicle_client
+
+    async def on_start(self):
+        print("Blinker app started!")
+        print("Blinking left and right turn signals...")
+
+        while True:
+            # Blink left signal 3 times
+            for i in range(3):
+                await self.Vehicle.Body.Lights.TurnSignalLeft.IsOn.set(True)
+                print(f"[Blinker] Left signal ON ({i+1}/3)")
+                await asyncio.sleep(0.5)
+                await self.Vehicle.Body.Lights.TurnSignalLeft.IsOn.set(False)
+                await asyncio.sleep(0.5)
+
+            # Pause between cycles
+            await asyncio.sleep(1)
+
+            # Blink right signal 3 times
+            for i in range(3):
+                await self.Vehicle.Body.Lights.TurnSignalRight.IsOn.set(True)
+                print(f"[Blinker] Right signal ON ({i+1}/3)")
+                await asyncio.sleep(0.5)
+                await self.Vehicle.Body.Lights.TurnSignalRight.IsOn.set(False)
+                await asyncio.sleep(0.5)
+
+            # Pause between cycles
+            await asyncio.sleep(1)
+
+
+async def main():
+    app = BlinkerApp(vehicle)
     await app.run()
 
 
@@ -835,6 +930,8 @@ def main():
             print(f"Polling {VSS_PATH_SPEED} every {POLL_INTERVAL} seconds...")
             print("Press Ctrl+C to stop")
 
+            poll_count = 0
+
             while True:
                 try:
                     # Get current value
@@ -842,8 +939,9 @@ def main():
                     speed_value = current_values[VSS_PATH_SPEED]
 
                     timestamp = time.strftime('%H:%M:%S')
-                    print(f"[{timestamp}] {VSS_PATH_SPEED}: {speed_value}")
+                    print(f"[{timestamp}] Get {VSS_PATH_SPEED}: {speed_value.value} km/h")
 
+                    poll_count += 1
                     time.sleep(POLL_INTERVAL)
 
                 except Exception as poll_error:
@@ -909,10 +1007,12 @@ print("\u{1F4CA} Application execution finished")`
   var DEFAULT_RUNTIME_URL = "ws://localhost:3002/runtime";
   var DEFAULT_KIT_MANAGER_URL = "https://kit.digitalauto.tech";
   var TEMPLATE_OPTIONS = [
-    { id: "velocitas", label: "Velocitas Vehicle App", icon: "\u{1F697}" },
-    { id: "kuksaSetValue", label: "KUKSA Set Value", icon: "\u{1F4E1}" },
-    { id: "kuksaPoll", label: "KUKSA Poll Values", icon: "\u{1F4CA}" },
-    { id: "simple", label: "Simple Python App", icon: "\u{1F40D}" }
+    { id: "velocitas", label: "Velocitas SDK: Set Lights", icon: "\u{1F697}", defaultId: "velocitas-set-lights", defaultName: "Velocitas Set Lights" },
+    { id: "velocitasReadSpeed", label: "Velocitas SDK: Read Lights", icon: "\u{1F4CA}", defaultId: "velocitas-read-lights", defaultName: "Velocitas Read Lights" },
+    { id: "velocitasBlinkers", label: "Velocitas SDK: Blink Turn Signals", icon: "\u{1F4A1}", defaultId: "blinker-app", defaultName: "Blinker App" },
+    { id: "kuksaSetValue", label: "KUKSA Client: Set Speed", icon: "\u{1F4E1}", defaultId: "kuksa-set-speed", defaultName: "KUKSA Set Speed" },
+    { id: "kuksaPoll", label: "KUKSA Client: Read Speed", icon: "\u{1F4D6}", defaultId: "kuksa-read-speed", defaultName: "KUKSA Read Speed" },
+    { id: "simple", label: "Simple: Loop Example", icon: "\u{1F40D}", defaultId: "simple-loop-app", defaultName: "Simple Loop App" }
   ];
   function Page({ data, config, api }) {
     const runtimeUrl = config?.runtimeUrl || DEFAULT_RUNTIME_URL;
@@ -1040,10 +1140,15 @@ print("\u{1F4CA} Application execution finished")`
     };
     const handleLoadTemplate = (templateId) => {
       const template = EXAMPLE_TEMPLPS[templateId];
+      const templateConfig = TEMPLATE_OPTIONS.find((t) => t.id === templateId);
       if (template) {
         setAppCode(template);
+        if (templateConfig) {
+          setAppId(templateConfig.defaultId);
+          setAppName(templateConfig.defaultName);
+        }
         setShowTemplates(false);
-        addEntry(`Loaded template: ${TEMPLATE_OPTIONS.find((t) => t.id === templateId)?.label}`, "info");
+        addEntry(`Loaded template: ${templateConfig?.label}`, "info");
       }
     };
     const handleAddDependency = () => {

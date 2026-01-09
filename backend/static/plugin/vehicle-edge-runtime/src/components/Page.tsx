@@ -54,10 +54,12 @@ const DEFAULT_KIT_MANAGER_URL = 'https://kit.digitalauto.tech'
 
 // Example templates dropdown options
 const TEMPLATE_OPTIONS = [
-  { id: 'velocitas', label: 'Velocitas Vehicle App', icon: '🚗' },
-  { id: 'kuksaSetValue', label: 'KUKSA Set Value', icon: '📡' },
-  { id: 'kuksaPoll', label: 'KUKSA Poll Values', icon: '📊' },
-  { id: 'simple', label: 'Simple Python App', icon: '🐍' }
+  { id: 'velocitas', label: 'Velocitas SDK: Set Lights', icon: '🚗', defaultId: 'velocitas-set-lights', defaultName: 'Velocitas Set Lights' },
+  { id: 'velocitasReadSpeed', label: 'Velocitas SDK: Read Lights', icon: '📊', defaultId: 'velocitas-read-lights', defaultName: 'Velocitas Read Lights' },
+  { id: 'velocitasBlinkers', label: 'Velocitas SDK: Blink Turn Signals', icon: '💡', defaultId: 'blinker-app', defaultName: 'Blinker App' },
+  { id: 'kuksaSetValue', label: 'KUKSA Client: Set Speed', icon: '📡', defaultId: 'kuksa-set-speed', defaultName: 'KUKSA Set Speed' },
+  { id: 'kuksaPoll', label: 'KUKSA Client: Read Speed', icon: '📖', defaultId: 'kuksa-read-speed', defaultName: 'KUKSA Read Speed' },
+  { id: 'simple', label: 'Simple: Loop Example', icon: '🐍', defaultId: 'simple-loop-app', defaultName: 'Simple Loop App' }
 ]
 
 export default function Page({ data, config, api }: PageProps) {
@@ -223,10 +225,16 @@ export default function Page({ data, config, api }: PageProps) {
   // Load template
   const handleLoadTemplate = (templateId: string) => {
     const template = EXAMPLE_TEMPLPS[templateId as keyof typeof EXAMPLE_TEMPLPS]
+    const templateConfig = TEMPLATE_OPTIONS.find(t => t.id === templateId)
     if (template) {
       setAppCode(template)
+      // Auto-fill Application ID and Display Name from template config
+      if (templateConfig) {
+        setAppId(templateConfig.defaultId)
+        setAppName(templateConfig.defaultName)
+      }
       setShowTemplates(false)
-      addEntry(`Loaded template: ${TEMPLATE_OPTIONS.find(t => t.id === templateId)?.label}`, 'info')
+      addEntry(`Loaded template: ${templateConfig?.label}`, 'info')
     }
   }
 
