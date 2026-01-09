@@ -344,6 +344,11 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     }
   }, [])
 
+  // Clear console output for an app
+  const clearAppConsole = useCallback((appId: string) => {
+    setAppConsoleOutputs(prev => ({ ...prev, [appId]: [] }))
+  }, [])
+
   return {
     isRuntimeConnected,
     isKitManagerConnected,
@@ -368,6 +373,7 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     deployKuksa,
     deployMock,
     subscribeAppConsole,
-    unsubscribeAppConsole
+    unsubscribeAppConsole,
+    clearAppConsole
   }
 }

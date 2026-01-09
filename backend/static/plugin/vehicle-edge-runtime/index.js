@@ -603,6 +603,9 @@
         console.error("[VehicleRuntime] Failed to unsubscribe from console:", error);
       }
     }, []);
+    const clearAppConsole = (0, import_react.useCallback)((appId) => {
+      setAppConsoleOutputs((prev) => ({ ...prev, [appId]: [] }));
+    }, []);
     return {
       isRuntimeConnected,
       isKitManagerConnected,
@@ -627,7 +630,8 @@
       deployKuksa,
       deployMock,
       subscribeAppConsole,
-      unsubscribeAppConsole
+      unsubscribeAppConsole,
+      clearAppConsole
     };
   }
 
@@ -1066,12 +1070,13 @@ print("\u{1F4CA} Application execution finished")`
       deployKuksa,
       deployMock,
       subscribeAppConsole,
-      unsubscribeAppConsole
+      unsubscribeAppConsole,
+      clearAppConsole
     } = useVehicleRuntimeState(runtimeUrl, kitManagerUrl);
     const edgeRuntimeKits = React.useMemo(() => {
       return kits.filter((kit) => kit.name.includes("Edge-Runtime"));
     }, [kits]);
-    const [expandedConsoleApp, setExpandedConsoleApp] = React.useState(null);
+    const [selectedConsoleApp, setSelectedConsoleApp] = React.useState(null);
     const [appId, setAppId] = React.useState("my-vehicle-app");
     const [appName, setAppName] = React.useState("My Vehicle App");
     const [appCode, setAppCode] = React.useState(EXAMPLE_TEMPLPS.velocitas);
@@ -1831,6 +1836,157 @@ print("\u{1F4CA} Application execution finished")`
               )
             ] }) })
           ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.card, marginBottom: "16px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                Icons.Terminal(),
+                " Console Output"
+              ] }),
+              selectedConsoleApp && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  onClick: () => {
+                    if (selectedConsoleApp) {
+                      unsubscribeAppConsole(selectedConsoleApp);
+                    }
+                    setSelectedConsoleApp(null);
+                  },
+                  style: { ...styles.button, ...styles.buttonSmall, padding: "4px 8px", fontSize: "11px" },
+                  children: [
+                    Icons.X(),
+                    " Close"
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.cardBody, padding: "0", display: "flex", flexDirection: "column", height: "400px" }, children: !selectedConsoleApp ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, display: "flex", flexDirection: "column" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                display: "flex",
+                gap: "4px",
+                padding: "8px 8px 0",
+                borderBottom: "1px solid #e5e5e5",
+                backgroundColor: "#f8f9fa",
+                overflowX: "auto",
+                flexWrap: "wrap"
+              }, children: vehicleApps.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { padding: "20px", textAlign: "center", color: "#999", fontSize: "12px", width: "100%" }, children: "No applications available" }) : vehicleApps.map((app) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "button",
+                {
+                  onClick: () => {
+                    setSelectedConsoleApp(app.app_id);
+                    subscribeAppConsole(app.app_id);
+                  },
+                  style: {
+                    ...styles.button,
+                    ...styles.buttonSmall,
+                    ...styles.buttonSecondary,
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    backgroundColor: "#fff",
+                    border: "1px solid #ddd",
+                    borderRadius: "6px 6px 0 0",
+                    borderBottom: "none",
+                    marginBottom: "-1px",
+                    position: "relative",
+                    zIndex: 1,
+                    whiteSpace: "nowrap"
+                  },
+                  title: `View console for ${app.name}`,
+                  children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      backgroundColor: app.status === "running" ? "#22c55e" : "#6b7280"
+                    } }),
+                    app.name
+                  ] })
+                },
+                app.app_id
+              )) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "40px 20px",
+                color: "#999",
+                textAlign: "center"
+              }, children: [
+                Icons.Terminal(),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { marginTop: "12px", marginBottom: "4px", fontSize: "14px", fontWeight: "500" }, children: "Select an application to view its console output" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { fontSize: "12px", color: "#aaa" }, children: "Click on any application tab above to see real-time logs" })
+              ] })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, display: "flex", flexDirection: "column" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                display: "flex",
+                alignItems: "center",
+                padding: "8px 12px",
+                backgroundColor: "#1e1e1e",
+                borderBottom: "1px solid #333",
+                color: "#fff",
+                fontSize: "12px"
+              }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                  Icons.Terminal(),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { style: { color: "#4ec9b0" }, children: vehicleApps.find((a) => a.app_id === selectedConsoleApp)?.name || selectedConsoleApp }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: "#666" }, children: "|" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#888", fontSize: "11px" }, children: [
+                    (appConsoleOutputs[selectedConsoleApp] || []).length,
+                    " lines"
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginLeft: "auto", display: "flex", gap: "4px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    onClick: () => clearAppConsole(selectedConsoleApp),
+                    style: {
+                      ...styles.button,
+                      ...styles.buttonSmall,
+                      padding: "4px 8px",
+                      fontSize: "10px",
+                      backgroundColor: "transparent",
+                      color: "#888",
+                      border: "1px solid #444"
+                    },
+                    title: "Clear console output",
+                    children: "Clear"
+                  }
+                ) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                flex: 1,
+                backgroundColor: "#1e1e1e",
+                overflowY: "auto",
+                padding: "12px",
+                fontFamily: "monospace",
+                fontSize: "11px",
+                lineHeight: "1.4"
+              }, children: (appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { color: "#666", fontStyle: "italic", textAlign: "center", padding: "40px 0" }, children: "Waiting for console output..." }) : (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "div",
+                {
+                  style: {
+                    color: line.stream === "stderr" ? "#f48771" : "#d4d4d4",
+                    marginBottom: "2px",
+                    wordBreak: "break-all",
+                    whiteSpace: "pre-wrap"
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#6a9955", fontSize: "10px" }, children: [
+                      "[",
+                      new Date(line.timestamp).toLocaleTimeString(),
+                      " ",
+                      line.stream,
+                      "]"
+                    ] }),
+                    " ",
+                    line.content
+                  ]
+                },
+                idx
+              )) })
+            ] }) })
+          ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
@@ -1961,78 +2117,6 @@ print("\u{1F4CA} Application execution finished")`
                       children: Icons.Trash()
                     }
                   )
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginTop: "12px", borderTop: "1px solid #e5e5e5", paddingTop: "12px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "button",
-                    {
-                      onClick: () => {
-                        const appId2 = app.app_id;
-                        if (expandedConsoleApp === appId2) {
-                          setExpandedConsoleApp(null);
-                          unsubscribeAppConsole(appId2);
-                        } else {
-                          setExpandedConsoleApp(appId2);
-                          subscribeAppConsole(appId2);
-                        }
-                      },
-                      style: {
-                        width: "100%",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "6px 10px",
-                        backgroundColor: "#f8f9fa",
-                        border: "1px solid #e5e5e5",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        cursor: "pointer",
-                        transition: "background-color 0.15s"
-                      },
-                      title: expandedConsoleApp === app.app_id ? "Hide console output" : "Show console output",
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px", fontWeight: "500" }, children: [
-                          Icons.Terminal(),
-                          " Console Output ",
-                          (appConsoleOutputs[app.app_id] || []).length
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: expandedConsoleApp === app.app_id ? "\u25BC" : "\u25B6" })
-                      ]
-                    }
-                  ),
-                  expandedConsoleApp === app.app_id && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                    marginTop: "8px",
-                    backgroundColor: "#1e1e1e",
-                    borderRadius: "4px",
-                    padding: "10px",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                    fontFamily: "monospace",
-                    fontSize: "11px",
-                    lineHeight: "1.4"
-                  }, children: (appConsoleOutputs[app.app_id] || []).length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { color: "#666", fontStyle: "italic", textAlign: "center", padding: "20px 0" }, children: "No console output yet..." }) : (appConsoleOutputs[app.app_id] || []).map((line, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "div",
-                    {
-                      style: {
-                        color: line.stream === "stderr" ? "#f48771" : "#d4d4d4",
-                        marginBottom: "2px",
-                        wordBreak: "break-all",
-                        whiteSpace: "pre-wrap"
-                      },
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#888", fontSize: "10px" }, children: [
-                          "[",
-                          new Date(line.timestamp).toLocaleTimeString(),
-                          " ",
-                          line.stream,
-                          "]"
-                        ] }),
-                        " ",
-                        line.content
-                      ]
-                    },
-                    idx
-                  )) })
                 ] })
               ] }, app.app_id);
             }) }) })
