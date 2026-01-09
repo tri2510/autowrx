@@ -308,16 +308,30 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
   const subscribeAppConsole = useCallback(async (appId: string): Promise<void> => {
     try {
       await runtimeServiceRef.current?.subscribeConsole(appId)
+      // Initialize with empty array for this app
+      setAppConsoleOutputs(prev => ({
+        ...prev,
+        [appId]: []
+      }))
       // Fetch initial console output
       const output = await runtimeServiceRef.current?.getAppOutput(appId, 100)
-      if (output?.output) {
+      if (output?.output && Array.isArray(output.output)) {
         setAppConsoleOutputs(prev => ({
           ...prev,
-          [appId]: output.output.slice(-500)
+          [appId]: output.output.slice(-500).map((line: any) => ({
+            stream: line.stream || 'stdout',
+            content: line.output || line.content || '',
+            timestamp: line.timestamp || new Date().toISOString()
+          }))
         }))
       }
     } catch (error) {
       console.error('[VehicleRuntime] Failed to subscribe to console:', error)
+      // Ensure we have an empty array even on error
+      setAppConsoleOutputs(prev => ({
+        ...prev,
+        [appId]: []
+      }))
     }
   }, [])
 

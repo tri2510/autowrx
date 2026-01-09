@@ -573,15 +573,27 @@
     const subscribeAppConsole = (0, import_react.useCallback)(async (appId) => {
       try {
         await runtimeServiceRef.current?.subscribeConsole(appId);
+        setAppConsoleOutputs((prev) => ({
+          ...prev,
+          [appId]: []
+        }));
         const output = await runtimeServiceRef.current?.getAppOutput(appId, 100);
-        if (output?.output) {
+        if (output?.output && Array.isArray(output.output)) {
           setAppConsoleOutputs((prev) => ({
             ...prev,
-            [appId]: output.output.slice(-500)
+            [appId]: output.output.slice(-500).map((line) => ({
+              stream: line.stream || "stdout",
+              content: line.output || line.content || "",
+              timestamp: line.timestamp || (/* @__PURE__ */ new Date()).toISOString()
+            }))
           }));
         }
       } catch (error) {
         console.error("[VehicleRuntime] Failed to subscribe to console:", error);
+        setAppConsoleOutputs((prev) => ({
+          ...prev,
+          [appId]: []
+        }));
       }
     }, []);
     const unsubscribeAppConsole = (0, import_react.useCallback)(async (appId) => {
