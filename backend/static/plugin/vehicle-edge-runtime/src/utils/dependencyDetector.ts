@@ -206,52 +206,6 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())`,
 
-  velocitasBlinkers: `import asyncio
-from sdv import VehicleApp
-from vehicle import vehicle
-
-
-class BlinkerApp(VehicleApp):
-    def __init__(self, vehicle_client):
-        super().__init__()
-        self.Vehicle = vehicle_client
-
-    async def on_start(self):
-        print("Blinker app started!")
-        print("Blinking left and right turn signals...")
-
-        while True:
-            # Blink left signal 3 times
-            for i in range(3):
-                await self.Vehicle.Body.Lights.TurnSignalLeft.IsOn.set(True)
-                print(f"[Blinker] Left signal ON ({i+1}/3)")
-                await asyncio.sleep(0.5)
-                await self.Vehicle.Body.Lights.TurnSignalLeft.IsOn.set(False)
-                await asyncio.sleep(0.5)
-
-            # Pause between cycles
-            await asyncio.sleep(1)
-
-            # Blink right signal 3 times
-            for i in range(3):
-                await self.Vehicle.Body.Lights.TurnSignalRight.IsOn.set(True)
-                print(f"[Blinker] Right signal ON ({i+1}/3)")
-                await asyncio.sleep(0.5)
-                await self.Vehicle.Body.Lights.TurnSignalRight.IsOn.set(False)
-                await asyncio.sleep(0.5)
-
-            # Pause between cycles
-            await asyncio.sleep(1)
-
-
-async def main():
-    app = BlinkerApp(vehicle)
-    await app.run()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())`,
-
   kuksaSetValue: `# kuksa_set_value.py
 from kuksa_client.grpc import VSSClient
 from kuksa_client.grpc import Datapoint

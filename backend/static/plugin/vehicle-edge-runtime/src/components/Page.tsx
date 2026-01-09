@@ -56,7 +56,6 @@ const DEFAULT_KIT_MANAGER_URL = 'https://kit.digitalauto.tech'
 const TEMPLATE_OPTIONS = [
   { id: 'velocitas', label: 'Velocitas SDK: Set Lights', icon: '🚗', defaultId: 'velocitas-set-lights', defaultName: 'Velocitas Set Lights' },
   { id: 'velocitasReadSpeed', label: 'Velocitas SDK: Read Lights', icon: '📊', defaultId: 'velocitas-read-lights', defaultName: 'Velocitas Read Lights' },
-  { id: 'velocitasBlinkers', label: 'Velocitas SDK: Blink Turn Signals', icon: '💡', defaultId: 'blinker-app', defaultName: 'Blinker App' },
   { id: 'kuksaSetValue', label: 'KUKSA Client: Set Speed', icon: '📡', defaultId: 'kuksa-set-speed', defaultName: 'KUKSA Set Speed' },
   { id: 'kuksaPoll', label: 'KUKSA Client: Read Speed', icon: '📖', defaultId: 'kuksa-read-speed', defaultName: 'KUKSA Read Speed' },
   { id: 'simple', label: 'Simple: Loop Example', icon: '🐍', defaultId: 'simple-loop-app', defaultName: 'Simple Loop App' }
