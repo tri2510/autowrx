@@ -433,11 +433,6 @@
         setIsKitManagerLoading(false);
       }
     }, [selectedKit]);
-    const selectKit = (0, import_react.useCallback)((kit) => {
-      setSelectedKit(kit);
-      console.log("[KitManager] Selected kit:", kit.name, "online:", kit.is_online);
-      refreshApps();
-    }, [refreshApps]);
     const refreshApps = (0, import_react.useCallback)(async () => {
       if (!isRuntimeConnected) {
         console.warn("[VehicleRuntime] Not connected (no green edge runtime selected), skipping refresh");
@@ -456,6 +451,11 @@
         setIsRefreshingApps(false);
       }
     }, [isRuntimeConnected]);
+    const selectKit = (0, import_react.useCallback)((kit) => {
+      setSelectedKit(kit);
+      console.log("[KitManager] Selected kit:", kit.name, "online:", kit.is_online);
+      refreshApps();
+    }, [refreshApps]);
     (0, import_react.useEffect)(() => {
       if (!isRuntimeConnected)
         return;

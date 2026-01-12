@@ -128,15 +128,6 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     }
   }, [selectedKit])
 
-  // Select a kit
-  const selectKit = useCallback((kit: VehicleEdgeRuntimeKit) => {
-    setSelectedKit(kit)
-    console.log('[KitManager] Selected kit:', kit.name, 'online:', kit.is_online)
-
-    // Refresh apps for the selected kit
-    refreshApps()
-  }, [refreshApps])
-
   // Refresh applications list
   const refreshApps = useCallback(async () => {
     if (!isRuntimeConnected) {
@@ -157,6 +148,15 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
       setIsRefreshingApps(false)
     }
   }, [isRuntimeConnected])
+
+  // Select a kit
+  const selectKit = useCallback((kit: VehicleEdgeRuntimeKit) => {
+    setSelectedKit(kit)
+    console.log('[KitManager] Selected kit:', kit.name, 'online:', kit.is_online)
+
+    // Refresh apps for the selected kit
+    refreshApps()
+  }, [refreshApps])
 
   // Periodic refresh for applications (every 10 seconds when runtime is connected)
   useEffect(() => {
