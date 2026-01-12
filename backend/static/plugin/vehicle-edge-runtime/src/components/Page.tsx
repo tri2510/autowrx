@@ -120,6 +120,55 @@ const TEMPLATE_OPTIONS = [
   { id: 'simple', label: 'Simple: Loop Example', icon: '🐍', defaultId: 'simple-loop-app', defaultName: 'Simple Loop App' }
 ]
 
+// Function to get code from parent Monaco editor
+function getCodeFromParentEditor(): string | null {
+  try {
+    // Try to access the Monaco editor from the parent page
+    // The editor might be stored in window or accessible via DOM
+    const win = window as any
+
+    // Method 1: Check if there's a global editor instance
+    if (win.monacoEditor && win.monacoEditor.getValue) {
+      return win.monacoEditor.getValue()
+    }
+
+    // Method 2: Try to find Monaco editor instances
+    if (win.monaco && win.monaco.editor) {
+      const editors = win.monaco.editor.getEditors()
+      if (editors && editors.length > 0) {
+        // Get the first editor's content
+        return editors[0].getValue()
+      }
+    }
+
+    // Method 3: Try to find editor via DOM (monaco-editor class)
+    const editorElements = document.querySelectorAll('.monaco-editor')
+    if (editorElements.length > 0) {
+      // Find the editor that's NOT in our plugin (in the parent)
+      for (const el of Array.from(editorElements)) {
+        // Check if this element is outside our plugin container
+        const pluginContainer = document.querySelector('[data-plugin-id="vehicle-edge-runtime"]')
+        if (pluginContainer && !pluginContainer.contains(el)) {
+          // This is the parent editor, try to get its model
+          const uri = el.getAttribute('data-uri')
+          if (uri && win.monaco?.editor?.getModel) {
+            const model = win.monaco.editor.getModel({ uri })
+            if (model) {
+              return model.getValue()
+            }
+          }
+        }
+      }
+    }
+
+    // Method 4: Check if passed via props
+    return null
+  } catch (error) {
+    console.warn('[Deployment Hub] Could not get code from parent editor:', error)
+    return null
+  }
+}
+
 export default function Page({ data, config, api }: PageProps) {
   const runtimeUrl = config?.runtimeUrl || DEFAULT_RUNTIME_URL
   const kitManagerUrl = config?.kitManagerUrl || DEFAULT_KIT_MANAGER_URL
@@ -160,10 +209,16 @@ export default function Page({ data, config, api }: PageProps) {
   // Unified console state
   const [selectedConsoleApp, setSelectedConsoleApp] = React.useState<string | null>(null)
 
+  // Get initial code from parent Monaco editor or use default template
+  const getInitialCode = () => {
+    const parentCode = getCodeFromParentEditor()
+    return parentCode || EXAMPLE_TEMPLPS.velocitas
+  }
+
   // Deployment state
   const [appId, setAppId] = React.useState('my-vehicle-app')
   const [appName, setAppName] = React.useState('My Vehicle App')
-  const [appCode, setAppCode] = React.useState(EXAMPLE_TEMPLPS.velocitas)
+  const [appCode, setAppCode] = React.useState(getInitialCode)
   const [dependencies, setDependencies] = React.useState<string[]>(getDefaultDependencies())
   const [autoDetectEnabled, setAutoDetectEnabled] = React.useState(true)
   const [detectedDependencies, setDetectedDependencies] = React.useState<string[]>([])
@@ -776,6 +831,21 @@ export default function Page({ data, config, api }: PageProps) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <label style={styles.label}>{Icons.Code()} Application Code (Python)</label>
                   <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      onClick={() => {
+                        const parentCode = getCodeFromParentEditor()
+                        if (parentCode) {
+                          setAppCode(parentCode)
+                          console.log('[Deployment Hub] Loaded code from parent Monaco editor')
+                        } else {
+                          console.warn('[Deployment Hub] Could not get code from parent editor')
+                        }
+                      }}
+                      style={{ ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary }}
+                      title="Load code from SDV Code editor"
+                    >
+                      {Icons.Refresh()} From Editor
+                    </button>
                     <div style={styles.templateDropdown}>
                       <button
                         onClick={() => setShowTemplates(!showTemplates)}

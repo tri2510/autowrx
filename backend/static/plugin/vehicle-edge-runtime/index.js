@@ -1043,6 +1043,39 @@ print("\u{1F4CA} Application execution finished")`
     { id: "kuksaPoll", label: "KUKSA Client: Read Speed", icon: "\u{1F4D6}", defaultId: "kuksa-read-speed", defaultName: "KUKSA Read Speed" },
     { id: "simple", label: "Simple: Loop Example", icon: "\u{1F40D}", defaultId: "simple-loop-app", defaultName: "Simple Loop App" }
   ];
+  function getCodeFromParentEditor() {
+    try {
+      const win = window;
+      if (win.monacoEditor && win.monacoEditor.getValue) {
+        return win.monacoEditor.getValue();
+      }
+      if (win.monaco && win.monaco.editor) {
+        const editors = win.monaco.editor.getEditors();
+        if (editors && editors.length > 0) {
+          return editors[0].getValue();
+        }
+      }
+      const editorElements = document.querySelectorAll(".monaco-editor");
+      if (editorElements.length > 0) {
+        for (const el of Array.from(editorElements)) {
+          const pluginContainer = document.querySelector('[data-plugin-id="vehicle-edge-runtime"]');
+          if (pluginContainer && !pluginContainer.contains(el)) {
+            const uri = el.getAttribute("data-uri");
+            if (uri && win.monaco?.editor?.getModel) {
+              const model = win.monaco.editor.getModel({ uri });
+              if (model) {
+                return model.getValue();
+              }
+            }
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      console.warn("[Deployment Hub] Could not get code from parent editor:", error);
+      return null;
+    }
+  }
   function Page({ data, config, api }) {
     const runtimeUrl = config?.runtimeUrl || DEFAULT_RUNTIME_URL;
     const kitManagerUrl = config?.kitManagerUrl || DEFAULT_KIT_MANAGER_URL;
@@ -1077,9 +1110,13 @@ print("\u{1F4CA} Application execution finished")`
       return kits.filter((kit) => kit.name.includes("Edge-Runtime"));
     }, [kits]);
     const [selectedConsoleApp, setSelectedConsoleApp] = React.useState(null);
+    const getInitialCode = () => {
+      const parentCode = getCodeFromParentEditor();
+      return parentCode || EXAMPLE_TEMPLPS.velocitas;
+    };
     const [appId, setAppId] = React.useState("my-vehicle-app");
     const [appName, setAppName] = React.useState("My Vehicle App");
-    const [appCode, setAppCode] = React.useState(EXAMPLE_TEMPLPS.velocitas);
+    const [appCode, setAppCode] = React.useState(getInitialCode);
     const [dependencies, setDependencies] = React.useState(getDefaultDependencies());
     const [autoDetectEnabled, setAutoDetectEnabled] = React.useState(true);
     const [detectedDependencies, setDetectedDependencies] = React.useState([]);
@@ -1635,32 +1672,54 @@ print("\u{1F4CA} Application execution finished")`
                 Icons.Code(),
                 " Application Code (Python)"
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: "4px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.templateDropdown, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "4px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                   "button",
                   {
-                    onClick: () => setShowTemplates(!showTemplates),
+                    onClick: () => {
+                      const parentCode = getCodeFromParentEditor();
+                      if (parentCode) {
+                        setAppCode(parentCode);
+                        console.log("[Deployment Hub] Loaded code from parent Monaco editor");
+                      } else {
+                        console.warn("[Deployment Hub] Could not get code from parent editor");
+                      }
+                    },
                     style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary },
+                    title: "Load code from SDV Code editor",
                     children: [
-                      Icons.Download(),
-                      " Templates ",
-                      Icons.ChevronDown()
+                      Icons.Refresh(),
+                      " From Editor"
                     ]
                   }
                 ),
-                showTemplates && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.dropdownMenu, children: TEMPLATE_OPTIONS.map((t) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                  "div",
-                  {
-                    onClick: () => handleLoadTemplate(t.id),
-                    style: styles.dropdownItem,
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t.icon }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t.label })
-                    ]
-                  },
-                  t.id
-                )) })
-              ] }) })
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.templateDropdown, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      onClick: () => setShowTemplates(!showTemplates),
+                      style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary },
+                      children: [
+                        Icons.Download(),
+                        " Templates ",
+                        Icons.ChevronDown()
+                      ]
+                    }
+                  ),
+                  showTemplates && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.dropdownMenu, children: TEMPLATE_OPTIONS.map((t) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "div",
+                    {
+                      onClick: () => handleLoadTemplate(t.id),
+                      style: styles.dropdownItem,
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t.icon }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t.label })
+                      ]
+                    },
+                    t.id
+                  )) })
+                ] })
+              ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "textarea",
