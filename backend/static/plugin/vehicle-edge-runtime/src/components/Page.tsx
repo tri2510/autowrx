@@ -108,7 +108,7 @@ interface PageProps {
 }
 
 // Default service URLs
-const DEFAULT_RUNTIME_URL = 'ws://localhost:3002/runtime'  // Vehicle Runtime is local to edge device
+const DEFAULT_RUNTIME_URL = 'https://kit.digitalauto.tech'  // Kit Manager Socket.IO
 const DEFAULT_KIT_MANAGER_URL = 'https://kit.digitalauto.tech'
 
 // Example templates dropdown options

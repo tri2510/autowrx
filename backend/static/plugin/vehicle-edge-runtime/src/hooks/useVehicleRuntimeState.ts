@@ -50,6 +50,7 @@ interface VehicleRuntimeState {
 }
 
 export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: string): VehicleRuntimeState {
+  const [isRuntimeConnected, setIsRuntimeConnected] = useState(false)
   const [isKitManagerConnected, setIsKitManagerConnected] = useState(false)
   const [isKitManagerLoading, setIsKitManagerLoading] = useState(false)
   const [kitManagerError, setKitManagerError] = useState<string | null>(null)
@@ -66,10 +67,6 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
   const runtimeServiceRef = useRef<VehicleRuntimeService | null>(null)
   const kitManagerServiceRef = useRef<KitManagerService | null>(null)
 
-  // Runtime is "connected" when a green (online) Edge-Runtime device is selected
-  // This is based on Kit Manager device discovery, not direct WebSocket connection
-  const isRuntimeConnected = selectedKit?.is_online && selectedKit?.name.includes('Edge-Runtime')
-
   // Initialize services
   useEffect(() => {
     runtimeServiceRef.current = new VehicleRuntimeService(websocketUrl)
@@ -81,12 +78,62 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     }
   }, [websocketUrl, kitManagerUrl])
 
-  // Connect to Vehicle Runtime (no-op - handled by selectedKit status)
+  // Connect to Vehicle Runtime via Kit Manager WebSocket proxy
   const connectRuntime = useCallback(async () => {
-    // Runtime connection is determined by selectedKit.is_online
-    // This is a no-op function for API compatibility
-    console.log('[VehicleRuntime] Connection status based on selected kit:', selectedKit?.name, selectedKit?.is_online)
-  }, [selectedKit])
+    try {
+      setConnectionError(null)
+      console.log('[VehicleRuntime] Connecting to WebSocket:', websocketUrl)
+
+      await runtimeServiceRef.current?.connect()
+      setIsRuntimeConnected(true)
+
+      console.log('[VehicleRuntime] ✅ Connected via Kit Manager proxy')
+
+      // Setup event listeners
+      const runtime = runtimeServiceRef.current
+      if (!runtime) return
+
+      // Listen for app status updates
+      runtime.onAppStatus((message) => {
+        console.log('[VehicleRuntime] App status update:', message)
+        setVehicleApps(prev => prev.map(app =>
+          app.app_id === message.appId
+            ? { ...app, status: message.currentStatus }
+            : app
+        ))
+      })
+
+      // Listen for deployed apps list updates
+      runtime.onDeployedAppsList((message) => {
+        console.log('[VehicleRuntime] Deployed apps list:', message)
+        const appsArray = Array.isArray(message?.applications) ? message.applications : []
+        setVehicleApps(appsArray)
+      })
+
+      // Listen for console output
+      runtime.onConsoleOutput((message) => {
+        console.log('[VehicleRuntime] Console output:', message)
+        const appId = message.executionId || message.appId
+        if (appId && message.output) {
+          setAppConsoleOutputs(prev => ({
+            ...prev,
+            [appId]: [
+              ...(prev[appId] || []),
+              {
+                stream: message.stream || 'stdout',
+                content: message.output,
+                timestamp: message.timestamp || new Date().toISOString()
+              }
+            ].slice(-500) // Keep last 500 lines per app
+          }))
+        }
+      })
+
+    } catch (error) {
+      console.warn('[VehicleRuntime] WebSocket connection failed (Kit Manager proxy may not have /runtime endpoint):', error)
+      setIsRuntimeConnected(false)
+    }
+  }, [websocketUrl])
 
   // Connect to Kit Manager and fetch devices
   const connectKitManager = useCallback(async () => {
@@ -114,7 +161,10 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
       // Auto-select first online Edge-Runtime kit
       const onlineEdgeRuntimeKits = kitsList.filter(k => k.is_online && k.name.includes('Edge-Runtime'))
       if (onlineEdgeRuntimeKits.length > 0 && !selectedKit) {
-        setSelectedKit(onlineEdgeRuntimeKits[0])
+        const kit = onlineEdgeRuntimeKits[0]
+        setSelectedKit(kit)
+        runtimeServiceRef.current?.setKitId(kit.kit_id)
+        console.log('[KitManager] Auto-selected kit:', kit.name, 'kit_id:', kit.kit_id)
       }
 
       console.log('[KitManager] ✅ Connected - Loaded', kitsList.length, 'kits', `(${onlineEdgeRuntimeKits.length} Edge-Runtime online)`)
@@ -130,8 +180,8 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
 
   // Refresh applications list
   const refreshApps = useCallback(async () => {
-    if (!isRuntimeConnected) {
-      console.warn('[VehicleRuntime] Not connected (no green edge runtime selected), skipping refresh')
+    if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+      console.warn('[VehicleRuntime] Not connected, skipping refresh')
       return
     }
 
@@ -152,14 +202,14 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
   // Select a kit
   const selectKit = useCallback((kit: VehicleEdgeRuntimeKit) => {
     setSelectedKit(kit)
-    console.log('[KitManager] Selected kit:', kit.name, 'online:', kit.is_online)
-
-    // Refresh apps for the selected kit
-    refreshApps()
-  }, [refreshApps])
+    // Set the kit ID for runtime service to know where to send commands
+    runtimeServiceRef.current?.setKitId(kit.kit_id)
+    console.log('[KitManager] Selected kit:', kit.name, 'kit_id:', kit.kit_id, 'online:', kit.is_online)
+  }, [])
 
   // Periodic refresh for applications (every 10 seconds when runtime is connected)
   useEffect(() => {
+    // Only refresh if we have an online Edge-Runtime kit selected
     if (!isRuntimeConnected) return
 
     // Initial refresh
@@ -171,40 +221,52 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     }, 10000) // 10 seconds
 
     return () => clearInterval(interval)
-  }, [isRuntimeConnected, refreshApps])
+  }, [isRuntimeConnected, selectedKit]) // Trigger when selectedKit changes
 
   // Start application
   const startApp = useCallback(async (appId: string) => {
+    if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+      throw new Error('Not connected to Vehicle Runtime')
+    }
+
     try {
-      await runtimeServiceRef.current?.startApp(appId)
+      await runtimeServiceRef.current.startApp(appId)
       await refreshApps()
     } catch (error) {
       console.error('[VehicleRuntime] Failed to start app:', error)
       throw error
     }
-  }, [refreshApps])
+  }, [isRuntimeConnected, refreshApps])
 
   // Stop application
   const stopApp = useCallback(async (appId: string) => {
+    if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+      throw new Error('Not connected to Vehicle Runtime')
+    }
+
     try {
-      await runtimeServiceRef.current?.stopApp(appId)
+      await runtimeServiceRef.current.stopApp(appId)
       await refreshApps()
     } catch (error) {
       console.error('[VehicleRuntime] Failed to stop app:', error)
       throw error
     }
-  }, [refreshApps])
+  }, [isRuntimeConnected, refreshApps])
 
   // Uninstall application
   const uninstallApp = useCallback(async (appId: string) => {
+    if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+      throw new Error('Not connected to Vehicle Runtime')
+    }
+
     try {
-      await runtimeServiceRef.current?.uninstallApp(appId)
+      await runtimeServiceRef.current.uninstallApp(appId)
       await refreshApps()
     } catch (error) {
       console.error('[VehicleRuntime] Failed to uninstall app:', error)
       throw error
     }
-  }, [refreshApps])
+  }, [isRuntimeConnected, refreshApps])
 
   // Deploy new application
   const deployApp = useCallback(async (config: {
@@ -213,15 +275,19 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     code: string
     dependencies?: string[]
   }): Promise<string> => {
+    if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+      throw new Error('Not connected to Vehicle Runtime')
+    }
+
     try {
-      const appId = await runtimeServiceRef.current?.deployPythonApp(config)
+      const appId = await runtimeServiceRef.current.deployPythonApp(config)
       await refreshApps()
       return appId || 'unknown'
     } catch (error) {
       console.error('[VehicleRuntime] Failed to deploy app:', error)
       throw error
     }
-  }, [refreshApps])
+  }, [isRuntimeConnected, refreshApps])
 
   // Deploy KUKSA server
   const deployKuksa = useCallback(async (): Promise<string> => {

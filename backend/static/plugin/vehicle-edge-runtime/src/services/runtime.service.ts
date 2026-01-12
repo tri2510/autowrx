@@ -1,5 +1,8 @@
-// Vehicle Edge Runtime Service - Real WebSocket connection
+// Vehicle Edge Runtime Service - Socket.IO connection to Kit Manager
 // Based on original implementation from feature/270-new-deployment-extension
+// Kit Manager protocol: emit 'messageToKit', receive 'messageToKit-kitReply'
+
+import { io as ioClient } from 'socket.io-client'
 
 export interface VehicleApp {
   app_id: string
@@ -33,43 +36,69 @@ export interface RuntimeState {
 type MessageHandler = (message: any) => void;
 
 export class VehicleRuntimeService {
-  private ws: WebSocket | null = null
+  private socket: any = null
   private isConnected = false
   private messageHandlers = new Map<string, MessageHandler>()
   private pendingRequests = new Map<string, {
     resolve: (value: any) => void
     reject: (error: Error) => void
-    timeout: NodeJS.Timeout
+    timeout: any
   }>()
 
-  constructor(private websocketUrl: string = 'ws://localhost:3002/runtime') {}
+  constructor(
+    private websocketUrl: string = 'https://kit.digitalauto.tech',
+    private kitId?: string  // Target edge device ID
+  ) {
+    // Ensure URL uses https (Socket.IO will handle the WebSocket upgrade)
+    if (websocketUrl.startsWith('ws://') || websocketUrl.startsWith('wss://')) {
+      this.websocketUrl = websocketUrl.replace(/^wss?:\/\//, 'https://')
+    }
+  }
+
+  // Set the target kit ID
+  setKitId(kitId: string): void {
+    this.kitId = kitId
+    console.log('[VehicleRuntime] Target kit ID set to:', kitId)
+  }
 
   async connect(): Promise<void> {
-    if (this.isConnected || this.ws?.readyState === WebSocket.OPEN) {
+    if (this.isConnected || (this.socket && this.socket.connected)) {
       return
     }
 
     return new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(this.websocketUrl)
+        console.log('[VehicleRuntime] Connecting to Socket.IO:', this.websocketUrl)
+
+        this.socket = ioClient(this.websocketUrl, {
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+        })
 
         const connectionTimeout = setTimeout(() => {
           reject(new Error('Connection timeout'))
-        }, 5000)
+        }, 10000)
 
-        this.ws.onopen = () => {
+        this.socket.on('connect', () => {
           clearTimeout(connectionTimeout)
           this.isConnected = true
           this.setupEventHandlers()
-          this.registerClient()
-          console.log('[VehicleRuntime] Connected to', this.websocketUrl)
+          console.log('[VehicleRuntime] ✅ Connected to Kit Manager')
           resolve()
-        }
+        })
 
-        this.ws.onerror = (error) => {
+        this.socket.on('connect_error', (error: any) => {
           clearTimeout(connectionTimeout)
-          reject(new Error('WebSocket connection failed'))
-        }
+          console.error('[VehicleRuntime] Socket.IO connection error:', error)
+          reject(new Error('Socket.IO connection failed: ' + error.message))
+        })
+
+        this.socket.on('disconnect', () => {
+          console.log('[VehicleRuntime] Socket.IO disconnected')
+          this.isConnected = false
+        })
       } catch (error) {
         reject(error)
       }
@@ -78,9 +107,9 @@ export class VehicleRuntimeService {
 
   disconnect(): void {
     this.isConnected = false
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
+    if (this.socket) {
+      this.socket.disconnect()
+      this.socket = null
     }
     // Clear pending requests
     this.pendingRequests.forEach(request => {
@@ -92,43 +121,19 @@ export class VehicleRuntimeService {
   }
 
   private setupEventHandlers(): void {
-    if (!this.ws) return
+    if (!this.socket) return
 
-    this.ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data)
-        this.handleMessage(message)
-      } catch (error) {
-        console.error('[VehicleRuntime] Failed to parse message:', error)
-      }
-    }
+    // Listen for kit replies
+    this.socket.on('messageToKit-kitReply', (message: any) => {
+      this.handleMessage(message)
+    })
 
-    this.ws.onclose = () => {
-      console.log('[VehicleRuntime] Connection closed')
-      this.isConnected = false
-    }
+    // Listen for broadcasts
+    this.socket.on('broadcastToClient', (message: any) => {
+      this.handleMessage(message)
+    })
 
-    this.ws.onerror = (error) => {
-      console.warn('[VehicleRuntime] WebSocket connection failed (optional service)')
-      this.isConnected = false
-    }
-  }
-
-  private async registerClient(): Promise<void> {
-    const request = {
-      type: 'register_client',
-      id: 'register-' + Date.now(),
-      clientInfo: {
-        name: 'Deployment Hub',
-        version: '1.1.0',
-        platform: 'web'
-      }
-    }
-
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(request))
-      console.log('[VehicleRuntime] Client registered')
-    }
+    console.log('[VehicleRuntime] Event handlers registered')
   }
 
   private handleMessage(message: any): void {
@@ -138,7 +143,7 @@ export class VehicleRuntimeService {
       clearTimeout(request.timeout)
       this.pendingRequests.delete(message.id)
 
-      if (message.type === 'error') {
+      if (message.type === 'error' || message.error) {
         request.reject(new Error(message.error || 'Unknown error'))
       } else {
         request.resolve(message)
@@ -146,36 +151,48 @@ export class VehicleRuntimeService {
       return
     }
 
-    // Route broadcast messages
-    const handler = this.messageHandlers.get(message.type)
-    if (handler) {
-      handler(message)
+    // Route broadcast messages by type
+    if (message.type) {
+      const handler = this.messageHandlers.get(message.type)
+      if (handler) {
+        handler(message)
+      }
     }
   }
 
-  private sendMessage(request: any): Promise<any> {
-    if (!this.isConnected || !this.ws) {
-      return Promise.reject(new Error('Not connected to Vehicle Runtime'))
+  private sendCommand(cmd: string, data: any = {}): Promise<any> {
+    if (!this.isConnected || !this.socket) {
+      return Promise.reject(new Error('Not connected to Kit Manager'))
     }
 
-    // Add ID if not provided
-    if (!request.id) {
-      request.id = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)
+    if (!this.kitId) {
+      return Promise.reject(new Error('No kit ID set. Call setKitId() first.'))
     }
+
+    const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        this.pendingRequests.delete(request.id)
+        this.pendingRequests.delete(messageId)
         reject(new Error('Request timeout'))
-      }, 10000)
+      }, 15000) // 15 second timeout
 
-      this.pendingRequests.set(request.id, { resolve, reject, timeout })
+      this.pendingRequests.set(messageId, { resolve, reject, timeout })
+
+      const message = {
+        id: messageId,
+        cmd,
+        to_kit_id: this.kitId,
+        data
+      }
+
+      console.log('[VehicleRuntime] Sending command:', cmd, 'to kit:', this.kitId)
 
       try {
-        this.ws!.send(JSON.stringify(request))
+        this.socket.emit('messageToKit', message)
       } catch (error) {
         clearTimeout(timeout)
-        this.pendingRequests.delete(request.id)
+        this.pendingRequests.delete(messageId)
         reject(error)
       }
     })
@@ -188,126 +205,84 @@ export class VehicleRuntimeService {
     code: string
     dependencies?: string[]
   }): Promise<string> {
-    const request = {
-      type: 'deploy_request',
-      id: 'deploy-' + Date.now(),
+    const data = {
+      disable_code_convert: true,
       code: config.code,
-      language: 'python' as const,
-      vehicleId: 'default-vehicle',
       prototype: {
         id: config.name,
         name: config.displayName || config.name,
-        description: `Python application: ${config.name}`,
-        version: '1.0.0'
       },
-      dependencies: config.dependencies || []
+      language: 'python'
     }
 
-    const response = await this.sendMessage(request)
+    const response = await this.sendCommand('deploy_request', data)
 
-    if (response.status === 'started') {
-      return response.appId || response.executionId || 'unknown'
+    if (response.status === 'started' || response.result === 'success') {
+      return response.appId || response.executionId || response.app_id || config.name
     } else {
-      throw new Error(response.result || 'Deployment failed')
+      throw new Error(response.result || response.message || 'Deployment failed')
     }
   }
 
   async getDeployedApps(): Promise<{ applications: VehicleApp[] }> {
-    const request = {
-      type: 'list_deployed_apps'
+    // Note: Kit Manager may not have a direct list_deployed_apps command
+    // Try using get-runtime-info instead
+    const response = await this.sendCommand('get-runtime-info', {})
+
+    // Map the response to our expected format
+    if (response.lsOfRunner && Array.isArray(response.lsOfRunner)) {
+      return {
+        applications: response.lsOfRunner.map((app: any) => ({
+          app_id: app.app_id || app.appId || app.name,
+          name: app.name || app.app_name || 'Unknown',
+          status: app.status || 'unknown',
+          type: app.type || 'python',
+          deploy_time: app.deploy_time || app.startTime || new Date().toISOString()
+        }))
+      }
     }
 
-    return this.sendMessage(request)
+    return { applications: [] }
   }
 
   async startApp(appId: string): Promise<any> {
-    // Mock service uses special command
-    if (appId === 'VEA-mock-service' || appId.includes('mock')) {
-      return this.sendMessage({
-        type: 'mock_service_start',
-        id: `mock-start-${Date.now()}`,
-        mode: 'echo-all'
-      })
-    }
-    return this.sendMessage({
-      type: 'run_app',
-      appId
-    })
+    return this.sendCommand('run_python_app', { appId })
   }
 
   async stopApp(appId: string): Promise<any> {
-    // Mock service uses special command
-    if (appId === 'VEA-mock-service' || appId.includes('mock')) {
-      return this.sendMessage({
-        type: 'mock_service_stop',
-        id: `mock-stop-${Date.now()}`
-      })
-    }
-    return this.sendMessage({
-      type: 'stop_app',
-      appId
-    })
+    return this.sendCommand('stop_python_app', {})
   }
 
   async pauseApp(appId: string): Promise<any> {
-    return this.sendMessage({
-      type: 'pause_app',
-      appId
-    })
+    // Kit Manager may not have pause command
+    return this.sendCommand('pause_app', { appId })
   }
 
   async resumeApp(appId: string): Promise<any> {
-    return this.sendMessage({
-      type: 'resume_app',
-      appId
-    })
+    // Kit Manager may not have resume command
+    return this.sendCommand('resume_app', { appId })
   }
 
   async uninstallApp(appId: string): Promise<any> {
-    return this.sendMessage({
-      type: 'uninstall_app',
-      appId
-    })
+    // Kit Manager may not have uninstall command
+    return this.sendCommand('uninstall_app', { appId })
   }
 
   async getRuntimeState(): Promise<RuntimeState> {
-    const request = {
-      type: 'report_runtime_state'
-    }
-
-    return this.sendMessage(request)
+    return this.sendCommand('get-runtime-info', {})
   }
 
   // Console subscription methods
   async subscribeConsole(appId: string): Promise<void> {
-    const request = {
-      type: 'console_subscribe',
-      id: `console-sub-${appId}-${Date.now()}`,
-      appId
-    }
-
-    await this.sendMessage(request)
+    await this.sendCommand('console_subscribe', { appId })
   }
 
   async unsubscribeConsole(appId: string): Promise<void> {
-    const request = {
-      type: 'console_unsubscribe',
-      id: `console-unsub-${appId}-${Date.now()}`,
-      appId
-    }
-
-    await this.sendMessage(request)
+    await this.sendCommand('console_unsubscribe', { appId })
   }
 
   async getAppOutput(appId: string, lines: number = 100): Promise<any> {
-    const request = {
-      type: 'app_output',
-      id: `app-output-${appId}-${Date.now()}`,
-      appId,
-      lines
-    }
-
-    return this.sendMessage(request)
+    return this.sendCommand('app_output', { appId, lines })
   }
 
   // Event listeners
@@ -334,9 +309,7 @@ export class VehicleRuntimeService {
 
   // Service deployment methods
   async deployKuksaServer(): Promise<string> {
-    const request = {
-      type: 'deploy_request',
-      id: `deploy-kuksa-${Date.now()}`,
+    const data = {
       prototype: {
         id: 'VEA-kuksa-databroker',
         name: 'KUKSA Databroker',
@@ -357,9 +330,8 @@ export class VehicleRuntimeService {
       vehicle_id: 'default-vehicle'
     }
 
-    const response = await this.sendMessage(request)
+    const response = await this.sendCommand('deploy_request', data)
 
-    // Success if: response is null/undefined, or no error field and type is not 'error'
     const isSuccess = !response ||
       (typeof response === 'object' && !response.error && response.type !== 'error')
 
@@ -371,16 +343,9 @@ export class VehicleRuntimeService {
   }
 
   async deployMockService(mode: 'echo-all' | 'echo-specific' = 'echo-all', signals?: string[]): Promise<string> {
-    const request = {
-      type: 'mock_service_start',
-      id: `mock-start-${Date.now()}`,
-      mode,
-      ...(signals && { signals })
-    }
+    const data = { mode, ...(signals && { signals }) }
+    const response = await this.sendCommand('mock_service_start', data)
 
-    const response = await this.sendMessage(request)
-
-    // Success if: response is null/undefined, or success=true, or no error field
     const isSuccess = !response ||
       response.success === true ||
       (typeof response === 'object' && !response.error && response.type !== 'error')
