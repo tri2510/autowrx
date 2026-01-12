@@ -1601,7 +1601,7 @@ print("\u{1F4CA} Application execution finished")`
         position: "absolute",
         top: "100%",
         left: 0,
-        right: 0,
+        minWidth: "280px",
         backgroundColor: "white",
         border: "1px solid #e5e5e5",
         borderRadius: "4px",
@@ -1614,10 +1614,11 @@ print("\u{1F4CA} Application execution finished")`
         padding: "10px 12px",
         cursor: "pointer",
         display: "flex",
-        alignItems: "center",
-        gap: "8px",
+        alignItems: "flex-start",
+        gap: "10px",
         fontSize: "13px",
-        borderBottom: "1px solid #f0f0f0"
+        borderBottom: "1px solid #f0f0f0",
+        lineHeight: "1.4"
       },
       dropdownItemHover: {
         backgroundColor: "#f5f5f5"
@@ -1839,8 +1840,8 @@ print("\u{1F4CA} Application execution finished")`
                       onClick: () => handleLoadTemplate(t.id),
                       style: styles.dropdownItem,
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t.icon }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: t.label })
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "18px", minWidth: "24px", textAlign: "center" }, children: t.icon }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { flex: 1 }, children: t.label })
                       ]
                     },
                     t.id

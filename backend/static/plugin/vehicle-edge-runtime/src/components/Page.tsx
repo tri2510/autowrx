@@ -755,7 +755,7 @@ export default function Page({ data, config, api }: PageProps) {
       position: 'absolute' as const,
       top: '100%',
       left: 0,
-      right: 0,
+      minWidth: '280px',
       backgroundColor: 'white',
       border: '1px solid #e5e5e5',
       borderRadius: '4px',
@@ -768,10 +768,11 @@ export default function Page({ data, config, api }: PageProps) {
       padding: '10px 12px',
       cursor: 'pointer',
       display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
+      alignItems: 'flex-start',
+      gap: '10px',
       fontSize: '13px',
-      borderBottom: '1px solid #f0f0f0'
+      borderBottom: '1px solid #f0f0f0',
+      lineHeight: '1.4'
     },
     dropdownItemHover: {
       backgroundColor: '#f5f5f5'
@@ -995,8 +996,8 @@ export default function Page({ data, config, api }: PageProps) {
                               onClick={() => handleLoadTemplate(t.id)}
                               style={styles.dropdownItem}
                             >
-                              <span>{t.icon}</span>
-                              <span>{t.label}</span>
+                              <span style={{ fontSize: '18px', minWidth: '24px', textAlign: 'center' }}>{t.icon}</span>
+                              <span style={{ flex: 1 }}>{t.label}</span>
                             </div>
                           ))}
                         </div>
