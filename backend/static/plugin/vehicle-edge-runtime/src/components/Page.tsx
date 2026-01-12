@@ -289,7 +289,11 @@ export default function Page({ data, config, api }: PageProps) {
   const [detectedDependencies, setDetectedDependencies] = React.useState<string[]>([])
   const [isDeploying, setIsDeploying] = React.useState(false)
   const [showTemplates, setShowTemplates] = React.useState(false)
+  const [dropdownPosition, setDropdownPosition] = React.useState<{ top: number; left: number } | null>(null)
   const [manualDependency, setManualDependency] = React.useState('')
+
+  // Ref for templates button to calculate dropdown position
+  const templatesButtonRef = React.useRef<HTMLButtonElement>(null)
 
   // Resizable split state
   const splitContainerRef = React.useRef<HTMLDivElement>(null)
@@ -417,6 +421,41 @@ export default function Page({ data, config, api }: PageProps) {
       sessionStorage.setItem(`deployment-hub-code-${prototypeId}`, appCode)
     }
   }, [appCode])
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    if (!showTemplates) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node
+      // Check if click is outside both button and dropdown
+      if (
+        templatesButtonRef.current &&
+        !templatesButtonRef.current.contains(target) &&
+        !(target as HTMLElement).closest?.('[data-dropdown-menu]')
+      ) {
+        setShowTemplates(false)
+        setDropdownPosition(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showTemplates])
+
+  // Calculate dropdown position when opening
+  const handleToggleTemplates = () => {
+    if (!showTemplates && templatesButtonRef.current) {
+      const rect = templatesButtonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left
+      })
+    } else {
+      setDropdownPosition(null)
+    }
+    setShowTemplates(!showTemplates)
+  }
 
   // Combine all dependencies
   const allDependencies = React.useMemo(() => {
@@ -752,15 +791,13 @@ export default function Page({ data, config, api }: PageProps) {
       position: 'relative' as const
     },
     dropdownMenu: {
-      position: 'absolute' as const,
-      top: '100%',
-      left: 0,
+      position: 'fixed' as const,
       minWidth: '280px',
       backgroundColor: 'white',
       border: '1px solid #e5e5e5',
       borderRadius: '4px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-      zIndex: 10000,
+      zIndex: 99999,
       maxHeight: '300px',
       overflowY: 'auto' as const
     },
@@ -983,13 +1020,21 @@ export default function Page({ data, config, api }: PageProps) {
                     </button>
                     <div style={styles.templateDropdown}>
                       <button
-                        onClick={() => setShowTemplates(!showTemplates)}
+                        ref={templatesButtonRef}
+                        onClick={handleToggleTemplates}
                         style={{ ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary }}
                       >
                         {Icons.Download()} Templates {Icons.ChevronDown()}
                       </button>
-                      {showTemplates && (
-                        <div style={styles.dropdownMenu}>
+                      {showTemplates && dropdownPosition && (
+                        <div
+                          data-dropdown-menu
+                          style={{
+                            ...styles.dropdownMenu,
+                            top: `${dropdownPosition.top}px`,
+                            left: `${dropdownPosition.left}px`
+                          }}
+                        >
                           {TEMPLATE_OPTIONS.map(t => (
                             <div
                               key={t.id}

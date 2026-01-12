@@ -1195,7 +1195,9 @@ print("\u{1F4CA} Application execution finished")`
     const [detectedDependencies, setDetectedDependencies] = React.useState([]);
     const [isDeploying, setIsDeploying] = React.useState(false);
     const [showTemplates, setShowTemplates] = React.useState(false);
+    const [dropdownPosition, setDropdownPosition] = React.useState(null);
     const [manualDependency, setManualDependency] = React.useState("");
+    const templatesButtonRef = React.useRef(null);
     const splitContainerRef = React.useRef(null);
     const [leftPanelWidth, setLeftPanelWidth] = React.useState(66.67);
     const [isResizing, setIsResizing] = React.useState(false);
@@ -1291,6 +1293,31 @@ print("\u{1F4CA} Application execution finished")`
         sessionStorage.setItem(`deployment-hub-code-${prototypeId}`, appCode);
       }
     }, [appCode]);
+    React.useEffect(() => {
+      if (!showTemplates)
+        return;
+      const handleClickOutside = (e) => {
+        const target = e.target;
+        if (templatesButtonRef.current && !templatesButtonRef.current.contains(target) && !target.closest?.("[data-dropdown-menu]")) {
+          setShowTemplates(false);
+          setDropdownPosition(null);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showTemplates]);
+    const handleToggleTemplates = () => {
+      if (!showTemplates && templatesButtonRef.current) {
+        const rect = templatesButtonRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left
+        });
+      } else {
+        setDropdownPosition(null);
+      }
+      setShowTemplates(!showTemplates);
+    };
     const allDependencies = React.useMemo(() => {
       const base = getDefaultDependencies();
       const detected = autoDetectEnabled ? detectedDependencies : [];
@@ -1598,15 +1625,13 @@ print("\u{1F4CA} Application execution finished")`
         position: "relative"
       },
       dropdownMenu: {
-        position: "absolute",
-        top: "100%",
-        left: 0,
+        position: "fixed",
         minWidth: "280px",
         backgroundColor: "white",
         border: "1px solid #e5e5e5",
         borderRadius: "4px",
         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-        zIndex: 1e4,
+        zIndex: 99999,
         maxHeight: "300px",
         overflowY: "auto"
       },
@@ -1825,7 +1850,8 @@ print("\u{1F4CA} Application execution finished")`
                   /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                     "button",
                     {
-                      onClick: () => setShowTemplates(!showTemplates),
+                      ref: templatesButtonRef,
+                      onClick: handleToggleTemplates,
                       style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary },
                       children: [
                         Icons.Download(),
@@ -1834,18 +1860,29 @@ print("\u{1F4CA} Application execution finished")`
                       ]
                     }
                   ),
-                  showTemplates && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.dropdownMenu, children: TEMPLATE_OPTIONS.map((t) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  showTemplates && dropdownPosition && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     "div",
                     {
-                      onClick: () => handleLoadTemplate(t.id),
-                      style: styles.dropdownItem,
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "18px", minWidth: "24px", textAlign: "center" }, children: t.icon }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { flex: 1 }, children: t.label })
-                      ]
-                    },
-                    t.id
-                  )) })
+                      "data-dropdown-menu": true,
+                      style: {
+                        ...styles.dropdownMenu,
+                        top: `${dropdownPosition.top}px`,
+                        left: `${dropdownPosition.left}px`
+                      },
+                      children: TEMPLATE_OPTIONS.map((t) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "div",
+                        {
+                          onClick: () => handleLoadTemplate(t.id),
+                          style: styles.dropdownItem,
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "18px", minWidth: "24px", textAlign: "center" }, children: t.icon }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { flex: 1 }, children: t.label })
+                          ]
+                        },
+                        t.id
+                      ))
+                    }
+                  )
                 ] })
               ] })
             ] }),
