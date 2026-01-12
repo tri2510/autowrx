@@ -3553,9 +3553,11 @@
           id: messageId,
           cmd,
           to_kit_id: this.kitId,
-          data
+          ...data
+          // Spread data fields directly, not wrapped
         };
         console.log("[VehicleRuntime] Sending command:", cmd, "to kit:", this.kitId);
+        console.log("[VehicleRuntime] Message:", message);
         try {
           this.socket.emit("messageToKit", message);
         } catch (error) {
@@ -3568,13 +3570,16 @@
     // Application management methods
     async deployPythonApp(config) {
       const data = {
-        disable_code_convert: true,
         code: config.code,
         prototype: {
           id: config.name,
-          name: config.displayName || config.name
+          name: config.displayName || config.name,
+          description: `Python application: ${config.name}`,
+          version: "1.0.0"
         },
-        language: "python"
+        language: "python",
+        vehicleId: "default-vehicle",
+        dependencies: config.dependencies || []
       };
       const response = await this.sendCommand("deploy_request", data);
       if (response.status === "started" || response.result === "success") {
