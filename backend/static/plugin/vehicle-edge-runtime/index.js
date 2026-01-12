@@ -1606,7 +1606,7 @@ print("\u{1F4CA} Application execution finished")`
         border: "1px solid #e5e5e5",
         borderRadius: "4px",
         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-        zIndex: 1e3,
+        zIndex: 1e4,
         maxHeight: "300px",
         overflowY: "auto"
       },

@@ -760,7 +760,7 @@ export default function Page({ data, config, api }: PageProps) {
       border: '1px solid #e5e5e5',
       borderRadius: '4px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-      zIndex: 1000,
+      zIndex: 10000,
       maxHeight: '300px',
       overflowY: 'auto' as const
     },
