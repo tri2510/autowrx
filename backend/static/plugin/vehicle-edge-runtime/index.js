@@ -378,7 +378,6 @@
 
   // src/hooks/useVehicleRuntimeState.ts
   function useVehicleRuntimeState(websocketUrl, kitManagerUrl) {
-    const [isRuntimeConnected, setIsRuntimeConnected] = (0, import_react.useState)(false);
     const [isKitManagerConnected, setIsKitManagerConnected] = (0, import_react.useState)(false);
     const [isKitManagerLoading, setIsKitManagerLoading] = (0, import_react.useState)(false);
     const [kitManagerError, setKitManagerError] = (0, import_react.useState)(null);
@@ -392,6 +391,7 @@
     const [connectionError, setConnectionError] = (0, import_react.useState)(null);
     const runtimeServiceRef = (0, import_react.useRef)(null);
     const kitManagerServiceRef = (0, import_react.useRef)(null);
+    const isRuntimeConnected = selectedKit?.is_online && selectedKit?.name.includes("Edge-Runtime");
     (0, import_react.useEffect)(() => {
       runtimeServiceRef.current = new VehicleRuntimeService(websocketUrl);
       kitManagerServiceRef.current = new KitManagerService(kitManagerUrl);
@@ -400,47 +400,8 @@
       };
     }, [websocketUrl, kitManagerUrl]);
     const connectRuntime = (0, import_react.useCallback)(async () => {
-      try {
-        setConnectionError(null);
-        await runtimeServiceRef.current?.connect();
-        setIsRuntimeConnected(true);
-        const runtime = runtimeServiceRef.current;
-        if (!runtime)
-          return;
-        runtime.onAppStatus((message) => {
-          console.log("[VehicleRuntime] App status update:", message);
-          setVehicleApps((prev) => prev.map(
-            (app) => app.app_id === message.appId ? { ...app, status: message.currentStatus } : app
-          ));
-        });
-        runtime.onDeployedAppsList((message) => {
-          console.log("[VehicleRuntime] Deployed apps list:", message);
-          const appsArray = Array.isArray(message?.applications) ? message.applications : [];
-          setVehicleApps(appsArray);
-        });
-        runtime.onConsoleOutput((message) => {
-          console.log("[VehicleRuntime] Console output:", message);
-          const appId = message.executionId || message.appId;
-          if (appId && message.output) {
-            setAppConsoleOutputs((prev) => ({
-              ...prev,
-              [appId]: [
-                ...prev[appId] || [],
-                {
-                  stream: message.stream || "stdout",
-                  content: message.output,
-                  timestamp: message.timestamp || (/* @__PURE__ */ new Date()).toISOString()
-                }
-              ].slice(-500)
-              // Keep last 500 lines per app
-            }));
-          }
-        });
-      } catch (error) {
-        console.warn("[VehicleRuntime] Not available (optional):", error);
-        setIsRuntimeConnected(false);
-      }
-    }, []);
+      console.log("[VehicleRuntime] Connection status based on selected kit:", selectedKit?.name, selectedKit?.is_online);
+    }, [selectedKit]);
     const connectKitManager = (0, import_react.useCallback)(async () => {
       setIsKitManagerLoading(true);
       setKitManagerError(null);
@@ -474,15 +435,12 @@
     }, [selectedKit]);
     const selectKit = (0, import_react.useCallback)((kit) => {
       setSelectedKit(kit);
-      console.log("[KitManager] Selected kit:", kit.name);
-      if (!isRuntimeConnected) {
-        connectRuntime();
-      }
+      console.log("[KitManager] Selected kit:", kit.name, "online:", kit.is_online);
       refreshApps();
-    }, [isRuntimeConnected, connectRuntime]);
+    }, [refreshApps]);
     const refreshApps = (0, import_react.useCallback)(async () => {
-      if (!runtimeServiceRef.current?.isServiceConnected()) {
-        console.warn("[VehicleRuntime] Not connected, skipping refresh");
+      if (!isRuntimeConnected) {
+        console.warn("[VehicleRuntime] Not connected (no green edge runtime selected), skipping refresh");
         return;
       }
       setIsRefreshingApps(true);
@@ -497,7 +455,7 @@
       } finally {
         setIsRefreshingApps(false);
       }
-    }, []);
+    }, [isRuntimeConnected]);
     (0, import_react.useEffect)(() => {
       if (!isRuntimeConnected)
         return;
