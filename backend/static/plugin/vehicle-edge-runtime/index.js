@@ -1043,36 +1043,100 @@ print("\u{1F4CA} Application execution finished")`
     { id: "kuksaPoll", label: "KUKSA Client: Read Speed", icon: "\u{1F4D6}", defaultId: "kuksa-read-speed", defaultName: "KUKSA Read Speed" },
     { id: "simple", label: "Simple: Loop Example", icon: "\u{1F40D}", defaultId: "simple-loop-app", defaultName: "Simple Loop App" }
   ];
-  function getCodeFromParentEditor() {
+  async function getCodeFromApi(api, data, prototypeId) {
     try {
-      const win = window;
-      if (win.monacoEditor && win.monacoEditor.getValue) {
-        return win.monacoEditor.getValue();
-      }
-      if (win.monaco && win.monaco.editor) {
-        const editors = win.monaco.editor.getEditors();
-        if (editors && editors.length > 0) {
-          return editors[0].getValue();
+      console.log("[Deployment Hub] Trying to fetch code from API...");
+      if (data) {
+        console.log("[Deployment Hub] Data keys:", Object.keys(data));
+        if (data.content)
+          return data.content;
+        if (data.code)
+          return data.code;
+        if (data.source)
+          return data.source;
+        if (data.main_script)
+          return data.main_script;
+        if (data.prototype) {
+          if (data.prototype.content)
+            return data.prototype.content;
+          if (data.prototype.code)
+            return data.prototype.code;
         }
       }
-      const editorElements = document.querySelectorAll(".monaco-editor");
-      if (editorElements.length > 0) {
-        for (const el of Array.from(editorElements)) {
-          const pluginContainer = document.querySelector('[data-plugin-id="vehicle-edge-runtime"]');
-          if (pluginContainer && !pluginContainer.contains(el)) {
-            const uri = el.getAttribute("data-uri");
-            if (uri && win.monaco?.editor?.getModel) {
-              const model = win.monaco.editor.getModel({ uri });
-              if (model) {
-                return model.getValue();
-              }
-            }
-          }
-        }
+      const url = `/api/prototypes/${prototypeId}`;
+      console.log("[Deployment Hub] Fetching from:", url);
+      const response = await fetch(url);
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log("[Deployment Hub] API response:", responseData);
+        if (responseData.content)
+          return responseData.content;
+        if (responseData.code)
+          return responseData.code;
+        if (responseData.source)
+          return responseData.source;
+        if (responseData.main_script)
+          return responseData.main_script;
+        if (responseData.prototype && responseData.prototype.content)
+          return responseData.prototype.content;
       }
       return null;
     } catch (error) {
-      console.warn("[Deployment Hub] Could not get code from parent editor:", error);
+      console.warn("[Deployment Hub] Error fetching from API:", error);
+      return null;
+    }
+  }
+  function getCodeFromParentEditor(pluginTextarea) {
+    try {
+      if (window.monaco && window.monaco.editor) {
+        const editors = window.monaco.editor.getEditors();
+        for (const editor of editors) {
+          const code = editor.getValue();
+          if (code && code.length > 100) {
+            console.log("[Deployment Hub] Loaded code from Monaco editor");
+            return code;
+          }
+        }
+      }
+      const allMonacoEditors = document.querySelectorAll(".monaco-editor");
+      for (const editor of Array.from(allMonacoEditors)) {
+        const viewLines = editor.querySelectorAll(".view-line");
+        if (viewLines && viewLines.length > 0) {
+          const lines = [];
+          for (const line of Array.from(viewLines)) {
+            const text = line.textContent?.trim() || "";
+            if (text)
+              lines.push(text);
+          }
+          const code = lines.join("\n");
+          if (code.length > 100 && (code.includes("import ") || code.includes("def ") || code.includes("class "))) {
+            console.log("[Deployment Hub] Loaded code from view-lines");
+            return code;
+          }
+        }
+      }
+      const allTextareas = document.querySelectorAll("textarea");
+      let bestCode = null;
+      let bestLength = 0;
+      for (const textarea of Array.from(allTextareas)) {
+        if (textarea === pluginTextarea)
+          continue;
+        const val = textarea.value;
+        if (val && val.length > 100) {
+          const hasPython = val.includes("import ") || val.includes("def ") || val.includes("class ");
+          if (hasPython && val.length > bestLength) {
+            bestCode = val;
+            bestLength = val.length;
+          }
+        }
+      }
+      if (bestCode) {
+        console.log("[Deployment Hub] Loaded code from textarea");
+        return bestCode;
+      }
+      return null;
+    } catch (error) {
+      console.warn("[Deployment Hub] Error getting code from parent editor:", error);
       return null;
     }
   }
@@ -1110,12 +1174,21 @@ print("\u{1F4CA} Application execution finished")`
       return kits.filter((kit) => kit.name.includes("Edge-Runtime"));
     }, [kits]);
     const [selectedConsoleApp, setSelectedConsoleApp] = React.useState(null);
-    const getInitialCode = () => {
-      const parentCode = getCodeFromParentEditor();
-      return parentCode || EXAMPLE_TEMPLPS.velocitas;
-    };
+    const pluginTextareaRef = React.useRef(null);
     const [appId, setAppId] = React.useState("my-vehicle-app");
     const [appName, setAppName] = React.useState("My Vehicle App");
+    const getInitialCode = () => {
+      const urlMatch = window.location.href.match(/prototype\/([a-f0-9]+)/);
+      const prototypeId = urlMatch ? urlMatch[1] : null;
+      if (prototypeId) {
+        const savedCode = sessionStorage.getItem(`deployment-hub-code-${prototypeId}`);
+        if (savedCode) {
+          console.log("[Deployment Hub] Restored saved code from sessionStorage");
+          return savedCode;
+        }
+      }
+      return EXAMPLE_TEMPLPS.velocitas;
+    };
     const [appCode, setAppCode] = React.useState(getInitialCode);
     const [dependencies, setDependencies] = React.useState(getDefaultDependencies());
     const [autoDetectEnabled, setAutoDetectEnabled] = React.useState(true);
@@ -1166,6 +1239,43 @@ print("\u{1F4CA} Application execution finished")`
       initializeConnections();
     }, [connectKitManager, connectRuntime]);
     React.useEffect(() => {
+      const loadCode = async () => {
+        const urlMatch = window.location.href.match(/prototype\/([a-f0-9]+)/);
+        const prototypeId = urlMatch ? urlMatch[1] : null;
+        console.log("[Deployment Hub] Component mounted, prototypeId:", prototypeId);
+        const sessionKey = `deployment-hub-loaded-${prototypeId}`;
+        const alreadyLoaded = prototypeId ? sessionStorage.getItem(sessionKey) : null;
+        console.log("[Deployment Hub] sessionStorage key:", sessionKey, "alreadyLoaded:", alreadyLoaded);
+        if (alreadyLoaded) {
+          console.log("[Deployment Hub] Code already loaded this browser session, skipping auto-load");
+          return;
+        }
+        console.log("[Deployment Hub] Loading code from API/DOM...");
+        if (prototypeId && (api || data)) {
+          const code = await getCodeFromApi(api, data, prototypeId);
+          if (code && code.length > 100) {
+            setAppCode(code);
+            sessionStorage.setItem(sessionKey, "true");
+            sessionStorage.setItem(`deployment-hub-code-${prototypeId}`, code);
+            console.log("[Deployment Hub] Auto-loaded code from API (once per browser session)");
+          }
+        } else {
+          setTimeout(() => {
+            const parentCode = getCodeFromParentEditor(pluginTextareaRef.current);
+            if (parentCode && parentCode.length > 100) {
+              setAppCode(parentCode);
+              if (prototypeId) {
+                sessionStorage.setItem(sessionKey, "true");
+                sessionStorage.setItem(`deployment-hub-code-${prototypeId}`, parentCode);
+              }
+              console.log("[Deployment Hub] Auto-loaded code from DOM (once per browser session)");
+            }
+          }, 500);
+        }
+      };
+      loadCode();
+    }, []);
+    React.useEffect(() => {
       if (autoDetectEnabled && appCode) {
         const timeoutId = setTimeout(() => {
           const detected = detectPythonDependencies(appCode);
@@ -1174,6 +1284,13 @@ print("\u{1F4CA} Application execution finished")`
         return () => clearTimeout(timeoutId);
       }
     }, [appCode, autoDetectEnabled]);
+    React.useEffect(() => {
+      const urlMatch = window.location.href.match(/prototype\/([a-f0-9]+)/);
+      const prototypeId = urlMatch ? urlMatch[1] : null;
+      if (prototypeId && appCode && appCode !== EXAMPLE_TEMPLPS.velocitas) {
+        sessionStorage.setItem(`deployment-hub-code-${prototypeId}`, appCode);
+      }
+    }, [appCode]);
     const allDependencies = React.useMemo(() => {
       const base = getDefaultDependencies();
       const detected = autoDetectEnabled ? detectedDependencies : [];
@@ -1676,13 +1793,23 @@ print("\u{1F4CA} Application execution finished")`
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                   "button",
                   {
-                    onClick: () => {
-                      const parentCode = getCodeFromParentEditor();
-                      if (parentCode) {
+                    onClick: async () => {
+                      const urlMatch = window.location.href.match(/prototype\/([a-f0-9]+)/);
+                      const prototypeId = urlMatch ? urlMatch[1] : null;
+                      if (prototypeId && (api || data)) {
+                        const code = await getCodeFromApi(api, data, prototypeId);
+                        if (code && code !== appCode) {
+                          setAppCode(code);
+                          console.log("[Deployment Hub] Code updated from API");
+                          return;
+                        }
+                      }
+                      const parentCode = getCodeFromParentEditor(pluginTextareaRef.current);
+                      if (parentCode && parentCode !== appCode) {
                         setAppCode(parentCode);
-                        console.log("[Deployment Hub] Loaded code from parent Monaco editor");
+                        console.log("[Deployment Hub] Code updated from DOM");
                       } else {
-                        console.warn("[Deployment Hub] Could not get code from parent editor");
+                        console.warn("[Deployment Hub] No code found");
                       }
                     },
                     style: { ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary },
@@ -1724,6 +1851,7 @@ print("\u{1F4CA} Application execution finished")`
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "textarea",
               {
+                ref: pluginTextareaRef,
                 value: appCode,
                 onChange: (e) => setAppCode(e.target.value),
                 style: styles.textarea

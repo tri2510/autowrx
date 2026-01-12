@@ -120,51 +120,104 @@ const TEMPLATE_OPTIONS = [
   { id: 'simple', label: 'Simple: Loop Example', icon: '🐍', defaultId: 'simple-loop-app', defaultName: 'Simple Loop App' }
 ]
 
-// Function to get code from parent Monaco editor
-function getCodeFromParentEditor(): string | null {
+// Function to get code from digital.auto API
+async function getCodeFromApi(api: any, data: any, prototypeId: string): Promise<string | null> {
   try {
-    // Try to access the Monaco editor from the parent page
-    // The editor might be stored in window or accessible via DOM
-    const win = window as any
+    console.log('[Deployment Hub] Trying to fetch code from API...')
 
-    // Method 1: Check if there's a global editor instance
-    if (win.monacoEditor && win.monacoEditor.getValue) {
-      return win.monacoEditor.getValue()
-    }
-
-    // Method 2: Try to find Monaco editor instances
-    if (win.monaco && win.monaco.editor) {
-      const editors = win.monaco.editor.getEditors()
-      if (editors && editors.length > 0) {
-        // Get the first editor's content
-        return editors[0].getValue()
+    // First check if data prop has the content
+    if (data) {
+      console.log('[Deployment Hub] Data keys:', Object.keys(data))
+      if (data.content) return data.content
+      if (data.code) return data.code
+      if (data.source) return data.source
+      if (data.main_script) return data.main_script
+      if (data.prototype) {
+        if (data.prototype.content) return data.prototype.content
+        if (data.prototype.code) return data.prototype.code
       }
     }
 
-    // Method 3: Try to find editor via DOM (monaco-editor class)
-    const editorElements = document.querySelectorAll('.monaco-editor')
-    if (editorElements.length > 0) {
-      // Find the editor that's NOT in our plugin (in the parent)
-      for (const el of Array.from(editorElements)) {
-        // Check if this element is outside our plugin container
-        const pluginContainer = document.querySelector('[data-plugin-id="vehicle-edge-runtime"]')
-        if (pluginContainer && !pluginContainer.contains(el)) {
-          // This is the parent editor, try to get its model
-          const uri = el.getAttribute('data-uri')
-          if (uri && win.monaco?.editor?.getModel) {
-            const model = win.monaco.editor.getModel({ uri })
-            if (model) {
-              return model.getValue()
-            }
-          }
+    // Try fetching via HTTP
+    const url = `/api/prototypes/${prototypeId}`
+    console.log('[Deployment Hub] Fetching from:', url)
+    const response = await fetch(url)
+    if (response.ok) {
+      const responseData = await response.json()
+      console.log('[Deployment Hub] API response:', responseData)
+      if (responseData.content) return responseData.content
+      if (responseData.code) return responseData.code
+      if (responseData.source) return responseData.source
+      if (responseData.main_script) return responseData.main_script
+      if (responseData.prototype && responseData.prototype.content) return responseData.prototype.content
+    }
+
+    return null
+  } catch (error) {
+    console.warn('[Deployment Hub] Error fetching from API:', error)
+    return null
+  }
+}
+
+// Function to get code from parent Monaco editor
+function getCodeFromParentEditor(pluginTextarea: HTMLTextAreaElement | null): string | null {
+  try {
+    // Method 1: Try Monaco's global API
+    if ((window as any).monaco && (window as any).monaco.editor) {
+      const editors = (window as any).monaco.editor.getEditors()
+      for (const editor of editors) {
+        const code = editor.getValue()
+        if (code && code.length > 100) {
+          console.log('[Deployment Hub] Loaded code from Monaco editor')
+          return code
         }
       }
     }
 
-    // Method 4: Check if passed via props
+    // Method 2: Search for .monaco-editor elements and extract from view-lines
+    const allMonacoEditors = document.querySelectorAll('.monaco-editor')
+    for (const editor of Array.from(allMonacoEditors)) {
+      const viewLines = editor.querySelectorAll('.view-line')
+      if (viewLines && viewLines.length > 0) {
+        const lines: string[] = []
+        for (const line of Array.from(viewLines)) {
+          const text = line.textContent?.trim() || ''
+          if (text) lines.push(text)
+        }
+        const code = lines.join('\n')
+        if (code.length > 100 && (code.includes('import ') || code.includes('def ') || code.includes('class '))) {
+          console.log('[Deployment Hub] Loaded code from view-lines')
+          return code
+        }
+      }
+    }
+
+    // Method 3: Find all textareas with Python code (excluding plugin's own)
+    const allTextareas = document.querySelectorAll('textarea')
+    let bestCode: string | null = null
+    let bestLength = 0
+
+    for (const textarea of Array.from(allTextareas)) {
+      if (textarea === pluginTextarea) continue
+
+      const val = textarea.value
+      if (val && val.length > 100) {
+        const hasPython = val.includes('import ') || val.includes('def ') || val.includes('class ')
+        if (hasPython && val.length > bestLength) {
+          bestCode = val
+          bestLength = val.length
+        }
+      }
+    }
+
+    if (bestCode) {
+      console.log('[Deployment Hub] Loaded code from textarea')
+      return bestCode
+    }
+
     return null
   } catch (error) {
-    console.warn('[Deployment Hub] Could not get code from parent editor:', error)
+    console.warn('[Deployment Hub] Error getting code from parent editor:', error)
     return null
   }
 }
@@ -209,15 +262,27 @@ export default function Page({ data, config, api }: PageProps) {
   // Unified console state
   const [selectedConsoleApp, setSelectedConsoleApp] = React.useState<string | null>(null)
 
-  // Get initial code from parent Monaco editor or use default template
-  const getInitialCode = () => {
-    const parentCode = getCodeFromParentEditor()
-    return parentCode || EXAMPLE_TEMPLPS.velocitas
-  }
+  // Ref to track plugin's own textarea so we can exclude it when searching for parent editor
+  const pluginTextareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   // Deployment state
   const [appId, setAppId] = React.useState('my-vehicle-app')
   const [appName, setAppName] = React.useState('My Vehicle App')
+
+  // Try to restore saved code from sessionStorage, or use default template
+  const getInitialCode = () => {
+    const urlMatch = window.location.href.match(/prototype\/([a-f0-9]+)/)
+    const prototypeId = urlMatch ? urlMatch[1] : null
+    if (prototypeId) {
+      const savedCode = sessionStorage.getItem(`deployment-hub-code-${prototypeId}`)
+      if (savedCode) {
+        console.log('[Deployment Hub] Restored saved code from sessionStorage')
+        return savedCode
+      }
+    }
+    return EXAMPLE_TEMPLPS.velocitas
+  }
+
   const [appCode, setAppCode] = React.useState(getInitialCode)
   const [dependencies, setDependencies] = React.useState<string[]>(getDefaultDependencies())
   const [autoDetectEnabled, setAutoDetectEnabled] = React.useState(true)
@@ -287,6 +352,52 @@ export default function Page({ data, config, api }: PageProps) {
     initializeConnections()
   }, [connectKitManager, connectRuntime])
 
+  // Load code from API/DOM after mount (only once per browser session)
+  React.useEffect(() => {
+    const loadCode = async () => {
+      // Extract prototype ID from URL
+      const urlMatch = window.location.href.match(/prototype\/([a-f0-9]+)/)
+      const prototypeId = urlMatch ? urlMatch[1] : null
+
+      console.log('[Deployment Hub] Component mounted, prototypeId:', prototypeId)
+
+      // Check sessionStorage (persists across tab switches, clears on browser close/refresh)
+      const sessionKey = `deployment-hub-loaded-${prototypeId}`
+      const alreadyLoaded = prototypeId ? sessionStorage.getItem(sessionKey) : null
+      console.log('[Deployment Hub] sessionStorage key:', sessionKey, 'alreadyLoaded:', alreadyLoaded)
+
+      if (alreadyLoaded) {
+        console.log('[Deployment Hub] Code already loaded this browser session, skipping auto-load')
+        return
+      }
+
+      console.log('[Deployment Hub] Loading code from API/DOM...')
+      if (prototypeId && (api || data)) {
+        const code = await getCodeFromApi(api, data, prototypeId)
+        if (code && code.length > 100) {
+          setAppCode(code)
+          sessionStorage.setItem(sessionKey, 'true')
+          sessionStorage.setItem(`deployment-hub-code-${prototypeId}`, code) // Save code to restore later
+          console.log('[Deployment Hub] Auto-loaded code from API (once per browser session)')
+        }
+      } else {
+        // Fallback to DOM search after delay
+        setTimeout(() => {
+          const parentCode = getCodeFromParentEditor(pluginTextareaRef.current)
+          if (parentCode && parentCode.length > 100) {
+            setAppCode(parentCode)
+            if (prototypeId) {
+              sessionStorage.setItem(sessionKey, 'true')
+              sessionStorage.setItem(`deployment-hub-code-${prototypeId}`, parentCode) // Save code to restore later
+            }
+            console.log('[Deployment Hub] Auto-loaded code from DOM (once per browser session)')
+          }
+        }, 500)
+      }
+    }
+    loadCode()
+  }, [])
+
   // Auto-detect dependencies when code changes
   React.useEffect(() => {
     if (autoDetectEnabled && appCode) {
@@ -297,6 +408,15 @@ export default function Page({ data, config, api }: PageProps) {
       return () => clearTimeout(timeoutId)
     }
   }, [appCode, autoDetectEnabled])
+
+  // Save code to sessionStorage whenever it changes (to persist across tab switches)
+  React.useEffect(() => {
+    const urlMatch = window.location.href.match(/prototype\/([a-f0-9]+)/)
+    const prototypeId = urlMatch ? urlMatch[1] : null
+    if (prototypeId && appCode && appCode !== EXAMPLE_TEMPLPS.velocitas) {
+      sessionStorage.setItem(`deployment-hub-code-${prototypeId}`, appCode)
+    }
+  }, [appCode])
 
   // Combine all dependencies
   const allDependencies = React.useMemo(() => {
@@ -832,13 +952,27 @@ export default function Page({ data, config, api }: PageProps) {
                   <label style={styles.label}>{Icons.Code()} Application Code (Python)</label>
                   <div style={{ display: 'flex', gap: '4px' }}>
                     <button
-                      onClick={() => {
-                        const parentCode = getCodeFromParentEditor()
-                        if (parentCode) {
+                      onClick={async () => {
+                        // Try API first
+                        const urlMatch = window.location.href.match(/prototype\/([a-f0-9]+)/)
+                        const prototypeId = urlMatch ? urlMatch[1] : null
+
+                        if (prototypeId && (api || data)) {
+                          const code = await getCodeFromApi(api, data, prototypeId)
+                          if (code && code !== appCode) {
+                            setAppCode(code)
+                            console.log('[Deployment Hub] Code updated from API')
+                            return
+                          }
+                        }
+
+                        // Fallback to DOM search
+                        const parentCode = getCodeFromParentEditor(pluginTextareaRef.current)
+                        if (parentCode && parentCode !== appCode) {
                           setAppCode(parentCode)
-                          console.log('[Deployment Hub] Loaded code from parent Monaco editor')
+                          console.log('[Deployment Hub] Code updated from DOM')
                         } else {
-                          console.warn('[Deployment Hub] Could not get code from parent editor')
+                          console.warn('[Deployment Hub] No code found')
                         }
                       }}
                       style={{ ...styles.button, ...styles.buttonSmall, ...styles.buttonSecondary }}
@@ -871,6 +1005,7 @@ export default function Page({ data, config, api }: PageProps) {
                   </div>
                 </div>
                 <textarea
+                  ref={pluginTextareaRef}
                   value={appCode}
                   onChange={(e) => setAppCode(e.target.value)}
                   style={styles.textarea}
