@@ -1,4 +1,4 @@
-// Vehicle Edge Runtime Plugin - Split Layout Component
+// Deployment Hub Plugin - Vehicle Edge Runtime Deployment
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const React: any = (globalThis as any).React
 
@@ -608,7 +608,7 @@ export default function Page({ data, config, api }: PageProps) {
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <h1 style={styles.headerTitle}>{Icons.Rocket()} Vehicle Edge Runtime</h1>
+        <h1 style={styles.headerTitle}>{Icons.Rocket()} Deployment Hub</h1>
         <div style={styles.connectionStatus}>
           {/* Kit Manager Status */}
           <div

@@ -111,8 +111,8 @@
         type: "register_client",
         id: "register-" + Date.now(),
         clientInfo: {
-          name: "Vehicle Edge Runtime Plugin",
-          version: "1.0.0",
+          name: "Deployment Hub",
+          version: "1.1.0",
           platform: "web"
         }
       };
@@ -1473,7 +1473,7 @@ print("\u{1F4CA} Application execution finished")`
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.header, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h1", { style: styles.headerTitle, children: [
           Icons.Rocket(),
-          " Vehicle Edge Runtime"
+          " Deployment Hub"
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.connectionStatus, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -2118,7 +2118,7 @@ print("\u{1F4CA} Application execution finished")`
     ;
     window.DAPlugins = window.DAPlugins || {};
     window.DAPlugins["page-plugin"] = { components, mount, unmount };
-    console.log("Vehicle Edge Runtime plugin registered as page-plugin");
+    console.log("Deployment Hub plugin registered as page-plugin");
   }
 })();
 //# sourceMappingURL=index.js.map

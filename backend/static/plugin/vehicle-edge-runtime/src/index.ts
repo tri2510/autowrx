@@ -21,5 +21,5 @@ export function unmount(el: HTMLElement) {
 if (typeof window !== 'undefined') {
   ;(window as any).DAPlugins = (window as any).DAPlugins || {}
   ;(window as any).DAPlugins['page-plugin'] = { components, mount, unmount }
-  console.log('Vehicle Edge Runtime plugin registered as page-plugin')
+  console.log('Deployment Hub plugin registered as page-plugin')
 }

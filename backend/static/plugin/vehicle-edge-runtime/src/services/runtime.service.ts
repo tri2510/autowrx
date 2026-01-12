@@ -119,8 +119,8 @@ export class VehicleRuntimeService {
       type: 'register_client',
       id: 'register-' + Date.now(),
       clientInfo: {
-        name: 'Vehicle Edge Runtime Plugin',
-        version: '1.0.0',
+        name: 'Deployment Hub',
+        version: '1.1.0',
         platform: 'web'
       }
     }
