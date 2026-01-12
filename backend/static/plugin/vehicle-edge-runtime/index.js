@@ -3608,10 +3608,10 @@
       return { applications: [] };
     }
     async startApp(appId) {
-      return this.sendCommand("run_python_app", { appId });
+      return this.sendCommand("run_app", { appId });
     }
     async stopApp(appId) {
-      return this.sendCommand("stop_python_app", {});
+      return this.sendCommand("stop_app", { appId });
     }
     async pauseApp(appId) {
       return this.sendCommand("pause_app", { appId });
@@ -4549,7 +4549,7 @@ print("\u{1F4CA} Application execution finished")`
       clearAppConsole
     } = useVehicleRuntimeState(runtimeUrl, kitManagerUrl);
     const edgeRuntimeKits = React.useMemo(() => {
-      return kits.filter((kit) => kit.name.includes("Edge-Runtime"));
+      return kits.filter((kit) => kit.name.includes("Edge-Runtime") && kit.is_online);
     }, [kits]);
     const [selectedConsoleApp, setSelectedConsoleApp] = React.useState(null);
     const pluginTextareaRef = React.useRef(null);
@@ -5114,11 +5114,7 @@ print("\u{1F4CA} Application execution finished")`
               },
               children: edgeRuntimeKits.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "Select Edge-Runtime device..." }),
-                edgeRuntimeKits.map((kit) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: kit.kit_id, children: [
-                  kit.name,
-                  " ",
-                  kit.is_online ? "\u{1F7E2}" : "\u{1F534}"
-                ] }, kit.kit_id))
+                edgeRuntimeKits.map((kit) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: kit.kit_id, children: kit.name }, kit.kit_id))
               ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "No edge runtime" })
             }
           )

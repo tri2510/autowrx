@@ -254,9 +254,9 @@ export default function Page({ data, config, api }: PageProps) {
     clearAppConsole
   } = useVehicleRuntimeState(runtimeUrl, kitManagerUrl)
 
-  // Filter to only show Edge-Runtime devices
+  // Filter to only show online Edge-Runtime devices
   const edgeRuntimeKits = React.useMemo(() => {
-    return kits.filter(kit => kit.name.includes('Edge-Runtime'))
+    return kits.filter(kit => kit.name.includes('Edge-Runtime') && kit.is_online)
   }, [kits])
 
   // Unified console state
@@ -910,7 +910,7 @@ export default function Page({ data, config, api }: PageProps) {
                   <option value="" disabled>Select Edge-Runtime device...</option>
                   {edgeRuntimeKits.map(kit => (
                     <option key={kit.kit_id} value={kit.kit_id}>
-                      {kit.name} {kit.is_online ? '🟢' : '🔴'}
+                      {kit.name}
                     </option>
                   ))}
                 </>

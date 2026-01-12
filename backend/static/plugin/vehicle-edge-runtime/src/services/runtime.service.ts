@@ -255,11 +255,11 @@ export class VehicleRuntimeService {
   }
 
   async startApp(appId: string): Promise<any> {
-    return this.sendCommand('run_python_app', { appId })
+    return this.sendCommand('run_app', { appId })
   }
 
   async stopApp(appId: string): Promise<any> {
-    return this.sendCommand('stop_python_app', {})
+    return this.sendCommand('stop_app', { appId })
   }
 
   async pauseApp(appId: string): Promise<any> {
