@@ -3553,6 +3553,8 @@
           id: messageId,
           cmd,
           to_kit_id: this.kitId,
+          type: cmd,
+          // Edge runtime expects 'type' field
           ...data
           // Spread data fields directly, not wrapped
         };
@@ -3570,6 +3572,7 @@
     // Application management methods
     async deployPythonApp(config) {
       const data = {
+        disable_code_convert: true,
         code: config.code,
         prototype: {
           id: config.name,
@@ -3581,6 +3584,7 @@
         vehicleId: "default-vehicle",
         dependencies: config.dependencies || []
       };
+      console.log("[VehicleRuntime] Deploying app with code length:", config.code?.length);
       const response = await this.sendCommand("deploy_request", data);
       if (response.status === "started" || response.result === "success") {
         return response.appId || response.executionId || response.app_id || config.name;
@@ -3589,10 +3593,10 @@
       }
     }
     async getDeployedApps() {
-      const response = await this.sendCommand("get-runtime-info", {});
-      if (response.lsOfRunner && Array.isArray(response.lsOfRunner)) {
+      const response = await this.sendCommand("list_deployed_apps", {});
+      if (response.applications && Array.isArray(response.applications)) {
         return {
-          applications: response.lsOfRunner.map((app) => ({
+          applications: response.applications.map((app) => ({
             app_id: app.app_id || app.appId || app.name,
             name: app.name || app.app_name || "Unknown",
             status: app.status || "unknown",

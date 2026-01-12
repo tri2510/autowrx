@@ -179,11 +179,13 @@ export class VehicleRuntimeService {
 
       this.pendingRequests.set(messageId, { resolve, reject, timeout })
 
-      // Kit Manager format: merge cmd, to_kit_id with the data fields directly
+      // Kit Manager format: use cmd for Kit Manager, but also include type for edge runtime
+      // Kit Manager will forward the message to the edge device which expects 'type'
       const message = {
         id: messageId,
         cmd,
         to_kit_id: this.kitId,
+        type: cmd,  // Edge runtime expects 'type' field
         ...data  // Spread data fields directly, not wrapped
       }
 
@@ -207,8 +209,9 @@ export class VehicleRuntimeService {
     code: string
     dependencies?: string[]
   }): Promise<string> {
-    // Match DaRuntimeConnector format
+    // Match DaRuntimeConnector format exactly
     const data = {
+      disable_code_convert: true,
       code: config.code,
       prototype: {
         id: config.name,
@@ -221,6 +224,7 @@ export class VehicleRuntimeService {
       dependencies: config.dependencies || []
     }
 
+    console.log('[VehicleRuntime] Deploying app with code length:', config.code?.length)
     const response = await this.sendCommand('deploy_request', data)
 
     if (response.status === 'started' || response.result === 'success') {
@@ -231,14 +235,13 @@ export class VehicleRuntimeService {
   }
 
   async getDeployedApps(): Promise<{ applications: VehicleApp[] }> {
-    // Note: Kit Manager may not have a direct list_deployed_apps command
-    // Try using get-runtime-info instead
-    const response = await this.sendCommand('get-runtime-info', {})
+    // Use the original command format: type instead of cmd
+    const response = await this.sendCommand('list_deployed_apps', {})
 
     // Map the response to our expected format
-    if (response.lsOfRunner && Array.isArray(response.lsOfRunner)) {
+    if (response.applications && Array.isArray(response.applications)) {
       return {
-        applications: response.lsOfRunner.map((app: any) => ({
+        applications: response.applications.map((app: any) => ({
           app_id: app.app_id || app.appId || app.name,
           name: app.name || app.app_name || 'Unknown',
           status: app.status || 'unknown',
