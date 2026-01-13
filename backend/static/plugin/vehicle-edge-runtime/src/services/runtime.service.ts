@@ -255,10 +255,18 @@ export class VehicleRuntimeService {
   }
 
   async startApp(appId: string): Promise<any> {
+    // Mock service uses special command
+    if (appId === 'VEA-mock-service' || appId.includes('mock')) {
+      return this.sendCommand('mock_service_start', { mode: 'echo-all' })
+    }
     return this.sendCommand('run_app', { appId })
   }
 
   async stopApp(appId: string): Promise<any> {
+    // Mock service uses special command
+    if (appId === 'VEA-mock-service' || appId.includes('mock')) {
+      return this.sendCommand('mock_service_stop', {})
+    }
     return this.sendCommand('stop_app', { appId })
   }
 
