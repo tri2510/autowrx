@@ -3868,6 +3868,8 @@
     const selectKit = (0, import_react.useCallback)((kit) => {
       setSelectedKit(kit);
       runtimeServiceRef.current?.setKitId(kit.kit_id);
+      setVehicleApps([]);
+      setAppConsoleOutputs({});
       console.log("[KitManager] Selected kit:", kit.name, "kit_id:", kit.kit_id, "online:", kit.is_online);
     }, []);
     (0, import_react.useEffect)(() => {
@@ -4583,8 +4585,11 @@ print("\u{1F4CA} Application execution finished")`
     const [manualDependency, setManualDependency] = React.useState("");
     const templatesButtonRef = React.useRef(null);
     const consoleContainerRef = React.useRef(null);
+    const [isConsoleAtBottom, setIsConsoleAtBottom] = React.useState(true);
+    const [isDependenciesCollapsed, setIsDependenciesCollapsed] = React.useState(true);
+    const [isServicesCollapsed, setIsServicesCollapsed] = React.useState(true);
     const splitContainerRef = React.useRef(null);
-    const [leftPanelWidth, setLeftPanelWidth] = React.useState(66.67);
+    const [leftPanelWidth, setLeftPanelWidth] = React.useState(20);
     const [isResizing, setIsResizing] = React.useState(false);
     const handleMouseDown = (e) => {
       e.preventDefault();
@@ -4711,6 +4716,23 @@ print("\u{1F4CA} Application execution finished")`
       );
       return [...base, ...detected, ...manual];
     }, [dependencies, detectedDependencies, autoDetectEnabled]);
+    React.useEffect(() => {
+      const container = consoleContainerRef.current;
+      if (!container)
+        return;
+      const handleScroll = () => {
+        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+        setIsConsoleAtBottom(isAtBottom);
+      };
+      container.addEventListener("scroll", handleScroll);
+      return () => container.removeEventListener("scroll", handleScroll);
+    }, [selectedConsoleApp]);
+    React.useEffect(() => {
+      if (!isConsoleAtBottom || !selectedConsoleApp || !consoleContainerRef.current)
+        return;
+      const container = consoleContainerRef.current;
+      container.scrollTop = container.scrollHeight;
+    }, [appConsoleOutputs[selectedConsoleApp], isConsoleAtBottom, selectedConsoleApp]);
     const handleDeploy = async () => {
       if (!selectedKit?.is_online) {
         logError("No online runtime selected");
@@ -4765,6 +4787,7 @@ print("\u{1F4CA} Application execution finished")`
     const handleKitChange = (kitId) => {
       const kit = kits.find((k) => k.kit_id === kitId);
       if (kit) {
+        setSelectedConsoleApp(null);
         selectKit(kit);
         logInfo(`Selected kit: ${kit.name}`, "info");
         refreshApps();
@@ -5209,6 +5232,29 @@ print("\u{1F4CA} Application execution finished")`
               ] })
             ] })
           ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              onClick: handleDeploy,
+              disabled: isDeploying || !selectedKit?.is_online || !isRuntimeConnected,
+              style: {
+                ...styles.button,
+                width: "100%",
+                padding: "16px",
+                fontSize: "16px",
+                fontWeight: "600",
+                backgroundColor: "#3b82f6",
+                border: "none",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                cursor: isDeploying || !selectedKit?.is_online || !isRuntimeConnected ? "not-allowed" : "pointer",
+                opacity: isDeploying || !selectedKit?.is_online || !isRuntimeConnected ? 0.5 : 1,
+                transition: "all 0.2s",
+                ...isDeploying || !selectedKit?.is_online || !isRuntimeConnected ? {} : { ":hover": { backgroundColor: "#2563eb", boxShadow: "0 6px 16px rgba(59, 130, 246, 0.4)" } }
+              },
+              children: isDeploying ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy Application`
+            }
+          ),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.card, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.cardBody, padding: "12px" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { style: styles.label, children: [
@@ -5297,26 +5343,45 @@ print("\u{1F4CA} Application execution finished")`
             )
           ] }) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                Icons.Package(),
-                " Dependencies (",
-                allDependencies.length,
-                ")"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: "normal" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "input",
-                  {
-                    type: "checkbox",
-                    checked: autoDetectEnabled,
-                    onChange: (e) => setAutoDetectEnabled(e.target.checked)
-                  }
-                ),
-                "Auto-detect"
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardBody, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                style: {
+                  ...styles.cardHeader,
+                  cursor: "pointer",
+                  userSelect: "none"
+                },
+                onClick: () => setIsDependenciesCollapsed(!isDependenciesCollapsed),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                    Icons.Package(),
+                    " Dependencies (",
+                    allDependencies.length,
+                    ")",
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "10px", color: "#999", transform: isDependenciesCollapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.2s" }, children: Icons.ChevronDown() })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "label",
+                    {
+                      style: { display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: "normal" },
+                      onClick: (e) => e.stopPropagation(),
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                          "input",
+                          {
+                            type: "checkbox",
+                            checked: autoDetectEnabled,
+                            onChange: (e) => setAutoDetectEnabled(e.target.checked)
+                          }
+                        ),
+                        "Auto-detect"
+                      ]
+                    }
+                  )
+                ]
+              }
+            ),
+            !isDependenciesCollapsed && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardBody, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: "12px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.badge("#e3f2fd"), color: "#1565c0", marginBottom: "8px" }, children: [
                   Icons.Check(),
@@ -5392,23 +5457,12 @@ print("\u{1F4CA} Application execution finished")`
                 ] }),
                 " will be installed"
               ] })
+            ] }),
+            isDependenciesCollapsed && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.cardBody, padding: "8px 12px", backgroundColor: "#f8f9fa", fontSize: "12px", color: "#666" }, children: [
+              allDependencies.length,
+              " packages \u2022 Click to expand"
             ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              onClick: handleDeploy,
-              disabled: isDeploying || !selectedKit?.is_online || !isRuntimeConnected,
-              style: {
-                ...styles.button,
-                width: "100%",
-                padding: "12px",
-                fontSize: "14px",
-                ...isDeploying || !selectedKit?.is_online || !isRuntimeConnected ? styles.buttonDisabled : {}
-              },
-              children: isDeploying ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy Application`
-            }
-          )
+          ] })
         ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           "div",
@@ -5424,42 +5478,119 @@ print("\u{1F4CA} Application execution finished")`
         ),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.rightPanel(leftPanelWidth), children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.panelContent, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.card, marginBottom: "16px" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.cardHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              Icons.Server(),
-              " Services"
-            ] }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.cardBody, padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "button",
-                {
-                  onClick: handleDeployKuksa,
-                  disabled: !isRuntimeConnected || isDeployingKuksa,
-                  style: {
-                    ...styles.button,
-                    flex: 1,
-                    padding: "8px 12px",
-                    fontSize: "12px",
-                    ...isDeployingKuksa || !isRuntimeConnected ? styles.buttonDisabled : {}
-                  },
-                  children: isDeployingKuksa ? `${Icons.Loading()} KUKSA...` : `${Icons.Server()} KUKSA`
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "button",
-                {
-                  onClick: handleDeployMock,
-                  disabled: !isRuntimeConnected || isDeployingMock,
-                  style: {
-                    ...styles.button,
-                    flex: 1,
-                    padding: "8px 12px",
-                    fontSize: "12px",
-                    ...isDeployingMock || !isRuntimeConnected ? styles.buttonDisabled : {}
-                  },
-                  children: isDeployingMock ? `${Icons.Loading()} Mock...` : `${Icons.Brain()} Mock`
-                }
-              )
-            ] }) })
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                style: {
+                  ...styles.cardHeader,
+                  cursor: "pointer",
+                  userSelect: "none"
+                },
+                onClick: () => setIsServicesCollapsed(!isServicesCollapsed),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                    Icons.Server(),
+                    " Optional Services",
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "10px", color: "#999", transform: isServicesCollapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.2s" }, children: Icons.ChevronDown() })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "11px", fontWeight: "normal", color: "#888" }, children: "Deploy if needed" })
+                ]
+              }
+            ),
+            !isServicesCollapsed && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.cardBody, padding: "12px", display: "flex", flexDirection: "column", gap: "12px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                padding: "12px",
+                backgroundColor: "#f0f7ff",
+                border: "1px solid #e3f2fd",
+                borderRadius: "6px"
+              }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { style: { fontSize: "13px", color: "#1565c0" }, children: [
+                      Icons.Server(),
+                      " KUKSA Databroker"
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
+                      fontSize: "10px",
+                      padding: "2px 6px",
+                      backgroundColor: "#e3f2fd",
+                      color: "#1565c0",
+                      borderRadius: "10px",
+                      fontWeight: "500"
+                    }, children: "Optional" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: 0, fontSize: "11px", color: "#666", lineHeight: "1.4" }, children: [
+                    "Vehicle signal databroker. Deploy if edge device doesn't have it running.",
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
+                    "Default: ",
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("code", { children: "localhost:55555" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    onClick: handleDeployKuksa,
+                    disabled: !isRuntimeConnected || isDeployingKuksa,
+                    style: {
+                      ...styles.button,
+                      ...styles.buttonSmall,
+                      padding: "6px 12px",
+                      fontSize: "11px",
+                      backgroundColor: "#3b82f6",
+                      ...isDeployingKuksa || !isRuntimeConnected ? styles.buttonDisabled : {}
+                    },
+                    children: isDeployingKuksa ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy`
+                  }
+                )
+              ] }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                padding: "12px",
+                backgroundColor: "#fff8f0",
+                border: "1px solid #fff3e0",
+                borderRadius: "6px"
+              }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { style: { fontSize: "13px", color: "#e65100" }, children: [
+                      Icons.Brain(),
+                      " Mock Service"
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: {
+                      fontSize: "10px",
+                      padding: "2px 6px",
+                      backgroundColor: "#fff3e0",
+                      color: "#e65100",
+                      borderRadius: "10px",
+                      fontWeight: "500"
+                    }, children: "Optional" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: { margin: 0, fontSize: "11px", color: "#666", lineHeight: "1.4" }, children: [
+                    "Simulates ECU responses. Echoes back ",
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("code", { children: "current = target" }),
+                    " after setting values.",
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
+                    "Useful for testing without real hardware."
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    onClick: handleDeployMock,
+                    disabled: !isRuntimeConnected || isDeployingMock,
+                    style: {
+                      ...styles.button,
+                      ...styles.buttonSmall,
+                      padding: "6px 12px",
+                      fontSize: "11px",
+                      backgroundColor: "#f59e0b",
+                      ...isDeployingMock || !isRuntimeConnected ? styles.buttonDisabled : {}
+                    },
+                    children: isDeployingMock ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy`
+                  }
+                )
+              ] }) })
+            ] }),
+            isServicesCollapsed && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { ...styles.cardBody, padding: "8px 12px", backgroundColor: "#f8f9fa", fontSize: "12px", color: "#666" }, children: "KUKSA Databroker \u2022 Mock Service \u2022 Click to expand" })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { ...styles.card, marginBottom: "16px", overflow: "hidden" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [

@@ -204,6 +204,9 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     setSelectedKit(kit)
     // Set the kit ID for runtime service to know where to send commands
     runtimeServiceRef.current?.setKitId(kit.kit_id)
+    // Clear state for the new runtime
+    setVehicleApps([])
+    setAppConsoleOutputs({})
     console.log('[KitManager] Selected kit:', kit.name, 'kit_id:', kit.kit_id, 'online:', kit.is_online)
   }, [])
 

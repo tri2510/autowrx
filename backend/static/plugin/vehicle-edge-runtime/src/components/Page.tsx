@@ -295,10 +295,13 @@ export default function Page({ data, config, api }: PageProps) {
   // Ref for templates button to calculate dropdown position
   const templatesButtonRef = React.useRef<HTMLButtonElement>(null)
   const consoleContainerRef = React.useRef<HTMLDivElement>(null)
+  const [isConsoleAtBottom, setIsConsoleAtBottom] = React.useState(true)
+  const [isDependenciesCollapsed, setIsDependenciesCollapsed] = React.useState(true)
+  const [isServicesCollapsed, setIsServicesCollapsed] = React.useState(true)
 
   // Resizable split state
   const splitContainerRef = React.useRef<HTMLDivElement>(null)
-  const [leftPanelWidth, setLeftPanelWidth] = React.useState(66.67) // 2/3 default
+  const [leftPanelWidth, setLeftPanelWidth] = React.useState(20) // 20% default
   const [isResizing, setIsResizing] = React.useState(false)
 
   // Handle resize
@@ -468,6 +471,28 @@ export default function Page({ data, config, api }: PageProps) {
     return [...base, ...detected, ...manual]
   }, [dependencies, detectedDependencies, autoDetectEnabled])
 
+  // Track scroll position to determine if user has scrolled up
+  React.useEffect(() => {
+    const container = consoleContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50
+      setIsConsoleAtBottom(isAtBottom)
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [selectedConsoleApp])
+
+  // Auto-scroll to bottom when new output arrives and user is at bottom
+  React.useEffect(() => {
+    if (!isConsoleAtBottom || !selectedConsoleApp || !consoleContainerRef.current) return
+
+    const container = consoleContainerRef.current
+    container.scrollTop = container.scrollHeight
+  }, [appConsoleOutputs[selectedConsoleApp], isConsoleAtBottom, selectedConsoleApp])
+
   // Deploy application
   const handleDeploy = async () => {
     if (!selectedKit?.is_online) {
@@ -537,8 +562,11 @@ export default function Page({ data, config, api }: PageProps) {
   const handleKitChange = (kitId: string) => {
     const kit = kits.find(k => k.kit_id === kitId)
     if (kit) {
+      // Clear console selection when switching runtimes
+      setSelectedConsoleApp(null)
       selectKit(kit)
       logInfo(`Selected kit: ${kit.name}`, 'info')
+      // Refresh apps for the new runtime
       refreshApps()
     }
   }
@@ -1001,6 +1029,29 @@ export default function Page({ data, config, api }: PageProps) {
               </div>
             </div>
 
+            {/* Deploy Application Button - Main Action */}
+            <button
+              onClick={handleDeploy}
+              disabled={isDeploying || !selectedKit?.is_online || !isRuntimeConnected}
+              style={{
+                ...styles.button,
+                width: '100%',
+                padding: '16px',
+                fontSize: '16px',
+                fontWeight: '600',
+                backgroundColor: '#3b82f6',
+                border: 'none',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                cursor: (isDeploying || !selectedKit?.is_online || !isRuntimeConnected) ? 'not-allowed' : 'pointer',
+                opacity: (isDeploying || !selectedKit?.is_online || !isRuntimeConnected) ? 0.5 : 1,
+                transition: 'all 0.2s',
+                ...(isDeploying || !selectedKit?.is_online || !isRuntimeConnected) ? {} : { ':hover': { backgroundColor: '#2563eb', boxShadow: '0 6px 16px rgba(59, 130, 246, 0.4)' } }
+              } as any}
+            >
+              {isDeploying ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy Application`}
+            </button>
+
             {/* Code Editor */}
             <div style={styles.card}>
               <div style={{ ...styles.cardBody, padding: '12px' }}>
@@ -1079,9 +1130,24 @@ export default function Page({ data, config, api }: PageProps) {
 
             {/* Dependencies */}
             <div style={styles.card}>
-              <div style={styles.cardHeader}>
-                <span>{Icons.Package()} Dependencies ({allDependencies.length})</span>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'normal' }}>
+              <div
+                style={{
+                  ...styles.cardHeader,
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+                onClick={() => setIsDependenciesCollapsed(!isDependenciesCollapsed)}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {Icons.Package()} Dependencies ({allDependencies.length})
+                  <span style={{ fontSize: '10px', color: '#999', transform: isDependenciesCollapsed ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+                    {Icons.ChevronDown()}
+                  </span>
+                </span>
+                <label
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'normal' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <input
                     type="checkbox"
                     checked={autoDetectEnabled}
@@ -1090,94 +1156,86 @@ export default function Page({ data, config, api }: PageProps) {
                   Auto-detect
                 </label>
               </div>
-              <div style={styles.cardBody}>
-                {/* Default dependencies */}
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{ ...styles.badge('#e3f2fd'), color: '#1565c0', marginBottom: '8px' }}>
-                    {Icons.Check()} Required ({getDefaultDependencies().length})
-                  </div>
-                  {getDefaultDependencies().map(dep => (
-                    <div key={dep} style={{ ...styles.dependencyItem, backgroundColor: '#f0f7ff' }}>
-                      <span>{dep}</span>
-                      <span style={{ fontSize: '10px', color: '#666' }}>fixed</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Detected dependencies */}
-                {autoDetectEnabled && detectedDependencies.length > 0 && (
+              {!isDependenciesCollapsed && (
+                <div style={styles.cardBody}>
+                  {/* Default dependencies */}
                   <div style={{ marginBottom: '12px' }}>
-                    <div style={{ ...styles.badge('#fff3e0'), color: '#e65100', marginBottom: '8px' }}>
-                      {Icons.Sparkles()} Detected ({detectedDependencies.length})
+                    <div style={{ ...styles.badge('#e3f2fd'), color: '#1565c0', marginBottom: '8px' }}>
+                      {Icons.Check()} Required ({getDefaultDependencies().length})
                     </div>
-                    {detectedDependencies.map(dep => (
-                      <div key={dep} style={{ ...styles.dependencyItem, backgroundColor: '#fff8f0' }}>
+                    {getDefaultDependencies().map(dep => (
+                      <div key={dep} style={{ ...styles.dependencyItem, backgroundColor: '#f0f7ff' }}>
                         <span>{dep}</span>
-                        <span style={{ fontSize: '10px', color: '#666' }}>auto</span>
+                        <span style={{ fontSize: '10px', color: '#666' }}>fixed</span>
                       </div>
                     ))}
                   </div>
-                )}
 
-                {/* Manual dependencies */}
-                {dependencies.length > 0 && (
-                  <div style={{ marginBottom: '12px' }}>
-                    <div style={{ ...styles.badge('#f3e5f5'), color: '#7b1fa2', marginBottom: '8px' }}>
-                      {Icons.Edit()} Manual ({dependencies.length})
-                    </div>
-                    {dependencies.map(dep => (
-                      <div key={dep} style={{ ...styles.dependencyItem, backgroundColor: '#faf5ff' }}>
-                        <span>{dep}</span>
-                        <button
-                          onClick={() => handleRemoveDependency(dep)}
-                          style={{ ...styles.button, ...styles.buttonSmall, ...styles.buttonDanger, padding: '2px 6px' }}
-                        >
-                          {Icons.X()}
-                        </button>
+                  {/* Detected dependencies */}
+                  {autoDetectEnabled && detectedDependencies.length > 0 && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{ ...styles.badge('#fff3e0'), color: '#e65100', marginBottom: '8px' }}>
+                        {Icons.Sparkles()} Detected ({detectedDependencies.length})
                       </div>
-                    ))}
+                      {detectedDependencies.map(dep => (
+                        <div key={dep} style={{ ...styles.dependencyItem, backgroundColor: '#fff8f0' }}>
+                          <span>{dep}</span>
+                          <span style={{ fontSize: '10px', color: '#666' }}>auto</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Manual dependencies */}
+                  {dependencies.length > 0 && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{ ...styles.badge('#f3e5f5'), color: '#7b1fa2', marginBottom: '8px' }}>
+                        {Icons.Edit()} Manual ({dependencies.length})
+                      </div>
+                      {dependencies.map(dep => (
+                        <div key={dep} style={{ ...styles.dependencyItem, backgroundColor: '#faf5ff' }}>
+                          <span>{dep}</span>
+                          <button
+                            onClick={() => handleRemoveDependency(dep)}
+                            style={{ ...styles.button, ...styles.buttonSmall, ...styles.buttonDanger, padding: '2px 6px' }}
+                          >
+                            {Icons.X()}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add dependency */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={manualDependency}
+                      onChange={(e) => setManualDependency(e.target.value)}
+                      placeholder="Add dependency (e.g., numpy==1.24.0)"
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddDependency()}
+                      style={{ ...styles.input, flex: 1 }}
+                    />
+                    <button
+                      onClick={handleAddDependency}
+                      style={{ ...styles.button, ...styles.buttonSmall }}
+                    >
+                      {Icons.Plus()} Add
+                    </button>
                   </div>
-                )}
 
-                {/* Add dependency */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    value={manualDependency}
-                    onChange={(e) => setManualDependency(e.target.value)}
-                    placeholder="Add dependency (e.g., numpy==1.24.0)"
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddDependency()}
-                    style={{ ...styles.input, flex: 1 }}
-                  />
-                  <button
-                    onClick={handleAddDependency}
-                    style={{ ...styles.button, ...styles.buttonSmall }}
-                  >
-                    {Icons.Plus()} Add
-                  </button>
+                  {/* Total summary */}
+                  <div style={{ marginTop: '12px', padding: '8px', backgroundColor: '#e8f5e9', borderRadius: '4px', fontSize: '12px' }}>
+                    <strong>Total: {allDependencies.length} packages</strong> will be installed
+                  </div>
                 </div>
-
-                {/* Total summary */}
-                <div style={{ marginTop: '12px', padding: '8px', backgroundColor: '#e8f5e9', borderRadius: '4px', fontSize: '12px' }}>
-                  <strong>Total: {allDependencies.length} packages</strong> will be installed
+              )}
+              {isDependenciesCollapsed && (
+                <div style={{ ...styles.cardBody, padding: '8px 12px', backgroundColor: '#f8f9fa', fontSize: '12px', color: '#666' }}>
+                  {allDependencies.length} packages • Click to expand
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* Deploy Button */}
-            <button
-              onClick={handleDeploy}
-              disabled={isDeploying || !selectedKit?.is_online || !isRuntimeConnected}
-              style={{
-                ...styles.button,
-                width: '100%',
-                padding: '12px',
-                fontSize: '14px',
-                ...(isDeploying || !selectedKit?.is_online || !isRuntimeConnected ? styles.buttonDisabled : {})
-              }}
-            >
-              {isDeploying ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy Application`}
-            </button>
           </div>
         </div>
 
@@ -1196,41 +1254,120 @@ export default function Page({ data, config, api }: PageProps) {
         {/* Right Panel - Applications */}
         <div style={styles.rightPanel(leftPanelWidth)}>
           <div style={styles.panelContent}>
-            {/* Service Buttons */}
+            {/* Optional Services */}
             <div style={{ ...styles.card, marginBottom: '16px' }}>
-              <div style={styles.cardHeader}>
-                <span>{Icons.Server()} Services</span>
+              <div
+                style={{
+                  ...styles.cardHeader,
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+                onClick={() => setIsServicesCollapsed(!isServicesCollapsed)}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {Icons.Server()} Optional Services
+                  <span style={{ fontSize: '10px', color: '#999', transform: isServicesCollapsed ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+                    {Icons.ChevronDown()}
+                  </span>
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 'normal', color: '#888' }}>
+                  Deploy if needed
+                </span>
               </div>
-              <div style={{ ...styles.cardBody, padding: '12px' }}>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={handleDeployKuksa}
-                    disabled={!isRuntimeConnected || isDeployingKuksa}
-                    style={{
-                      ...styles.button,
-                      flex: 1,
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                      ...(isDeployingKuksa || !isRuntimeConnected ? styles.buttonDisabled : {})
-                    }}
-                  >
-                    {isDeployingKuksa ? `${Icons.Loading()} KUKSA...` : `${Icons.Server()} KUKSA`}
-                  </button>
-                  <button
-                    onClick={handleDeployMock}
-                    disabled={!isRuntimeConnected || isDeployingMock}
-                    style={{
-                      ...styles.button,
-                      flex: 1,
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                      ...(isDeployingMock || !isRuntimeConnected ? styles.buttonDisabled : {})
-                    }}
-                  >
-                    {isDeployingMock ? `${Icons.Loading()} Mock...` : `${Icons.Brain()} Mock`}
-                  </button>
+              {!isServicesCollapsed && (
+                <div style={{ ...styles.cardBody, padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+                {/* KUKSA Databroker */}
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#f0f7ff',
+                  border: '1px solid #e3f2fd',
+                  borderRadius: '6px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <strong style={{ fontSize: '13px', color: '#1565c0' }}>{Icons.Server()} KUKSA Databroker</strong>
+                        <span style={{
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          backgroundColor: '#e3f2fd',
+                          color: '#1565c0',
+                          borderRadius: '10px',
+                          fontWeight: '500'
+                        }}>Optional</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#666', lineHeight: '1.4' }}>
+                        Vehicle signal databroker. Deploy if edge device doesn't have it running.
+                        <br />Default: <code>localhost:55555</code>
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleDeployKuksa}
+                      disabled={!isRuntimeConnected || isDeployingKuksa}
+                      style={{
+                        ...styles.button,
+                        ...styles.buttonSmall,
+                        padding: '6px 12px',
+                        fontSize: '11px',
+                        backgroundColor: '#3b82f6',
+                        ...(isDeployingKuksa || !isRuntimeConnected ? styles.buttonDisabled : {})
+                      }}
+                    >
+                      {isDeployingKuksa ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy`}
+                    </button>
+                  </div>
                 </div>
-              </div>
+
+                {/* Mock Service */}
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#fff8f0',
+                  border: '1px solid #fff3e0',
+                  borderRadius: '6px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <strong style={{ fontSize: '13px', color: '#e65100' }}>{Icons.Brain()} Mock Service</strong>
+                        <span style={{
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          backgroundColor: '#fff3e0',
+                          color: '#e65100',
+                          borderRadius: '10px',
+                          fontWeight: '500'
+                        }}>Optional</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#666', lineHeight: '1.4' }}>
+                        Simulates ECU responses. Echoes back <code>current = target</code> after setting values.
+                        <br />Useful for testing without real hardware.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleDeployMock}
+                      disabled={!isRuntimeConnected || isDeployingMock}
+                      style={{
+                        ...styles.button,
+                        ...styles.buttonSmall,
+                        padding: '6px 12px',
+                        fontSize: '11px',
+                        backgroundColor: '#f59e0b',
+                        ...(isDeployingMock || !isRuntimeConnected ? styles.buttonDisabled : {})
+                      }}
+                    >
+                      {isDeployingMock ? `${Icons.Loading()} Deploying...` : `${Icons.Rocket()} Deploy`}
+                    </button>
+                  </div>
+                </div>
+
+                </div>
+              )}
+              {isServicesCollapsed && (
+                <div style={{ ...styles.cardBody, padding: '8px 12px', backgroundColor: '#f8f9fa', fontSize: '12px', color: '#666' }}>
+                  KUKSA Databroker • Mock Service • Click to expand
+                </div>
+              )}
             </div>
 
             {/* Unified Console Panel */}
