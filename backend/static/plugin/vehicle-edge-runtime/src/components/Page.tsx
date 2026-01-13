@@ -294,6 +294,7 @@ export default function Page({ data, config, api }: PageProps) {
 
   // Ref for templates button to calculate dropdown position
   const templatesButtonRef = React.useRef<HTMLButtonElement>(null)
+  const consoleContainerRef = React.useRef<HTMLDivElement>(null)
 
   // Resizable split state
   const splitContainerRef = React.useRef<HTMLDivElement>(null)
@@ -895,29 +896,46 @@ export default function Page({ data, config, api }: PageProps) {
 
           {/* Device Selector */}
           {isKitManagerConnected && (
-            <select
-              value={selectedKit?.kit_id || ''}
-              onChange={(e) => handleKitChange(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '12px'
-              }}
-            >
-              {edgeRuntimeKits.length > 0 ? (
-                <>
-                  <option value="" disabled>Select Edge-Runtime device...</option>
-                  {edgeRuntimeKits.map(kit => (
-                    <option key={kit.kit_id} value={kit.kit_id}>
-                      {kit.name}
-                    </option>
-                  ))}
-                </>
-              ) : (
-                <option value="" disabled>No edge runtime</option>
-              )}
-            </select>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <select
+                value={selectedKit?.kit_id || ''}
+                onChange={(e) => handleKitChange(e.target.value)}
+                style={{
+                  padding: '6px 10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  flex: 1
+                }}
+              >
+                {edgeRuntimeKits.length > 0 ? (
+                  <>
+                    <option value="" disabled>Select Edge-Runtime device...</option>
+                    {edgeRuntimeKits.map(kit => (
+                      <option key={kit.kit_id} value={kit.kit_id}>
+                        {kit.name}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option value="" disabled>No edge runtime</option>
+                )}
+              </select>
+              <button
+                onClick={() => connectKitManager()}
+                disabled={isKitManagerLoading}
+                style={{
+                  ...styles.button,
+                  ...styles.buttonSmall,
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  minWidth: '32px'
+                }}
+                title="Refresh device list"
+              >
+                {isKitManagerLoading ? Icons.Loading() : Icons.Refresh()}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -1237,6 +1255,17 @@ export default function Page({ data, config, api }: PageProps) {
                     </button>
                     <button
                       onClick={() => {
+                        if (consoleContainerRef.current) {
+                          consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight
+                        }
+                      }}
+                      style={{ ...styles.button, ...styles.buttonSmall, padding: '4px 8px', fontSize: '11px' }}
+                      title="Scroll to bottom"
+                    >
+                      ↓ Bottom
+                    </button>
+                    <button
+                      onClick={() => {
                         if (selectedConsoleApp) {
                           unsubscribeAppConsole(selectedConsoleApp)
                         }
@@ -1270,16 +1299,19 @@ export default function Page({ data, config, api }: PageProps) {
                       </p>
                     </div>
                   ) : (
-                    <div style={{
-                      flex: 1,
-                      backgroundColor: '#1e1e1e',
-                      overflowY: 'auto',
-                      overflowX: 'hidden',
-                      padding: '12px',
-                      fontFamily: 'monospace',
-                      fontSize: '11px',
-                      lineHeight: '1.4'
-                    }}>
+                    <div
+                      ref={consoleContainerRef}
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#1e1e1e',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        padding: '12px',
+                        fontFamily: 'monospace',
+                        fontSize: '11px',
+                        lineHeight: '1.4'
+                      }}
+                    >
                       {(appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? (
                         <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '40px 0' }}>
                           Waiting for console output...

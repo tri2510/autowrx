@@ -4576,6 +4576,7 @@ print("\u{1F4CA} Application execution finished")`
     const [dropdownPosition, setDropdownPosition] = React.useState(null);
     const [manualDependency, setManualDependency] = React.useState("");
     const templatesButtonRef = React.useRef(null);
+    const consoleContainerRef = React.useRef(null);
     const splitContainerRef = React.useRef(null);
     const [leftPanelWidth, setLeftPanelWidth] = React.useState(66.67);
     const [isResizing, setIsResizing] = React.useState(false);
@@ -5101,23 +5102,42 @@ print("\u{1F4CA} Application execution finished")`
               ] })
             }
           ),
-          isKitManagerConnected && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "select",
-            {
-              value: selectedKit?.kit_id || "",
-              onChange: (e) => handleKitChange(e.target.value),
-              style: {
-                padding: "6px 10px",
-                border: "1px solid #ddd",
-                borderRadius: "4px",
-                fontSize: "12px"
-              },
-              children: edgeRuntimeKits.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "Select Edge-Runtime device..." }),
-                edgeRuntimeKits.map((kit) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: kit.kit_id, children: kit.name }, kit.kit_id))
-              ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "No edge runtime" })
-            }
-          )
+          isKitManagerConnected && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "4px", alignItems: "center" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "select",
+              {
+                value: selectedKit?.kit_id || "",
+                onChange: (e) => handleKitChange(e.target.value),
+                style: {
+                  padding: "6px 10px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  flex: 1
+                },
+                children: edgeRuntimeKits.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "Select Edge-Runtime device..." }),
+                  edgeRuntimeKits.map((kit) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: kit.kit_id, children: kit.name }, kit.kit_id))
+                ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "", disabled: true, children: "No edge runtime" })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                onClick: () => connectKitManager(),
+                disabled: isKitManagerLoading,
+                style: {
+                  ...styles.button,
+                  ...styles.buttonSmall,
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  minWidth: "32px"
+                },
+                title: "Refresh device list",
+                children: isKitManagerLoading ? Icons.Loading() : Icons.Refresh()
+              }
+            )
+          ] })
         ] })
       ] }),
       kitManagerError && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
@@ -5455,6 +5475,19 @@ print("\u{1F4CA} Application execution finished")`
                     children: "Clear"
                   }
                 ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    onClick: () => {
+                      if (consoleContainerRef.current) {
+                        consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
+                      }
+                    },
+                    style: { ...styles.button, ...styles.buttonSmall, padding: "4px 8px", fontSize: "11px" },
+                    title: "Scroll to bottom",
+                    children: "\u2193 Bottom"
+                  }
+                ),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                   "button",
                   {
@@ -5485,39 +5518,46 @@ print("\u{1F4CA} Application execution finished")`
               Icons.Terminal(),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { marginTop: "12px", marginBottom: "4px", fontSize: "14px", fontWeight: "500" }, children: "Click on an application to view its console" }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { fontSize: "12px", color: "#aaa" }, children: "Console output will appear here" })
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-              flex: 1,
-              backgroundColor: "#1e1e1e",
-              overflowY: "auto",
-              overflowX: "hidden",
-              padding: "12px",
-              fontFamily: "monospace",
-              fontSize: "11px",
-              lineHeight: "1.4"
-            }, children: (appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { color: "#666", fontStyle: "italic", textAlign: "center", padding: "40px 0" }, children: "Waiting for console output..." }) : (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "div",
               {
+                ref: consoleContainerRef,
                 style: {
-                  color: line.stream === "stderr" ? "#f48771" : "#d4d4d4",
-                  marginBottom: "2px",
-                  wordBreak: "break-word",
-                  whiteSpace: "pre-wrap",
-                  overflowWrap: "break-word"
+                  flex: 1,
+                  backgroundColor: "#1e1e1e",
+                  overflowY: "auto",
+                  overflowX: "hidden",
+                  padding: "12px",
+                  fontFamily: "monospace",
+                  fontSize: "11px",
+                  lineHeight: "1.4"
                 },
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#6a9955", fontSize: "10px", flexShrink: 0 }, children: [
-                    "[",
-                    new Date(line.timestamp).toLocaleTimeString(),
-                    " ",
-                    line.stream,
-                    "]"
-                  ] }),
-                  " ",
-                  line.content
-                ]
-              },
-              idx
-            )) }) }) })
+                children: (appConsoleOutputs[selectedConsoleApp] || []).length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { color: "#666", fontStyle: "italic", textAlign: "center", padding: "40px 0" }, children: "Waiting for console output..." }) : (appConsoleOutputs[selectedConsoleApp] || []).map((line, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "div",
+                  {
+                    style: {
+                      color: line.stream === "stderr" ? "#f48771" : "#d4d4d4",
+                      marginBottom: "2px",
+                      wordBreak: "break-word",
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "break-word"
+                    },
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#6a9955", fontSize: "10px", flexShrink: 0 }, children: [
+                        "[",
+                        new Date(line.timestamp).toLocaleTimeString(),
+                        " ",
+                        line.stream,
+                        "]"
+                      ] }),
+                      " ",
+                      line.content
+                    ]
+                  },
+                  idx
+                ))
+              }
+            ) }) })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.card, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: styles.cardHeader, children: [
