@@ -41,12 +41,16 @@ interface VehicleRuntimeState {
   refreshApps: () => Promise<void>
   startApp: (appId: string) => Promise<void>
   stopApp: (appId: string) => Promise<void>
+  pauseApp: (appId: string) => Promise<void>
+  resumeApp: (appId: string) => Promise<void>
+  restartApp: (appId: string) => Promise<void>
   uninstallApp: (appId: string) => Promise<void>
   deployApp: (config: { name: string; displayName?: string; code: string; dependencies?: string[] }) => Promise<string>
   deployKuksa: () => Promise<string>
   deployMock: (mode?: 'echo-all' | 'echo-specific', signals?: string[]) => Promise<string>
   subscribeAppConsole: (appId: string) => Promise<void>
   unsubscribeAppConsole: (appId: string) => Promise<void>
+  clearAppConsole: (appId: string) => void
 }
 
 export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: string): VehicleRuntimeState {
@@ -271,6 +275,51 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     }
   }, [isRuntimeConnected, refreshApps])
 
+  // Pause application
+  const pauseApp = useCallback(async (appId: string) => {
+    if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+      throw new Error('Not connected to Vehicle Runtime')
+    }
+
+    try {
+      await runtimeServiceRef.current.pauseApp(appId)
+      await refreshApps()
+    } catch (error) {
+      console.error('[VehicleRuntime] Failed to pause app:', error)
+      throw error
+    }
+  }, [isRuntimeConnected, refreshApps])
+
+  // Resume application
+  const resumeApp = useCallback(async (appId: string) => {
+    if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+      throw new Error('Not connected to Vehicle Runtime')
+    }
+
+    try {
+      await runtimeServiceRef.current.resumeApp(appId)
+      await refreshApps()
+    } catch (error) {
+      console.error('[VehicleRuntime] Failed to resume app:', error)
+      throw error
+    }
+  }, [isRuntimeConnected, refreshApps])
+
+  // Restart application
+  const restartApp = useCallback(async (appId: string) => {
+    if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+      throw new Error('Not connected to Vehicle Runtime')
+    }
+
+    try {
+      await runtimeServiceRef.current.restartApp(appId)
+      await refreshApps()
+    } catch (error) {
+      console.error('[VehicleRuntime] Failed to restart app:', error)
+      throw error
+    }
+  }, [isRuntimeConnected, refreshApps])
+
   // Deploy new application
   const deployApp = useCallback(async (config: {
     name: string
@@ -386,6 +435,9 @@ export function useVehicleRuntimeState(websocketUrl?: string, kitManagerUrl?: st
     refreshApps,
     startApp,
     stopApp,
+    pauseApp,
+    resumeApp,
+    restartApp,
     uninstallApp,
     deployApp,
     deployKuksa,

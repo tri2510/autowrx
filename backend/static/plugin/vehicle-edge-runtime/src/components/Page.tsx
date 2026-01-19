@@ -18,6 +18,7 @@ const Icons = {
   Stop: () => '⏹️',
   Pause: () => '⏸️',
   Refresh: () => '🔄',
+  Restart: () => '🔁',
   Trash: () => '🗑️',
   Settings: () => '⚙️',
   Alert: () => '⚠️',
@@ -245,6 +246,9 @@ export default function Page({ data, config, api }: PageProps) {
     refreshApps,
     startApp,
     stopApp,
+    pauseApp,
+    resumeApp,
+    restartApp,
     uninstallApp,
     deployApp,
     deployKuksa,
@@ -602,6 +606,36 @@ export default function Page({ data, config, api }: PageProps) {
       logSuccess(`Application ${appId} uninstalled`)
     } catch (error) {
       logError(`Failed to uninstall app: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handlePauseApp = async (appId: string) => {
+    try {
+      logInfo(`Pausing application: ${appId}...`, 'info')
+      await pauseApp(appId)
+      logSuccess(`Application ${appId} paused`)
+    } catch (error) {
+      logError(`Failed to pause app: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleResumeApp = async (appId: string) => {
+    try {
+      logInfo(`Resuming application: ${appId}...`, 'info')
+      await resumeApp(appId)
+      logSuccess(`Application ${appId} resumed`)
+    } catch (error) {
+      logError(`Failed to resume app: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleRestartApp = async (appId: string) => {
+    try {
+      logInfo(`Restarting application: ${appId}...`, 'info')
+      await restartApp(appId)
+      logSuccess(`Application ${appId} restarted`)
+    } catch (error) {
+      logError(`Failed to restart app: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -1503,6 +1537,7 @@ export default function Page({ data, config, api }: PageProps) {
                     {vehicleApps.map(app => {
                       const isRunning = app.status === 'running'
                       const isStopped = app.status === 'stopped' || app.status === 'error'
+                      const isPaused = app.status === 'paused'
                       const isStarting = app.status === 'starting'
                       const statusInfo = getStatusInfo(app.status)
                       const isSelected = selectedConsoleApp === app.app_id
@@ -1583,58 +1618,98 @@ export default function Page({ data, config, api }: PageProps) {
                             </div>
                           )}
 
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            {isStopped ? (
+                          {/* Action buttons - compact icon-only design */}
+                          <div style={{
+                            display: 'flex',
+                            gap: '6px',
+                            justifyContent: 'flex-end',
+                            alignItems: 'center',
+                            marginTop: '4px'
+                          }}>
+                            {/* Start/Resume button */}
+                            {(isStopped || isPaused) && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleStartApp(app.app_id)
+                                  isPaused ? handleResumeApp(app.app_id) : handleStartApp(app.app_id)
                                 }}
                                 style={{
-                                  ...styles.button,
-                                  flex: 1,
-                                  padding: '8px 12px',
+                                  ...iconButtonStyle,
                                   backgroundColor: '#22c55e',
-                                  fontSize: '13px',
-                                  fontWeight: '600'
+                                  borderColor: '#16a34a'
                                 }}
-                                title="Start this application"
+                                title={isPaused ? "Resume application" : "Start application"}
                               >
-                                {Icons.Play()} Start
+                                {Icons.Play()}
                               </button>
-                            ) : (
+                            )}
+
+                            {/* Pause button (only when running) */}
+                            {isRunning && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handlePauseApp(app.app_id)
+                                }}
+                                style={{
+                                  ...iconButtonStyle,
+                                  backgroundColor: '#f59e0b',
+                                  borderColor: '#d97706'
+                                }}
+                                title="Pause application"
+                              >
+                                {Icons.Pause()}
+                              </button>
+                            )}
+
+                            {/* Restart button */}
+                            {!isPaused && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRestartApp(app.app_id)
+                                }}
+                                style={{
+                                  ...iconButtonStyle,
+                                  backgroundColor: '#3b82f6',
+                                  borderColor: '#2563eb'
+                                }}
+                                title="Restart application"
+                              >
+                                {Icons.Restart()}
+                              </button>
+                            )}
+
+                            {/* Stop/Kill button */}
+                            {!isStopped && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleStopApp(app.app_id)
                                 }}
                                 style={{
-                                  ...styles.button,
-                                  flex: 1,
-                                  padding: '8px 12px',
+                                  ...iconButtonStyle,
                                   backgroundColor: isRunning ? '#ef4444' : '#f97316',
-                                  fontSize: '13px',
-                                  fontWeight: '600'
+                                  borderColor: isRunning ? '#dc2626' : '#ea580c'
                                 }}
-                                title={isRunning ? "Stop this application" : "Stop this application"}
+                                title={isRunning ? "Stop application" : "Kill application"}
                               >
-                                {Icons.Stop()} {isRunning ? 'Stop' : 'Kill'}
+                                {Icons.Stop()}
                               </button>
                             )}
+
+                            {/* Uninstall button */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleUninstallApp(app.app_id)
                               }}
                               style={{
-                                ...styles.button,
-                                ...styles.buttonSmall,
-                                padding: '8px 12px',
+                                ...iconButtonStyle,
                                 backgroundColor: '#dc2626',
-                                fontSize: '13px',
-                                fontWeight: '600'
+                                borderColor: '#b91c1c'
                               }}
-                              title="Uninstall this application"
+                              title="Uninstall application"
                             >
                               {Icons.Trash()}
                             </button>
@@ -1661,3 +1736,19 @@ export default function Page({ data, config, api }: PageProps) {
     </div>
   )
 }
+
+// Compact icon button style
+const iconButtonStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  padding: '0',
+  border: '1px solid',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  transition: 'all 0.15s ease',
+  fontSize: '14px',
+  fontWeight: '500'
+} as const

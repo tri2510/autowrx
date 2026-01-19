@@ -280,6 +280,11 @@ export class VehicleRuntimeService {
     return this.sendCommand('resume_app', { appId })
   }
 
+  async restartApp(appId: string): Promise<any> {
+    // Use manage_app with restart action
+    return this.sendCommand('manage_app', { app_id: appId, action: 'restart' })
+  }
+
   async uninstallApp(appId: string): Promise<any> {
     // Kit Manager may not have uninstall command
     return this.sendCommand('uninstall_app', { appId })

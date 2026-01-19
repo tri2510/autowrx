@@ -3625,6 +3625,9 @@
     async resumeApp(appId) {
       return this.sendCommand("resume_app", { appId });
     }
+    async restartApp(appId) {
+      return this.sendCommand("manage_app", { app_id: appId, action: "restart" });
+    }
     async uninstallApp(appId) {
       return this.sendCommand("uninstall_app", { appId });
     }
@@ -3917,6 +3920,42 @@
         throw error;
       }
     }, [isRuntimeConnected, refreshApps]);
+    const pauseApp = (0, import_react.useCallback)(async (appId) => {
+      if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+        throw new Error("Not connected to Vehicle Runtime");
+      }
+      try {
+        await runtimeServiceRef.current.pauseApp(appId);
+        await refreshApps();
+      } catch (error) {
+        console.error("[VehicleRuntime] Failed to pause app:", error);
+        throw error;
+      }
+    }, [isRuntimeConnected, refreshApps]);
+    const resumeApp = (0, import_react.useCallback)(async (appId) => {
+      if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+        throw new Error("Not connected to Vehicle Runtime");
+      }
+      try {
+        await runtimeServiceRef.current.resumeApp(appId);
+        await refreshApps();
+      } catch (error) {
+        console.error("[VehicleRuntime] Failed to resume app:", error);
+        throw error;
+      }
+    }, [isRuntimeConnected, refreshApps]);
+    const restartApp = (0, import_react.useCallback)(async (appId) => {
+      if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
+        throw new Error("Not connected to Vehicle Runtime");
+      }
+      try {
+        await runtimeServiceRef.current.restartApp(appId);
+        await refreshApps();
+      } catch (error) {
+        console.error("[VehicleRuntime] Failed to restart app:", error);
+        throw error;
+      }
+    }, [isRuntimeConnected, refreshApps]);
     const deployApp = (0, import_react.useCallback)(async (config) => {
       if (!isRuntimeConnected || !runtimeServiceRef.current?.isServiceConnected()) {
         throw new Error("Not connected to Vehicle Runtime");
@@ -4011,6 +4050,9 @@
       refreshApps,
       startApp,
       stopApp,
+      pauseApp,
+      resumeApp,
+      restartApp,
       uninstallApp,
       deployApp,
       deployKuksa,
@@ -4340,6 +4382,7 @@ print("\u{1F4CA} Application execution finished")`
     Stop: () => "\u23F9\uFE0F",
     Pause: () => "\u23F8\uFE0F",
     Refresh: () => "\u{1F504}",
+    Restart: () => "\u{1F501}",
     Trash: () => "\u{1F5D1}\uFE0F",
     Settings: () => "\u2699\uFE0F",
     Alert: () => "\u26A0\uFE0F",
@@ -4548,6 +4591,9 @@ print("\u{1F4CA} Application execution finished")`
       refreshApps,
       startApp,
       stopApp,
+      pauseApp,
+      resumeApp,
+      restartApp,
       uninstallApp,
       deployApp,
       deployKuksa,
@@ -4821,6 +4867,33 @@ print("\u{1F4CA} Application execution finished")`
         logSuccess(`Application ${appId2} uninstalled`);
       } catch (error) {
         logError(`Failed to uninstall app: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    };
+    const handlePauseApp = async (appId2) => {
+      try {
+        logInfo(`Pausing application: ${appId2}...`, "info");
+        await pauseApp(appId2);
+        logSuccess(`Application ${appId2} paused`);
+      } catch (error) {
+        logError(`Failed to pause app: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    };
+    const handleResumeApp = async (appId2) => {
+      try {
+        logInfo(`Resuming application: ${appId2}...`, "info");
+        await resumeApp(appId2);
+        logSuccess(`Application ${appId2} resumed`);
+      } catch (error) {
+        logError(`Failed to resume app: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    };
+    const handleRestartApp = async (appId2) => {
+      try {
+        logInfo(`Restarting application: ${appId2}...`, "info");
+        await restartApp(appId2);
+        logSuccess(`Application ${appId2} restarted`);
+      } catch (error) {
+        logError(`Failed to restart app: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     };
     const handleDeployKuksa = async () => {
@@ -5724,6 +5797,7 @@ print("\u{1F4CA} Application execution finished")`
             ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: styles.grid, children: vehicleApps.map((app) => {
               const isRunning = app.status === "running";
               const isStopped = app.status === "stopped" || app.status === "error";
+              const isPaused = app.status === "paused";
               const isStarting = app.status === "starting";
               const statusInfo = getStatusInfo(app.status);
               const isSelected = selectedConsoleApp === app.app_id;
@@ -5796,29 +5870,62 @@ print("\u{1F4CA} Application execution finished")`
                         app.resources.memory_limit || "N/A"
                       ] })
                     ] }) }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
-                      isStopped ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                      display: "flex",
+                      gap: "6px",
+                      justifyContent: "flex-end",
+                      alignItems: "center",
+                      marginTop: "4px"
+                    }, children: [
+                      (isStopped || isPaused) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                         "button",
                         {
                           onClick: (e) => {
                             e.stopPropagation();
-                            handleStartApp(app.app_id);
+                            isPaused ? handleResumeApp(app.app_id) : handleStartApp(app.app_id);
                           },
                           style: {
-                            ...styles.button,
-                            flex: 1,
-                            padding: "8px 12px",
+                            ...iconButtonStyle,
                             backgroundColor: "#22c55e",
-                            fontSize: "13px",
-                            fontWeight: "600"
+                            borderColor: "#16a34a"
                           },
-                          title: "Start this application",
-                          children: [
-                            Icons.Play(),
-                            " Start"
-                          ]
+                          title: isPaused ? "Resume application" : "Start application",
+                          children: Icons.Play()
                         }
-                      ) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      ),
+                      isRunning && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "button",
+                        {
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            handlePauseApp(app.app_id);
+                          },
+                          style: {
+                            ...iconButtonStyle,
+                            backgroundColor: "#f59e0b",
+                            borderColor: "#d97706"
+                          },
+                          title: "Pause application",
+                          children: Icons.Pause()
+                        }
+                      ),
+                      !isPaused && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "button",
+                        {
+                          onClick: (e) => {
+                            e.stopPropagation();
+                            handleRestartApp(app.app_id);
+                          },
+                          style: {
+                            ...iconButtonStyle,
+                            backgroundColor: "#3b82f6",
+                            borderColor: "#2563eb"
+                          },
+                          title: "Restart application",
+                          children: Icons.Restart()
+                        }
+                      ),
+                      !isStopped && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                         "button",
                         {
                           onClick: (e) => {
@@ -5826,19 +5933,12 @@ print("\u{1F4CA} Application execution finished")`
                             handleStopApp(app.app_id);
                           },
                           style: {
-                            ...styles.button,
-                            flex: 1,
-                            padding: "8px 12px",
+                            ...iconButtonStyle,
                             backgroundColor: isRunning ? "#ef4444" : "#f97316",
-                            fontSize: "13px",
-                            fontWeight: "600"
+                            borderColor: isRunning ? "#dc2626" : "#ea580c"
                           },
-                          title: isRunning ? "Stop this application" : "Stop this application",
-                          children: [
-                            Icons.Stop(),
-                            " ",
-                            isRunning ? "Stop" : "Kill"
-                          ]
+                          title: isRunning ? "Stop application" : "Kill application",
+                          children: Icons.Stop()
                         }
                       ),
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -5849,14 +5949,11 @@ print("\u{1F4CA} Application execution finished")`
                             handleUninstallApp(app.app_id);
                           },
                           style: {
-                            ...styles.button,
-                            ...styles.buttonSmall,
-                            padding: "8px 12px",
+                            ...iconButtonStyle,
                             backgroundColor: "#dc2626",
-                            fontSize: "13px",
-                            fontWeight: "600"
+                            borderColor: "#b91c1c"
                           },
-                          title: "Uninstall this application",
+                          title: "Uninstall application",
                           children: Icons.Trash()
                         }
                       )
@@ -5876,6 +5973,20 @@ print("\u{1F4CA} Application execution finished")`
       ] }) })
     ] });
   }
+  var iconButtonStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "32px",
+    height: "32px",
+    padding: "0",
+    border: "1px solid",
+    borderRadius: "6px",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    fontSize: "14px",
+    fontWeight: "500"
+  };
 
   // src/index.ts
   var components = { Page };
