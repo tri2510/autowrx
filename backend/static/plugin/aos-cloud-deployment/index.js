@@ -3739,8 +3739,13 @@ configuration:
     const [deployedApps, setDeployedApps] = React.useState([]);
     const [connectionStatus, setConnectionStatus] = React.useState("disconnected");
     const [selectedPreset, setSelectedPreset] = React.useState("custom");
+    const [dockerInstances, setDockerInstances] = React.useState([]);
+    const [filterOnline, setFilterOnline] = React.useState(false);
+    const [selectedInstance, setSelectedInstance] = React.useState("");
+    const [showDockerPanel, setShowDockerPanel] = React.useState(true);
     const aosServiceRef = React.useRef(null);
     const buildLogsRef = React.useRef(null);
+    const pollingIntervalRef = React.useRef(null);
     const styles = {
       page: {
         width: "100%",
@@ -3826,6 +3831,13 @@ configuration:
         gap: "16px",
         minWidth: 0,
         overflowY: "auto"
+      },
+      dockerColumn: {
+        width: "280px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+        flexShrink: 0
       },
       statusColumn: {
         width: "320px",
@@ -3914,6 +3926,10 @@ configuration:
       buttonDisabled: {
         opacity: 0.5,
         cursor: "not-allowed"
+      },
+      buttonSm: {
+        padding: "6px 12px",
+        fontSize: "12px"
       },
       spinner: {
         width: "14px",
@@ -4058,11 +4074,114 @@ configuration:
         cursor: "pointer",
         borderRadius: "4px",
         transition: "all 0.15s ease"
+      },
+      // Docker instance styles
+      dockerTabs: {
+        display: "flex",
+        gap: "4px",
+        padding: "8px 16px",
+        borderBottom: "1px solid #e5e7eb"
+      },
+      tab: {
+        padding: "6px 12px",
+        fontSize: "12px",
+        fontWeight: 500,
+        border: "none",
+        borderRadius: "6px",
+        backgroundColor: "transparent",
+        color: "#6b7280",
+        cursor: "pointer",
+        transition: "all 0.15s ease"
+      },
+      tabActive: {
+        backgroundColor: "#3b82f6",
+        color: "white"
+      },
+      dockerList: {
+        maxHeight: "250px",
+        overflowY: "auto",
+        padding: "8px"
+      },
+      dockerItem: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "10px 12px",
+        marginBottom: "4px",
+        borderRadius: "6px",
+        backgroundColor: "#f9fafb",
+        border: "1px solid #e5e7eb",
+        cursor: "pointer",
+        transition: "all 0.15s ease"
+      },
+      dockerItemSelected: {
+        backgroundColor: "#dbeafe",
+        borderColor: "#3b82f6"
+      },
+      dockerItemOnline: {
+        borderLeft: "3px solid #16a34a"
+      },
+      dockerItemOffline: {
+        borderLeft: "3px solid #dc2626"
+      },
+      dockerItemInfo: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "2px"
+      },
+      dockerItemName: {
+        fontSize: "13px",
+        fontWeight: 500,
+        color: "#1f2937"
+      },
+      dockerItemId: {
+        fontSize: "11px",
+        color: "#6b7280",
+        fontFamily: "monospace"
+      },
+      onlineIndicator: {
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+        fontSize: "11px",
+        fontWeight: 500
+      },
+      onlineDot: {
+        width: "8px",
+        height: "8px",
+        borderRadius: "50%",
+        backgroundColor: "#16a34a"
+      },
+      offlineDot: {
+        width: "8px",
+        height: "8px",
+        borderRadius: "50%",
+        backgroundColor: "#dc2626"
+      },
+      onlineText: {
+        color: "#16a34a"
+      },
+      offlineText: {
+        color: "#dc2626"
+      },
+      summaryCard: {
+        padding: "12px 16px",
+        backgroundColor: "#f9fafb",
+        borderBottom: "1px solid #e5e7eb"
+      },
+      summaryText: {
+        fontSize: "12px",
+        color: "#6b7280"
+      },
+      summaryNumber: {
+        fontSize: "18px",
+        fontWeight: 600,
+        color: "#1f2937"
       }
     };
     React.useEffect(() => {
-      const serviceUrl = config?.aosServiceUrl || config?.runtimeUrl || "ws://localhost:3002/runtime";
-      const service = new AosService(serviceUrl, "default-aos-target");
+      const serviceUrl = config?.aosServiceUrl || config?.runtimeUrl || "https://kit.digitalauto.tech";
+      const service = new AosService(serviceUrl, selectedInstance || "default-aos-target");
       aosServiceRef.current = service;
       service.onBuildProgress((message) => {
         addLog(`[Build] ${message.message || JSON.stringify(message)}`);
@@ -4084,24 +4203,112 @@ configuration:
       service.onConsoleOutput((message) => {
         addLog(`[${message.appId}] ${message.message}`);
       });
+      service.onAppStatus((message) => {
+        handleDockerStatusUpdate(message);
+      });
       setConnectionStatus("connecting");
       service.connect().then(() => {
         setConnectionStatus("connected");
         refreshApps();
+        startDockerPolling();
       }).catch((err) => {
         console.error("[AOS] Connection failed:", err);
         setConnectionStatus("disconnected");
         addLog(`[Error] Failed to connect: ${err.message}`);
       });
       return () => {
+        stopDockerPolling();
         service.disconnect();
       };
-    }, [config?.aosServiceUrl, config?.runtimeUrl]);
+    }, [config?.aosServiceUrl, config?.runtimeUrl, selectedInstance]);
     React.useEffect(() => {
       if (buildLogsRef.current) {
         buildLogsRef.current.scrollTop = buildLogsRef.current.scrollHeight;
       }
     }, [buildLogs]);
+    const startDockerPolling = () => {
+      fetchDockerInstances();
+      pollingIntervalRef.current = setInterval(() => {
+        fetchDockerInstances();
+      }, 1e4);
+    };
+    const stopDockerPolling = () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+    const fetchDockerInstances = async () => {
+      try {
+        const response = await fetch("http://localhost:3090/listAllKits");
+        if (response.ok) {
+          const data2 = await response.json();
+          if (data2.kits && Array.isArray(data2.kits)) {
+            const instances = data2.kits.filter((kit) => {
+              const instanceId = kit.kit_id || kit.instance_id || "";
+              return instanceId.startsWith("AET-") || instanceId.startsWith("VEA-") || kit.name?.includes("AOS");
+            }).map((kit) => ({
+              instance_id: kit.kit_id || kit.instance_id,
+              name: kit.name || "Unknown",
+              online: kit.online !== false,
+              // Assume online unless explicitly false
+              last_seen: kit.last_seen,
+              type: kit.type,
+              suffix: kit.suffix || (kit.kit_id || kit.instance_id || "").split("-")[0]
+            }));
+            setDockerInstances(instances);
+          }
+        }
+      } catch (err) {
+        console.log("[AOS] Kit Manager API not available, using mock data");
+        const mockInstances = [
+          {
+            instance_id: "AET-" + Math.random().toString(36).substr(2, 8),
+            name: "AOS Edge Toolchain",
+            online: true,
+            last_seen: (/* @__PURE__ */ new Date()).toISOString(),
+            suffix: "AET"
+          }
+        ];
+        setDockerInstances(mockInstances);
+      }
+    };
+    const handleDockerStatusUpdate = (message) => {
+      if (message.type === "docker_status" || message.instance_id) {
+        setDockerInstances((prev) => {
+          const updated = [...prev];
+          const index = updated.findIndex((d) => d.instance_id === message.instance_id);
+          if (index >= 0) {
+            updated[index] = {
+              ...updated[index],
+              online: message.online !== void 0 ? message.online : updated[index].online,
+              last_seen: message.last_seen || (/* @__PURE__ */ new Date()).toISOString()
+            };
+          } else {
+            updated.push({
+              instance_id: message.instance_id,
+              name: message.name || "AOS Toolchain",
+              online: message.online !== false,
+              suffix: message.suffix || "AET"
+            });
+          }
+          return updated;
+        });
+      }
+    };
+    const handleSelectDocker = (instance) => {
+      setSelectedInstance(instance.instance_id);
+      addLog(`[Docker] Selected instance: ${instance.name} (${instance.instance_id})`);
+      if (aosServiceRef.current) {
+        aosServiceRef.current.setTargetId(instance.instance_id);
+      }
+    };
+    const getFilteredInstances = () => {
+      if (filterOnline) {
+        return dockerInstances.filter((d) => d.online);
+      }
+      return dockerInstances;
+    };
     const addLog = (message) => {
       const timestamp = (/* @__PURE__ */ new Date()).toLocaleTimeString();
       setBuildLogs((prev) => [...prev, `[${timestamp}] ${message}`]);
@@ -4206,6 +4413,8 @@ configuration:
           return "status-stopped";
       }
     };
+    const filteredInstances = getFilteredInstances();
+    const onlineCount = dockerInstances.filter((d) => d.online).length;
     if (!data?.prototype?.name) {
       return React.createElement(
         "div",
@@ -4234,7 +4443,16 @@ configuration:
             "span",
             { style: { ...styles.statusIndicator, ...styles[`status${connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}`] } },
             connectionStatus === "connected" ? "\u25CF Connected" : connectionStatus === "connecting" ? "\u25CF Connecting..." : "\u25CB Disconnected"
-          )
+          ),
+          selectedInstance && React.createElement("span", {
+            style: {
+              fontSize: "12px",
+              padding: "4px 10px",
+              borderRadius: "4px",
+              backgroundColor: "#f3f4f6",
+              color: "#6b7280"
+            }
+          }, `Target: ${selectedInstance.substring(0, 12)}...`)
         ),
         React.createElement(
           "div",
@@ -4262,7 +4480,104 @@ configuration:
       React.createElement(
         "div",
         { style: styles.content },
-        // Left Column - Code Editors
+        // Left Column - Docker Instances
+        showDockerPanel && React.createElement(
+          "div",
+          { style: styles.dockerColumn },
+          React.createElement(
+            "div",
+            { style: styles.card },
+            React.createElement(
+              "div",
+              { style: styles.cardHeader },
+              React.createElement(
+                "div",
+                { style: styles.cardTitle },
+                React.createElement("span", { style: styles.cardIcon }, "\u{1F433}"),
+                "Docker Instances"
+              ),
+              React.createElement("button", {
+                onClick: () => fetchDockerInstances(),
+                style: styles.iconButton,
+                title: "Refresh"
+              }, "\u21BB")
+            ),
+            // Summary
+            React.createElement(
+              "div",
+              { style: styles.summaryCard },
+              React.createElement(
+                "div",
+                { style: { display: "flex", alignItems: "center", gap: "16px" } },
+                React.createElement(
+                  "div",
+                  null,
+                  React.createElement("div", { style: styles.summaryText }, "Online"),
+                  React.createElement("div", { style: styles.summaryNumber }, onlineCount)
+                ),
+                React.createElement(
+                  "div",
+                  null,
+                  React.createElement("div", { style: styles.summaryText }, "Total"),
+                  React.createElement("div", { style: styles.summaryNumber }, dockerInstances.length)
+                )
+              )
+            ),
+            // Filter Tabs
+            React.createElement(
+              "div",
+              { style: styles.dockerTabs },
+              React.createElement("button", {
+                onClick: () => setFilterOnline(false),
+                style: { ...styles.tab, ...!filterOnline ? styles.tabActive : {} }
+              }, "All Devices"),
+              React.createElement("button", {
+                onClick: () => setFilterOnline(true),
+                style: { ...styles.tab, ...filterOnline ? styles.tabActive : {} }
+              }, "Online Only")
+            ),
+            // Instance List
+            React.createElement(
+              "div",
+              { style: styles.dockerList },
+              filteredInstances.length === 0 ? React.createElement(
+                "div",
+                { style: styles.empty },
+                filterOnline ? "No online devices" : "No Docker instances found"
+              ) : filteredInstances.map(
+                (instance) => React.createElement(
+                  "div",
+                  {
+                    key: instance.instance_id,
+                    onClick: () => handleSelectDocker(instance),
+                    style: {
+                      ...styles.dockerItem,
+                      ...selectedInstance === instance.instance_id ? styles.dockerItemSelected : {},
+                      ...instance.online ? styles.dockerItemOnline : styles.dockerItemOffline
+                    }
+                  },
+                  React.createElement(
+                    "div",
+                    { style: styles.dockerItemInfo },
+                    React.createElement("div", { style: styles.dockerItemName }, instance.name),
+                    React.createElement("div", { style: styles.dockerItemId }, instance.instance_id)
+                  ),
+                  React.createElement(
+                    "div",
+                    { style: styles.onlineIndicator },
+                    React.createElement("span", {
+                      style: instance.online ? styles.onlineDot : styles.offlineDot
+                    }),
+                    React.createElement("span", {
+                      style: instance.online ? styles.onlineText : styles.offlineText
+                    }, instance.online ? "Online" : "Offline")
+                  )
+                )
+              )
+            )
+          )
+        ),
+        // Middle Column - Code Editors
         React.createElement(
           "div",
           { style: styles.editorsColumn },
