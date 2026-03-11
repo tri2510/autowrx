@@ -11,7 +11,7 @@ npm install
 
 echo -e "${GREEN}Building plugin...${NC}"
 
-# Build with esbuild - mark external packages individually
+# Build with esbuild
 npx esbuild src/index.ts \
   --bundle \
   --format=iife \
@@ -20,7 +20,6 @@ npx esbuild src/index.ts \
   --external:react \
   --external:react-dom \
   --external:react-dom/client \
-  --external:react/jsx-runtime \
   --sourcemap \
   --outfile=index.js
 

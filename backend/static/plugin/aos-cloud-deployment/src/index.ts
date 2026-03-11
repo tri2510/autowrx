@@ -16,8 +16,10 @@ export function unmount(el: HTMLElement) {
   delete (el as any).__aw_root
 }
 
-// Optional global registration
+// Register plugin globally for digital.auto
+// NOTE: PluginPageRender expects the key to be 'page-plugin'
 if (typeof window !== 'undefined') {
   ;(window as any).DAPlugins = (window as any).DAPlugins || {}
   ;(window as any).DAPlugins['page-plugin'] = { components, mount, unmount }
+  console.log('AOS Cloud Deployment plugin registered as page-plugin')
 }

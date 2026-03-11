@@ -1,80 +1,12 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const React: any = (globalThis as any).React
 
-import { EditorState } from '@codemirror/state'
-import { EditorView, basicSetup } from 'codemirror'
-import { cpp } from '@codemirror/lang-cpp'
-import { oneDark } from '@codemirror/theme-one-dark'
-import { keymap } from '@codemirror/view'
-import { defaultKeymap, indentWithTab } from '@codemirror/commands'
-import { search, highlightSelectionMatches } from '@codemirror/search'
-import { autocompletion } from '@codemirror/autocomplete'
-import { linter } from '@codemirror/lint'
 import { AosService } from '../services/aos.service'
 import { PRESETS } from '../presets'
 import type { PluginProps, AosApp } from '../types'
 
-import './Page.css'
-
-// YAML linter (basic)
-const yamlLinter = linter((view) => {
-  const diagnostics = []
-  const text = view.state.doc.toString()
-
-  // Basic YAML validation
-  const lines = text.split('\n')
-  lines.forEach((line, i) => {
-    // Check for tabs (YAML should use spaces)
-    if (line.match(/^\t/)) {
-      diagnostics.push({
-        from: view.state.doc.line(i + 1).from,
-        to: view.state.doc.line(i + 1).to,
-        severity: 'warning',
-        message: 'Use spaces instead of tabs for YAML indentation'
-      })
-    }
-    // Check for invalid key format
-    if (line.match(/^\s*[a-z-]+:\s*$/) === null && line.trim() && !line.startsWith('#')) {
-      // Skip if it has valid key:value format or is a parent key
-    }
-  })
-
-  return diagnostics
-})
-
-// Custom YAML extension
-const yamlExtension = [
-  basicSetup,
-  keymap.of([defaultKeymap, indentWithTab]),
-  search(),
-  highlightSelectionMatches(),
-  autocompletion(),
-  yamlLinter,
-  oneDark,
-  EditorView.theme({
-    '&': { fontSize: '13px' },
-    '.cm-scroller': { overflow: 'auto' },
-    '.cm-content': { minHeight: '200px' }
-  })
-]
-
-// C++ extension
-const cppExtension = [
-  basicSetup,
-  keymap.of([defaultKeymap, indentWithTab]),
-  search(),
-  highlightSelectionMatches(),
-  autocompletion(),
-  cpp(),
-  oneDark,
-  EditorView.theme({
-    '&': { fontSize: '13px' },
-    '.cm-scroller': { overflow: 'auto' },
-    '.cm-content': { minHeight: '300px' }
-  })
-]
-
 export default function Page({ data, config }: PluginProps) {
+
   const [cppCode, setCppCode] = React.useState(PRESETS.helloAos.cpp)
   const [yamlConfig, setYamlConfig] = React.useState(PRESETS.helloAos.yaml)
   const [appName, setAppName] = React.useState('hello-aos')
@@ -83,13 +15,331 @@ export default function Page({ data, config }: PluginProps) {
   const [buildLogs, setBuildLogs] = React.useState<string[]>([])
   const [deployedApps, setDeployedApps] = React.useState<AosApp[]>([])
   const [connectionStatus, setConnectionStatus] = React.useState<'disconnected' | 'connecting' | 'connected'>('disconnected')
+  const [selectedPreset, setSelectedPreset] = React.useState('custom')
 
-  const cppEditorRef = React.useRef<EditorView | null>(null)
-  const yamlEditorRef = React.useRef<EditorView | null>(null)
-  const cppContainerRef = React.useRef<HTMLDivElement>(null)
-  const yamlContainerRef = React.useRef<HTMLDivElement>(null)
   const aosServiceRef = React.useRef<AosService | null>(null)
   const buildLogsRef = React.useRef<HTMLDivElement>(null)
+
+  // Styles
+  const styles = {
+    page: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#f5f5f5',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      overflow: 'hidden' as const,
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    },
+    header: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '12px 20px',
+      backgroundColor: 'white',
+      borderBottom: '1px solid #e5e7eb'
+    },
+    headerLeft: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px'
+    },
+    title: {
+      margin: 0,
+      fontSize: '18px',
+      fontWeight: 600,
+      color: '#1f2937'
+    },
+    statusIndicator: {
+      fontSize: '12px',
+      padding: '4px 12px',
+      borderRadius: '20px',
+      fontWeight: 500
+    },
+    statusConnected: {
+      backgroundColor: '#dcfce7',
+      color: '#16a34a'
+    },
+    statusConnecting: {
+      backgroundColor: '#fef3c7',
+      color: '#b45309'
+    },
+    statusDisconnected: {
+      backgroundColor: '#fee2e2',
+      color: '#dc2626'
+    },
+    headerRight: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    input: {
+      padding: '8px 12px',
+      border: '1px solid #e5e7eb',
+      borderRadius: '6px',
+      fontSize: '14px',
+      outline: 'none'
+    },
+    inputSm: {
+      padding: '6px 10px',
+      fontSize: '13px'
+    },
+    select: {
+      padding: '8px 12px',
+      border: '1px solid #e5e7eb',
+      borderRadius: '6px',
+      fontSize: '14px',
+      backgroundColor: 'white',
+      cursor: 'pointer'
+    },
+    content: {
+      display: 'flex',
+      gap: '16px',
+      padding: '16px',
+      flex: 1,
+      overflow: 'hidden' as const
+    },
+    editorsColumn: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: '16px',
+      minWidth: 0,
+      overflowY: 'auto' as const
+    },
+    statusColumn: {
+      width: '320px',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: '16px',
+      flexShrink: 0
+    },
+    card: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      border: '1px solid #e5e7eb',
+      overflow: 'hidden' as const
+    },
+    cardHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '12px 16px',
+      borderBottom: '1px solid #e5e7eb'
+    },
+    cardTitle: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      fontSize: '14px',
+      fontWeight: 600,
+      color: '#1f2937'
+    },
+    cardIcon: {
+      fontSize: '16px'
+    },
+    cardBadge: {
+      fontSize: '10px',
+      padding: '2px 8px',
+      background: '#3b82f6',
+      color: 'white',
+      borderRadius: '10px',
+      textTransform: 'uppercase',
+      fontWeight: 500
+    },
+    editorCard: {
+      flex: 1,
+      minHeight: '280px',
+      display: 'flex',
+      flexDirection: 'column' as const
+    },
+    textarea: {
+      flex: 1,
+      width: '100%',
+      padding: '16px',
+      fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace",
+      fontSize: '13px',
+      lineHeight: 1.6,
+      border: 'none',
+      resize: 'none' as const,
+      backgroundColor: '#1e293b',
+      color: '#e2e8f0',
+      outline: 'none',
+      minHeight: '220px'
+    },
+    actions: {
+      display: 'flex',
+      gap: '12px'
+    },
+    button: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      padding: '10px 20px',
+      border: '1px solid #e5e7eb',
+      borderRadius: '6px',
+      backgroundColor: 'white',
+      color: '#475569',
+      fontSize: '14px',
+      fontWeight: 500,
+      cursor: 'pointer',
+      transition: 'all 0.15s ease'
+    },
+    buttonPrimary: {
+      backgroundColor: '#3b82f6',
+      color: 'white',
+      border: 'none' as const
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+      cursor: 'not-allowed'
+    },
+    spinner: {
+      width: '14px',
+      height: '14px',
+      border: '2px solid rgba(255, 255, 255, 0.3)',
+      borderTopColor: 'white',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite'
+    },
+    statusContent: {
+      padding: '12px 16px',
+      fontSize: '14px',
+      color: '#1f2937'
+    },
+    appsList: {
+      maxHeight: '200px',
+      overflowY: 'auto' as const
+    },
+    appItem: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '10px 16px',
+      borderBottom: '1px solid #f3f4f6'
+    },
+    appInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    appName: {
+      fontSize: '14px',
+      fontWeight: 500,
+      color: '#1f2937'
+    },
+    statusBadge: {
+      fontSize: '10px',
+      padding: '2px 8px',
+      borderRadius: '10px',
+      fontWeight: 500,
+      textTransform: 'uppercase'
+    },
+    statusRunning: {
+      backgroundColor: '#dcfce7',
+      color: '#16a34a'
+    },
+    statusDeployed: {
+      backgroundColor: '#dbeafe',
+      color: '#2563eb'
+    },
+    statusBuilding: {
+      backgroundColor: '#fef3c7',
+      color: '#d97706'
+    },
+    statusStopped: {
+      backgroundColor: '#f3f4f6',
+      color: '#6b7280'
+    },
+    statusError: {
+      backgroundColor: '#fee2e2',
+      color: '#dc2626'
+    },
+    appActions: {
+      display: 'flex',
+      gap: '4px'
+    },
+    actionBtn: {
+      width: '28px',
+      height: '28px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      transition: 'all 0.15s ease'
+    },
+    actionStart: {
+      backgroundColor: '#dcfce7',
+      color: '#16a34a'
+    },
+    actionStop: {
+      backgroundColor: '#fee2e2',
+      color: '#dc2626'
+    },
+    logsCard: {
+      flex: 1,
+      minHeight: '180px',
+      display: 'flex',
+      flexDirection: 'column' as const
+    },
+    logs: {
+      flex: 1,
+      padding: '12px 16px',
+      backgroundColor: '#1e293b',
+      fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
+      fontSize: '12px',
+      lineHeight: 1.5,
+      overflowY: 'auto' as const,
+      maxHeight: '180px'
+    },
+    logEntry: {
+      color: '#e2e8f0',
+      marginBottom: '2px',
+      whiteSpace: 'pre-wrap' as const,
+      wordBreak: 'break-all'
+    },
+    emptyState: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      backgroundColor: 'white',
+      margin: '20px',
+      borderRadius: '8px'
+    },
+    emptyIcon: {
+      fontSize: '48px',
+      marginBottom: '16px'
+    },
+    emptyText: {
+      color: '#6b7280',
+      fontSize: '14px'
+    },
+    empty: {
+      color: '#9ca3af',
+      textAlign: 'center',
+      padding: '20px',
+      fontSize: '13px'
+    },
+    iconButton: {
+      width: '28px',
+      height: '28px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: 'none',
+      backgroundColor: 'transparent',
+      color: '#9ca3af',
+      cursor: 'pointer',
+      borderRadius: '4px',
+      transition: 'all 0.15s ease'
+    }
+  }
 
   // Initialize AOS service
   React.useEffect(() => {
@@ -97,7 +347,6 @@ export default function Page({ data, config }: PluginProps) {
     const service = new AosService(serviceUrl, 'default-aos-target')
     aosServiceRef.current = service
 
-    // Set up event handlers
     service.onBuildProgress((message: any) => {
       addLog(`[Build] ${message.message || JSON.stringify(message)}`)
       if (message.progress !== undefined) {
@@ -121,7 +370,6 @@ export default function Page({ data, config }: PluginProps) {
       addLog(`[${message.appId}] ${message.message}`)
     })
 
-    // Connect to service
     setConnectionStatus('connecting')
     service.connect()
       .then(() => {
@@ -139,7 +387,6 @@ export default function Page({ data, config }: PluginProps) {
     }
   }, [config?.aosServiceUrl, config?.runtimeUrl])
 
-  // Auto-scroll build logs
   React.useEffect(() => {
     if (buildLogsRef.current) {
       buildLogsRef.current.scrollTop = buildLogsRef.current.scrollHeight
@@ -153,7 +400,6 @@ export default function Page({ data, config }: PluginProps) {
 
   const refreshApps = async () => {
     if (!aosServiceRef.current) return
-
     try {
       const result = await aosServiceRef.current.getDeployedApps()
       setDeployedApps(result.applications)
@@ -162,59 +408,6 @@ export default function Page({ data, config }: PluginProps) {
     }
   }
 
-  // Initialize C++ editor
-  React.useEffect(() => {
-    if (!cppContainerRef.current || cppEditorRef.current) return
-
-    const startState = EditorState.create({
-      doc: cppCode,
-      extensions: [
-        ...cppExtension,
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            setCppCode(update.state.doc.toString())
-          }
-        })
-      ]
-    })
-
-    cppEditorRef.current = new EditorView({
-      state: startState,
-      parent: cppContainerRef.current
-    })
-
-    return () => {
-      cppEditorRef.current?.destroy()
-    }
-  }, [])
-
-  // Initialize YAML editor
-  React.useEffect(() => {
-    if (!yamlContainerRef.current || yamlEditorRef.current) return
-
-    const startState = EditorState.create({
-      doc: yamlConfig,
-      extensions: [
-        ...yamlExtension,
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            setYamlConfig(update.state.doc.toString())
-          }
-        })
-      ]
-    })
-
-    yamlEditorRef.current = new EditorView({
-      state: startState,
-      parent: yamlContainerRef.current
-    })
-
-    return () => {
-      yamlEditorRef.current?.destroy()
-    }
-  }, [])
-
-  // Handle build and deploy
   const handleBuildDeploy = async () => {
     if (!aosServiceRef.current || !aosServiceRef.current.isServiceConnected()) {
       addLog('[Error] Not connected to AOS service')
@@ -243,10 +436,8 @@ export default function Page({ data, config }: PluginProps) {
     }
   }
 
-  // Handle start app
   const handleStartApp = async (appId: string) => {
     if (!aosServiceRef.current) return
-
     addLog(`[Action] Starting app: ${appId}`)
     try {
       await aosServiceRef.current.startApp(appId)
@@ -257,10 +448,8 @@ export default function Page({ data, config }: PluginProps) {
     }
   }
 
-  // Handle stop app
   const handleStopApp = async (appId: string) => {
     if (!aosServiceRef.current) return
-
     addLog(`[Action] Stopping app: ${appId}`)
     try {
       await aosServiceRef.current.stopApp(appId)
@@ -271,216 +460,228 @@ export default function Page({ data, config }: PluginProps) {
     }
   }
 
-  // Load preset
-  const handleLoadPreset = (presetName: string) => {
+  const handlePresetChange = (presetName: string) => {
+    setSelectedPreset(presetName)
     const preset = (PRESETS as any)[presetName]
     if (preset) {
-      if (cppEditorRef.current) {
-        cppEditorRef.current.dispatch({
-          changes: {
-            from: 0,
-            to: cppEditorRef.current.state.doc.length,
-            insert: preset.cpp
-          }
-        })
-        setCppCode(preset.cpp)
-      }
-      if (yamlEditorRef.current) {
-        yamlEditorRef.current.dispatch({
-          changes: {
-            from: 0,
-            to: yamlEditorRef.current.state.doc.length,
-            insert: preset.yaml
-          }
-        })
-        setYamlConfig(preset.yaml)
-      }
+      setCppCode(preset.cpp)
+      setYamlConfig(preset.yaml)
       setAppName(presetName)
       addLog(`[Preset] Loaded: ${presetName}`)
     }
   }
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadgeStyle = (status: string) => {
     switch (status) {
-      case 'running': return 'status-badge status-running'
-      case 'deployed': return 'status-badge status-deployed'
-      case 'building': return 'status-badge status-building'
-      case 'stopped': return 'status-badge status-stopped'
-      case 'error': return 'status-badge status-error'
-      default: return 'status-badge status-unknown'
+      case 'running': return styles.statusRunning
+      case 'deployed': return styles.statusDeployed
+      case 'building': return styles.statusBuilding
+      case 'stopped': return styles.statusStopped
+      case 'error': return styles.statusError
+      default: return styles.statusStopped
+    }
+  }
+
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case 'running': return 'status-running'
+      case 'deployed': return 'status-deployed'
+      case 'building': return 'status-building'
+      case 'stopped': return 'status-stopped'
+      case 'error': return 'status-error'
+      default: return 'status-stopped'
     }
   }
 
   if (!data?.prototype?.name) {
-    return (
-      <div className="aos-page">
-        <div className="aos-empty-state">
-          <h2>No Prototype Selected</h2>
-          <p>Please select a prototype to use the AOS Cloud Deployment plugin.</p>
-        </div>
-      </div>
+    return React.createElement('div', { style: styles.page },
+      React.createElement('div', { style: styles.emptyState },
+        React.createElement('div', { style: styles.emptyIcon }, '📦'),
+        React.createElement('h2', { style: { margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: '#1f2937' } }, 'No Prototype Selected'),
+        React.createElement('p', { style: styles.emptyText }, 'Please select a prototype to use the AOS Cloud Deployment plugin.')
+      )
     )
   }
 
-  return (
-    <div className="aos-page">
-      <div className="aos-container">
-        {/* Left Panel - Editors */}
-        <div className="aos-editor-panel">
-          {/* Header */}
-          <div className="aos-panel-header">
-            <div className="aos-header-title">
-              <h2>AOS Cloud Deployment</h2>
-              <span className={`aos-connection-status aos-status-${connectionStatus}`}>
-                {connectionStatus === 'connected' ? '● Connected' : connectionStatus === 'connecting' ? '● Connecting...' : '○ Disconnected'}
-              </span>
-            </div>
-            <div className="aos-header-controls">
-              <select
-                value="custom"
-                onChange={(e) => e.target.value !== 'custom' && handleLoadPreset(e.target.value)}
-                className="aos-select"
-              >
-                <option value="custom">Custom</option>
-                <option value="helloAos">Hello AOS Example</option>
-              </select>
-              <input
-                type="text"
-                value={appName}
-                onChange={(e) => setAppName(e.target.value)}
-                placeholder="App Name"
-                className="aos-input"
-              />
-            </div>
-          </div>
+  return React.createElement('div', { style: styles.page },
 
-          {/* C++ Editor */}
-          <div className="aos-editor-section">
-            <div className="aos-editor-header">
-              <span className="aos-editor-title">main.cpp</span>
-              <span className="aos-editor-lang">C++</span>
-            </div>
-            <div ref={cppContainerRef} className="aos-editor-cpp" />
-          </div>
+    // Header
+    React.createElement('header', { style: styles.header },
+      React.createElement('div', { style: styles.headerLeft },
+        React.createElement('h1', { style: styles.title }, 'AOS Cloud Deployment'),
+        React.createElement('span', { style: { ...styles.statusIndicator, ...styles[`status${connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}`] } },
+          connectionStatus === 'connected' ? '● Connected' : connectionStatus === 'connecting' ? '● Connecting...' : '○ Disconnected'
+        )
+      ),
+      React.createElement('div', { style: styles.headerRight },
+        React.createElement('select', {
+          value: selectedPreset,
+          onChange: (e: any) => handlePresetChange(e.target.value),
+          style: styles.select
+        },
+          React.createElement('option', { value: 'custom' }, 'Custom'),
+          React.createElement('option', { value: 'helloAos' }, 'Hello AOS Example')
+        ),
+        React.createElement('input', {
+          type: 'text',
+          value: appName,
+          onChange: (e: any) => setAppName(e.target.value),
+          placeholder: 'App name',
+          style: { ...styles.input, ...styles.inputSm }
+        })
+      )
+    ),
 
-          {/* YAML Editor */}
-          <div className="aos-editor-section">
-            <div className="aos-editor-header">
-              <span className="aos-editor-title">config.yaml</span>
-              <span className="aos-editor-lang">YAML</span>
-            </div>
-            <div ref={yamlContainerRef} className="aos-editor-yaml" />
-          </div>
+    // Main Content
+    React.createElement('div', { style: styles.content },
 
-          {/* Build Controls */}
-          <div className="aos-build-controls">
-            <button
-              onClick={handleBuildDeploy}
-              disabled={isBuilding || connectionStatus !== 'connected'}
-              className="aos-button aos-button-primary"
-            >
-              {isBuilding ? (
-                <>
-                  <span className="aos-spinner"></span>
-                  Building...
-                </>
-              ) : (
-                <>
-                  <span>⚡</span>
-                  Build & Deploy
-                </>
-              )}
-            </button>
-            <button
-              onClick={refreshApps}
-              disabled={connectionStatus !== 'connected'}
-              className="aos-button"
-            >
-              Refresh Apps
-            </button>
-          </div>
-        </div>
+      // Left Column - Code Editors
+      React.createElement('div', { style: styles.editorsColumn },
 
-        {/* Right Panel - Status & Logs */}
-        <div className="aos-status-panel">
-          {/* Build Status */}
-          {buildStatus && (
-            <div className="aos-status-card">
-              <div className="aos-status-header">
-                <h3>Build Status</h3>
-              </div>
-              <div className="aos-status-message">{buildStatus}</div>
-            </div>
-          )}
+        // C++ Editor Card
+        React.createElement('div', { style: { ...styles.card, ...styles.editorCard } },
+          React.createElement('div', { style: styles.cardHeader },
+            React.createElement('div', { style: styles.cardTitle },
+              React.createElement('span', { style: styles.cardIcon }, '📄'),
+              React.createElement('span', null, 'main.cpp'),
+              React.createElement('span', { style: styles.cardBadge }, 'C++')
+            )
+          ),
+          React.createElement('textarea', {
+            style: styles.textarea,
+            value: cppCode,
+            onChange: (e: any) => setCppCode(e.target.value),
+            placeholder: '// Enter your C++ code here...',
+            spellCheck: false
+          })
+        ),
 
-          {/* Deployed Apps */}
-          <div className="aos-apps-card">
-            <div className="aos-status-header">
-              <h3>Deployed Applications</h3>
-              <button onClick={refreshApps} className="aos-icon-button">↻</button>
-            </div>
-            <div className="aos-apps-list">
-              {deployedApps.length === 0 ? (
-                <div className="aos-empty">No applications deployed yet</div>
-              ) : (
-                deployedApps.map((app) => (
-                  <div key={app.app_id} className="aos-app-item">
-                    <div className="aos-app-info">
-                      <span className="aos-app-name">{app.name}</span>
-                      <span className={getStatusBadgeClass(app.status)}>
-                        {app.status}
-                      </span>
-                    </div>
-                    <div className="aos-app-actions">
-                      {(app.status === 'stopped' || app.status === 'deployed') && (
-                        <button
-                          onClick={() => handleStartApp(app.app_id)}
-                          className="aos-button-xs aos-button-start"
-                          title="Start"
-                        >
-                          ▶
-                        </button>
-                      )}
-                      {app.status === 'running' && (
-                        <button
-                          onClick={() => handleStopApp(app.app_id)}
-                          className="aos-button-xs aos-button-stop"
-                          title="Stop"
-                        >
-                          ■
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+        // YAML Config Card
+        React.createElement('div', { style: { ...styles.card, ...styles.editorCard } },
+          React.createElement('div', { style: styles.cardHeader },
+            React.createElement('div', { style: styles.cardTitle },
+              React.createElement('span', { style: styles.cardIcon }, '⚙️'),
+              React.createElement('span', null, 'config.yaml'),
+              React.createElement('span', { style: styles.cardBadge }, 'YAML')
+            )
+          ),
+          React.createElement('textarea', {
+            style: styles.textarea,
+            value: yamlConfig,
+            onChange: (e: any) => setYamlConfig(e.target.value),
+            placeholder: '# Enter your YAML configuration here...',
+            spellCheck: false
+          })
+        ),
 
-          {/* Build Logs */}
-          <div className="aos-logs-card">
-            <div className="aos-status-header">
-              <h3>Build Logs</h3>
-              <button
-                onClick={() => setBuildLogs([])}
-                className="aos-icon-button"
-                title="Clear logs"
-              >
-                ✕
-              </button>
-            </div>
-            <div ref={buildLogsRef} className="aos-logs">
-              {buildLogs.length === 0 ? (
-                <div className="aos-empty">No logs yet</div>
-              ) : (
-                buildLogs.map((log, i) => (
-                  <div key={i} className="aos-log-line">{log}</div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        // Action Buttons
+        React.createElement('div', { style: styles.actions },
+          React.createElement('button', {
+            onClick: handleBuildDeploy,
+            disabled: isBuilding || connectionStatus !== 'connected',
+            style: { ...styles.button, ...styles.buttonPrimary, ...(isBuilding || connectionStatus !== 'connected' ? styles.buttonDisabled : {}) }
+          },
+            isBuilding
+              ? React.createElement(React.Fragment, null,
+                  React.createElement('span', { style: styles.spinner }),
+                  ' Building...'
+                )
+              : React.createElement(React.Fragment, null,
+                  React.createElement('span', null, '⚡'),
+                  ' Build & Deploy'
+                )
+          ),
+          React.createElement('button', {
+            onClick: refreshApps,
+            disabled: connectionStatus !== 'connected',
+            style: { ...styles.button, ...(connectionStatus !== 'connected' ? styles.buttonDisabled : {}) }
+          }, 'Refresh Apps')
+        )
+      ),
+
+      // Right Column - Status & Logs
+      React.createElement('div', { style: styles.statusColumn },
+
+        // Status Card
+        buildStatus && React.createElement('div', { style: styles.card },
+          React.createElement('div', { style: styles.cardHeader },
+            React.createElement('div', { style: styles.cardTitle },
+              React.createElement('span', { style: styles.cardIcon }, '📊'),
+              'Build Status'
+            )
+          ),
+          React.createElement('div', { style: styles.statusContent }, buildStatus)
+        ),
+
+        // Deployed Apps Card
+        React.createElement('div', { style: styles.card },
+          React.createElement('div', { style: styles.cardHeader },
+            React.createElement('div', { style: styles.cardTitle },
+              React.createElement('span', { style: styles.cardIcon }, '🚀'),
+              'Deployed Apps'
+            ),
+            React.createElement('button', {
+              onClick: refreshApps,
+              style: styles.iconButton,
+              title: 'Refresh'
+            }, '↻')
+          ),
+          React.createElement('div', { style: styles.appsList },
+            deployedApps.length === 0
+              ? React.createElement('div', { style: styles.empty }, 'No applications deployed')
+              : deployedApps.map((app) =>
+                  React.createElement('div', {
+                    key: app.app_id,
+                    style: styles.appItem
+                  },
+                    React.createElement('div', { style: styles.appInfo },
+                      React.createElement('span', { style: styles.appName }, app.name),
+                      React.createElement('span', { style: { ...styles.statusBadge, ...getStatusBadgeStyle(app.status) } }, getStatusClass(app.status))
+                    ),
+                    React.createElement('div', { style: styles.appActions },
+                      (app.status === 'stopped' || app.status === 'deployed') &&
+                        React.createElement('button', {
+                          onClick: () => handleStartApp(app.app_id),
+                          style: { ...styles.actionBtn, ...styles.actionStart },
+                          title: 'Start'
+                        }, '▶'),
+                      app.status === 'running' &&
+                        React.createElement('button', {
+                          onClick: () => handleStopApp(app.app_id),
+                          style: { ...styles.actionBtn, ...styles.actionStop },
+                          title: 'Stop'
+                        }, '■')
+                    )
+                  )
+                )
+          )
+        ),
+
+        // Build Logs Card
+        React.createElement('div', { style: { ...styles.card, ...styles.logsCard } },
+          React.createElement('div', { style: styles.cardHeader },
+            React.createElement('div', { style: styles.cardTitle },
+              React.createElement('span', { style: styles.cardIcon }, '📋'),
+              'Build Logs'
+            ),
+            React.createElement('button', {
+              onClick: () => setBuildLogs([]),
+              style: styles.iconButton,
+              title: 'Clear logs'
+            }, '✕')
+          ),
+          React.createElement('div', { ref: buildLogsRef, style: styles.logs },
+            buildLogs.length === 0
+              ? React.createElement('div', { style: styles.empty }, 'No logs yet')
+              : buildLogs.map((log, i) =>
+                  React.createElement('div', {
+                    key: i,
+                    style: styles.logEntry
+                  }, log)
+                )
+          )
+        )
+      )
+    )
   )
 }
