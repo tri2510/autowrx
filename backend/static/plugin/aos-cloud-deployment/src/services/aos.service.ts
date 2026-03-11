@@ -17,7 +17,7 @@ export class AosService {
   }>()
 
   constructor(
-    private websocketUrl: string = 'ws://localhost:3002/runtime',
+    private websocketUrl: string = 'https://kit.digitalauto.tech',
     private targetId?: string  // Target edge device or build container ID
   ) {
     // Ensure URL uses https for Socket.IO (handles WebSocket upgrade)

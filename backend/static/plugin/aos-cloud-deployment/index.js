@@ -3436,7 +3436,7 @@
 
   // src/services/aos.service.ts
   var AosService = class {
-    constructor(websocketUrl = "ws://localhost:3002/runtime", targetId) {
+    constructor(websocketUrl = "https://kit.digitalauto.tech", targetId) {
       this.websocketUrl = websocketUrl;
       this.targetId = targetId;
       this.socket = null;
