@@ -1,0 +1,442 @@
+/* AOS Cloud Deployment Plugin Styles */
+
+.aos-page {
+  width: 100%;
+  height: 100%;
+  background: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.aos-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: white;
+  margin: 16px;
+  border-radius: 8px;
+}
+
+.aos-empty-state h2 {
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+.aos-empty-state p {
+  color: #94a3b8;
+  margin: 0;
+}
+
+.aos-container {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left Panel - Editors */
+.aos-editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.aos-panel-header {
+  background: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.aos-header-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.aos-header-title h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.aos-connection-status {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.aos-status-connected {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.aos-status-connecting {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.aos-status-disconnected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.aos-header-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.aos-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.aos-input:focus {
+  border-color: #3b82f6;
+}
+
+.aos-select {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+/* Editor Sections */
+.aos-editor-section {
+  flex: 1;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.aos-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.aos-editor-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #f8fafc;
+}
+
+.aos-editor-lang {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.aos-editor-cpp,
+.aos-editor-yaml {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* CodeMirror Overrides */
+.aos-editor-cpp .cm-editor,
+.aos-editor-yaml .cm-editor {
+  height: 100%;
+}
+
+.aos-editor-cpp .cm-scroller,
+.aos-editor-yaml .cm-scroller {
+  height: 100%;
+  overflow: auto;
+}
+
+/* Build Controls */
+.aos-build-controls {
+  display: flex;
+  gap: 8px;
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.aos-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.aos-button:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.aos-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.aos-button-primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.aos-button-primary:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.aos-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: aos-spin 0.8s linear infinite;
+}
+
+@keyframes aos-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Right Panel - Status */
+.aos-status-panel {
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aos-status-card,
+.aos-apps-card,
+.aos-logs-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.aos-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.aos-status-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.aos-icon-button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.aos-icon-button:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.aos-status-message {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #475569;
+}
+
+/* Apps List */
+.aos-apps-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.aos-app-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.aos-app-item:last-child {
+  border-bottom: none;
+}
+
+.aos-app-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aos-app-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.status-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-running {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-deployed {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-building {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-stopped {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.status-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-unknown {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.aos-app-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.aos-button-xs {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.aos-button-start {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.aos-button-start:hover {
+  background: #bbf7d0;
+}
+
+.aos-button-stop {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.aos-button-stop:hover {
+  background: #fecaca;
+}
+
+/* Logs */
+.aos-logs {
+  height: 200px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  background: #1e293b;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.aos-empty {
+  color: #94a3b8;
+  text-align: center;
+  padding: 20px;
+}
+
+.aos-log-line {
+  color: #e2e8f0;
+  margin-bottom: 2px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.aos-log-line:empty {
+  display: none;
+}
+
+/* Scrollbar styling */
+.aos-apps-list::-webkit-scrollbar,
+.aos-logs::-webkit-scrollbar {
+  width: 6px;
+}
+
+.aos-apps-list::-webkit-scrollbar-track,
+.aos-logs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.aos-apps-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.aos-logs::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}

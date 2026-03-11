@@ -1,0 +1,29 @@
+{
+  "name": "aos-cloud-deployment-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "./build.sh",
+    "dev": "esbuild src/index.ts --bundle --format=iife --platform=browser --jsx=automatic --external:react --external:react-dom/client --external:react/jsx-runtime --sourcemap --outfile=index.js --watch",
+    "serve": "node server.js"
+  },
+  "dependencies": {
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.29.0",
+    "@codemirror/lang-cpp": "^6.0.2",
+    "@codemirror/language": "^6.10.2",
+    "@codemirror/commands": "^6.6.0",
+    "@codemirror/search": "^6.5.6",
+    "@codemirror/autocomplete": "^6.18.0",
+    "@codemirror/lint": "^6.8.0",
+    "socket.io-client": "^4.8.1",
+    "react-icons": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "esbuild": "^0.19.0",
+    "typescript": "^5.0.0"
+  }
+}
