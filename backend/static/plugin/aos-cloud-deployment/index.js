@@ -3689,8 +3689,8 @@ int main() {
     return 0;
 }`,
       yaml: `publisher:
-    author: "Your Name"
-    company: "Your Company"
+    author: "nhan.luongnguyen@vn.bosch.com"
+    company: "Bosch"
 
 build:
     os: linux
@@ -3700,7 +3700,7 @@ build:
 
 publish:
     url: aoscloud.io
-    service_uid: 84d98700-694c-45f6-a00b-3423a7523b95
+    service_uid: c0528145-b393-44c6-aeaa-b26bc560acee
     tls_pkcs12: aos-user-sp.p12
     version: "1.0.0"
 
