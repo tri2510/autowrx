@@ -900,11 +900,10 @@ export default function Page({ data, config }: PluginProps) {
                   )
                 )
           )
-        )
-      ),
+        ),
 
-      // Deployment Status Card
-      React.createElement('div', { style: styles.card },
+        // Deployment Status Card (stacked below Docker Instances)
+        React.createElement('div', { style: { ...styles.card, marginTop: '12px' } },
         React.createElement('div', { style: styles.cardHeader },
           React.createElement('div', { style: styles.cardTitle },
             React.createElement('span', { style: styles.cardIcon }, '📊'),
@@ -972,7 +971,8 @@ export default function Page({ data, config }: PluginProps) {
                 )
               )
         )
-      ),
+      )
+      ),  // End of dockerColumn - Deployment Status is stacked below Docker Instances
 
       // Middle Column - Code Editors
       React.createElement('div', { style: styles.editorsColumn },

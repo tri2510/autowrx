@@ -4626,104 +4626,105 @@ configuration:
                 )
               )
             )
-          )
-        ),
-        // Deployment Status Card
-        React.createElement(
-          "div",
-          { style: styles.card },
+          ),
+          // Deployment Status Card (stacked below Docker Instances)
           React.createElement(
             "div",
-            { style: styles.cardHeader },
+            { style: { ...styles.card, marginTop: "12px" } },
             React.createElement(
               "div",
-              { style: styles.cardTitle },
-              React.createElement("span", { style: styles.cardIcon }, "\u{1F4CA}"),
-              "AosCloud Deployment Status"
+              { style: styles.cardHeader },
+              React.createElement(
+                "div",
+                { style: styles.cardTitle },
+                React.createElement("span", { style: styles.cardIcon }, "\u{1F4CA}"),
+                "AosCloud Deployment Status"
+              ),
+              React.createElement("button", {
+                onClick: fetchDeploymentStatus,
+                disabled: isLoadingStatus || connectionStatus !== "connected",
+                style: { ...styles.iconButton, ...isLoadingStatus ? { opacity: 0.5 } : {} },
+                title: "Refresh status"
+              }, isLoadingStatus ? "\u27F3" : "\u21BB")
             ),
-            React.createElement("button", {
-              onClick: fetchDeploymentStatus,
-              disabled: isLoadingStatus || connectionStatus !== "connected",
-              style: { ...styles.iconButton, ...isLoadingStatus ? { opacity: 0.5 } : {} },
-              title: "Refresh status"
-            }, isLoadingStatus ? "\u27F3" : "\u21BB")
-          ),
-          // Status content
-          React.createElement(
-            "div",
-            { style: { padding: "12px" } },
-            statusError ? React.createElement(
+            // Status content
+            React.createElement(
               "div",
-              { style: { color: "#dc3545", fontSize: "12px", textAlign: "center" } },
-              `\u26A0\uFE0F ${statusError}`
-            ) : !deploymentStatus ? React.createElement(
-              "div",
-              { style: { color: "#6c757d", fontSize: "12px", textAlign: "center" } },
-              "Click \u21BB to fetch deployment status from AosCloud"
-            ) : React.createElement(
-              React.Fragment,
-              null,
-              // Service info
-              React.createElement(
+              { style: { padding: "12px" } },
+              statusError ? React.createElement(
                 "div",
-                { style: { marginBottom: "12px" } },
-                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Service"),
-                React.createElement("div", { style: { fontSize: "13px", fontWeight: "500", marginBottom: "2px" } }, deploymentStatus.service.name),
-                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.service.uuid),
+                { style: { color: "#dc3545", fontSize: "12px", textAlign: "center" } },
+                `\u26A0\uFE0F ${statusError}`
+              ) : !deploymentStatus ? React.createElement(
+                "div",
+                { style: { color: "#6c757d", fontSize: "12px", textAlign: "center" } },
+                "Click \u21BB to fetch deployment status from AosCloud"
+              ) : React.createElement(
+                React.Fragment,
+                null,
+                // Service info
                 React.createElement(
                   "div",
-                  { style: { fontSize: "11px", marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" } },
+                  { style: { marginBottom: "12px" } },
+                  React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Service"),
+                  React.createElement("div", { style: { fontSize: "13px", fontWeight: "500", marginBottom: "2px" } }, deploymentStatus.service.name),
+                  React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.service.uuid),
                   React.createElement(
-                    "span",
-                    { style: { padding: "2px 6px", backgroundColor: "#e7f3ff", color: "#0066cc", borderRadius: "3px", fontSize: "10px" } },
-                    `v${deploymentStatus.service.currentVersion}`
-                  ),
-                  React.createElement(
-                    "span",
-                    { style: { color: "#6c757d" } },
-                    `(${deploymentStatus.service.totalVersions} versions)`
+                    "div",
+                    { style: { fontSize: "11px", marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" } },
+                    React.createElement(
+                      "span",
+                      { style: { padding: "2px 6px", backgroundColor: "#e7f3ff", color: "#0066cc", borderRadius: "3px", fontSize: "10px" } },
+                      `v${deploymentStatus.service.currentVersion}`
+                    ),
+                    React.createElement(
+                      "span",
+                      { style: { color: "#6c757d" } },
+                      `(${deploymentStatus.service.totalVersions} versions)`
+                    )
                   )
-                )
-              ),
-              // Subject info
-              deploymentStatus.subject && React.createElement(
-                "div",
-                { style: { marginBottom: "12px" } },
-                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Subject"),
-                React.createElement("div", { style: { fontSize: "12px" } }, deploymentStatus.subject.name),
-                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.subject.id)
-              ),
-              // Unit info
-              deploymentStatus.unit && React.createElement(
-                "div",
-                { style: { marginBottom: "8px" } },
-                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Unit"),
+                ),
+                // Subject info
+                deploymentStatus.subject && React.createElement(
+                  "div",
+                  { style: { marginBottom: "12px" } },
+                  React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Subject"),
+                  React.createElement("div", { style: { fontSize: "12px" } }, deploymentStatus.subject.name),
+                  React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.subject.id)
+                ),
+                // Unit info
+                deploymentStatus.unit && React.createElement(
+                  "div",
+                  { style: { marginBottom: "8px" } },
+                  React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Unit"),
+                  React.createElement(
+                    "div",
+                    { style: { display: "flex", alignItems: "center", gap: "6px" } },
+                    React.createElement("span", {
+                      style: {
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        backgroundColor: deploymentStatus.unit.online ? "#28a745" : "#dc3545"
+                      }
+                    }),
+                    React.createElement("span", { style: { fontSize: "12px" } }, deploymentStatus.unit.name),
+                    React.createElement("span", { style: { fontSize: "11px", color: "#6c757d" } }, deploymentStatus.unit.online ? "Online" : "Offline")
+                  ),
+                  React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.unit.uid),
+                  React.createElement("div", { style: { fontSize: "11px", color: "#6c757d" } }, deploymentStatus.unit.ip)
+                ),
+                // Last updated
                 React.createElement(
                   "div",
-                  { style: { display: "flex", alignItems: "center", gap: "6px" } },
-                  React.createElement("span", {
-                    style: {
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      backgroundColor: deploymentStatus.unit.online ? "#28a745" : "#dc3545"
-                    }
-                  }),
-                  React.createElement("span", { style: { fontSize: "12px" } }, deploymentStatus.unit.name),
-                  React.createElement("span", { style: { fontSize: "11px", color: "#6c757d" } }, deploymentStatus.unit.online ? "Online" : "Offline")
-                ),
-                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.unit.uid),
-                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d" } }, deploymentStatus.unit.ip)
-              ),
-              // Last updated
-              React.createElement(
-                "div",
-                { style: { fontSize: "10px", color: "#999", marginTop: "8px", borderTop: "1px solid #eee", paddingTop: "6px" } },
-                `Updated: ${new Date(deploymentStatus.timestamp).toLocaleTimeString()}`
+                  { style: { fontSize: "10px", color: "#999", marginTop: "8px", borderTop: "1px solid #eee", paddingTop: "6px" } },
+                  `Updated: ${new Date(deploymentStatus.timestamp).toLocaleTimeString()}`
+                )
               )
             )
           )
         ),
+        // End of dockerColumn - Deployment Status is stacked below Docker Instances
         // Middle Column - Code Editors
         React.createElement(
           "div",
