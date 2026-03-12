@@ -576,11 +576,11 @@ export default function Page({ data, config }: PluginProps) {
         }
       }
     } catch (err) {
-      // If Kit Manager API is not available, use mock data for development
-      console.log('[AOS] Kit Manager API not available, using mock data')
+      // If Kit Manager API is not available, use known instance for development
+      console.log('[AOS] Kit Manager API not available, using known instance')
       const mockInstances: DockerInstance[] = [
         {
-          instance_id: 'AET-' + Math.random().toString(36).substr(2, 8),
+          instance_id: 'AET-TOOLCHAIN-001',
           name: 'AOS Edge Toolchain',
           online: true,
           last_seen: new Date().toISOString(),

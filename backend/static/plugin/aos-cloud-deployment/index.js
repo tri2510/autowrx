@@ -4260,10 +4260,10 @@ configuration:
           }
         }
       } catch (err) {
-        console.log("[AOS] Kit Manager API not available, using mock data");
+        console.log("[AOS] Kit Manager API not available, using known instance");
         const mockInstances = [
           {
-            instance_id: "AET-" + Math.random().toString(36).substr(2, 8),
+            instance_id: "AET-TOOLCHAIN-001",
             name: "AOS Edge Toolchain",
             online: true,
             last_seen: (/* @__PURE__ */ new Date()).toISOString(),
