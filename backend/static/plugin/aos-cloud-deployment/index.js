@@ -3583,7 +3583,7 @@
       };
       console.log("[AosService] Building app with code length:", request.cppCode?.length);
       const response = await this.sendCommand("aos_build_deploy", data);
-      if (response.status === "started" || response.result === "success" || response.status === "building") {
+      if (response.status === "started" || response.result === "success" || response.status === "building" || response.status === "success") {
         return {
           status: response.status || "building",
           appId: response.appId || response.executionId || response.app_id || request.name,
@@ -4257,6 +4257,12 @@ configuration:
               suffix: kit.suffix || (kit.kit_id || kit.instance_id || "").split("-")[0]
             }));
             setDockerInstances(instances);
+            if (!selectedInstance && instances.length > 0) {
+              const firstOnline = instances.find((i) => i.online);
+              if (firstOnline) {
+                setSelectedInstance(firstOnline.instance_id);
+              }
+            }
           }
         }
       } catch (err) {
@@ -4271,6 +4277,9 @@ configuration:
           }
         ];
         setDockerInstances(mockInstances);
+        if (!selectedInstance) {
+          setSelectedInstance("AET-TOOLCHAIN-001");
+        }
       }
     };
     const handleDockerStatusUpdate = (message) => {
@@ -4635,8 +4644,9 @@ configuration:
               "button",
               {
                 onClick: handleBuildDeploy,
-                disabled: isBuilding || connectionStatus !== "connected",
-                style: { ...styles.button, ...styles.buttonPrimary, ...isBuilding || connectionStatus !== "connected" ? styles.buttonDisabled : {} }
+                disabled: isBuilding || connectionStatus !== "connected" || !selectedInstance,
+                style: { ...styles.button, ...styles.buttonPrimary, ...isBuilding || connectionStatus !== "connected" || !selectedInstance ? styles.buttonDisabled : {} },
+                title: !selectedInstance ? "Select a Docker instance first" : ""
               },
               isBuilding ? React.createElement(
                 React.Fragment,
@@ -4654,7 +4664,27 @@ configuration:
               onClick: refreshApps,
               disabled: connectionStatus !== "connected",
               style: { ...styles.button, ...connectionStatus !== "connected" ? styles.buttonDisabled : {} }
-            }, "Refresh Apps")
+            }, "Refresh Apps"),
+            // Warning hint when no instance selected
+            !selectedInstance && React.createElement(
+              "div",
+              {
+                style: {
+                  padding: "8px 12px",
+                  marginTop: "8px",
+                  backgroundColor: "#fff3cd",
+                  border: "1px solid #ffc107",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  color: "#856404",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }
+              },
+              React.createElement("span", null, "\u26A0\uFE0F"),
+              React.createElement("span", null, "Select a Docker instance from the list to build & deploy")
+            )
           )
         ),
         // Right Column - Status & Logs

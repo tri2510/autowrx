@@ -193,7 +193,7 @@ export class AosService {
     console.log('[AosService] Building app with code length:', request.cppCode?.length)
     const response = await this.sendCommand('aos_build_deploy', data)
 
-    if (response.status === 'started' || response.result === 'success' || response.status === 'building') {
+    if (response.status === 'started' || response.result === 'success' || response.status === 'building' || response.status === 'success') {
       return {
         status: response.status || 'building',
         appId: response.appId || response.executionId || response.app_id || request.name,

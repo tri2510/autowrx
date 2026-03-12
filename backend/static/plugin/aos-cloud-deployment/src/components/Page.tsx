@@ -573,6 +573,14 @@ export default function Page({ data, config }: PluginProps) {
             }))
 
           setDockerInstances(instances)
+
+          // Auto-select first online instance if none selected
+          if (!selectedInstance && instances.length > 0) {
+            const firstOnline = instances.find((i: DockerInstance) => i.online)
+            if (firstOnline) {
+              setSelectedInstance(firstOnline.instance_id)
+            }
+          }
         }
       }
     } catch (err) {
@@ -588,6 +596,10 @@ export default function Page({ data, config }: PluginProps) {
         }
       ]
       setDockerInstances(mockInstances)
+      // Auto-select the first (and only) mock instance
+      if (!selectedInstance) {
+        setSelectedInstance('AET-TOOLCHAIN-001')
+      }
     }
   }
 
@@ -901,8 +913,9 @@ export default function Page({ data, config }: PluginProps) {
         React.createElement('div', { style: styles.actions },
           React.createElement('button', {
             onClick: handleBuildDeploy,
-            disabled: isBuilding || connectionStatus !== 'connected',
-            style: { ...styles.button, ...styles.buttonPrimary, ...(isBuilding || connectionStatus !== 'connected' ? styles.buttonDisabled : {}) }
+            disabled: isBuilding || connectionStatus !== 'connected' || !selectedInstance,
+            style: { ...styles.button, ...styles.buttonPrimary, ...(isBuilding || connectionStatus !== 'connected' || !selectedInstance ? styles.buttonDisabled : {}) },
+            title: !selectedInstance ? 'Select a Docker instance first' : ''
           },
             isBuilding
               ? React.createElement(React.Fragment, null,
@@ -918,7 +931,26 @@ export default function Page({ data, config }: PluginProps) {
             onClick: refreshApps,
             disabled: connectionStatus !== 'connected',
             style: { ...styles.button, ...(connectionStatus !== 'connected' ? styles.buttonDisabled : {}) }
-          }, 'Refresh Apps')
+          }, 'Refresh Apps'),
+
+          // Warning hint when no instance selected
+          !selectedInstance && React.createElement('div', {
+            style: {
+              padding: '8px 12px',
+              marginTop: '8px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#856404',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }
+          },
+            React.createElement('span', null, '⚠️'),
+            React.createElement('span', null, 'Select a Docker instance from the list to build & deploy')
+          )
         )
       ),
 
