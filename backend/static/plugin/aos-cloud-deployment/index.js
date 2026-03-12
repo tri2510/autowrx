@@ -3619,6 +3619,20 @@
     async stopApp(appId) {
       return this.sendCommand("aos_stop_app", { appId });
     }
+    // Get deployment status from AosCloud
+    async getDeploymentStatus() {
+      const response = await this.sendCommand("aos_get_deployment_status", {});
+      if (response.status === "success" && response.service) {
+        return {
+          status: "success",
+          service: response.service,
+          subject: response.subject,
+          unit: response.unit,
+          timestamp: response.timestamp
+        };
+      }
+      throw new Error(response.message || "Failed to fetch deployment status");
+    }
     // Restart an AOS application
     async restartApp(appId) {
       return this.sendCommand("aos_restart_app", { appId });
@@ -3743,6 +3757,9 @@ configuration:
     const [filterOnline, setFilterOnline] = React.useState(false);
     const [selectedInstance, setSelectedInstance] = React.useState("");
     const [showDockerPanel, setShowDockerPanel] = React.useState(true);
+    const [deploymentStatus, setDeploymentStatus] = React.useState(null);
+    const [isLoadingStatus, setIsLoadingStatus] = React.useState(false);
+    const [statusError, setStatusError] = React.useState("");
     const aosServiceRef = React.useRef(null);
     const buildLogsRef = React.useRef(null);
     const pollingIntervalRef = React.useRef(null);
@@ -4332,6 +4349,22 @@ configuration:
         console.error("[AOS] Failed to get apps:", err);
       }
     };
+    const fetchDeploymentStatus = async () => {
+      if (!aosServiceRef.current)
+        return;
+      setIsLoadingStatus(true);
+      setStatusError("");
+      try {
+        const result = await aosServiceRef.current.getDeploymentStatus();
+        setDeploymentStatus(result);
+        addLog("[Status] Deployment status refreshed");
+      } catch (err) {
+        setStatusError(err.message || "Failed to fetch deployment status");
+        console.error("[AOS] Failed to get deployment status:", err);
+      } finally {
+        setIsLoadingStatus(false);
+      }
+    };
     const handleBuildDeploy = async () => {
       if (!aosServiceRef.current || !aosServiceRef.current.isServiceConnected()) {
         addLog("[Error] Not connected to AOS service");
@@ -4582,6 +4615,102 @@ configuration:
                     }, instance.online ? "Online" : "Offline")
                   )
                 )
+              )
+            )
+          )
+        ),
+        // Deployment Status Card
+        React.createElement(
+          "div",
+          { style: styles.card },
+          React.createElement(
+            "div",
+            { style: styles.cardHeader },
+            React.createElement(
+              "div",
+              { style: styles.cardTitle },
+              React.createElement("span", { style: styles.cardIcon }, "\u{1F4CA}"),
+              "AosCloud Deployment Status"
+            ),
+            React.createElement("button", {
+              onClick: fetchDeploymentStatus,
+              disabled: isLoadingStatus || connectionStatus !== "connected",
+              style: { ...styles.iconButton, ...isLoadingStatus ? { opacity: 0.5 } : {} },
+              title: "Refresh status"
+            }, isLoadingStatus ? "\u27F3" : "\u21BB")
+          ),
+          // Status content
+          React.createElement(
+            "div",
+            { style: { padding: "12px" } },
+            statusError ? React.createElement(
+              "div",
+              { style: { color: "#dc3545", fontSize: "12px", textAlign: "center" } },
+              `\u26A0\uFE0F ${statusError}`
+            ) : !deploymentStatus ? React.createElement(
+              "div",
+              { style: { color: "#6c757d", fontSize: "12px", textAlign: "center" } },
+              "Click \u21BB to fetch deployment status from AosCloud"
+            ) : React.createElement(
+              React.Fragment,
+              null,
+              // Service info
+              React.createElement(
+                "div",
+                { style: { marginBottom: "12px" } },
+                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Service"),
+                React.createElement("div", { style: { fontSize: "13px", fontWeight: "500", marginBottom: "2px" } }, deploymentStatus.service.name),
+                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.service.uuid),
+                React.createElement(
+                  "div",
+                  { style: { fontSize: "11px", marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" } },
+                  React.createElement(
+                    "span",
+                    { style: { padding: "2px 6px", backgroundColor: "#e7f3ff", color: "#0066cc", borderRadius: "3px", fontSize: "10px" } },
+                    `v${deploymentStatus.service.currentVersion}`
+                  ),
+                  React.createElement(
+                    "span",
+                    { style: { color: "#6c757d" } },
+                    `(${deploymentStatus.service.totalVersions} versions)`
+                  )
+                )
+              ),
+              // Subject info
+              deploymentStatus.subject && React.createElement(
+                "div",
+                { style: { marginBottom: "12px" } },
+                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Subject"),
+                React.createElement("div", { style: { fontSize: "12px" } }, deploymentStatus.subject.name),
+                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.subject.id)
+              ),
+              // Unit info
+              deploymentStatus.unit && React.createElement(
+                "div",
+                { style: { marginBottom: "8px" } },
+                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", marginBottom: "2px" } }, "Unit"),
+                React.createElement(
+                  "div",
+                  { style: { display: "flex", alignItems: "center", gap: "6px" } },
+                  React.createElement("span", {
+                    style: {
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      backgroundColor: deploymentStatus.unit.online ? "#28a745" : "#dc3545"
+                    }
+                  }),
+                  React.createElement("span", { style: { fontSize: "12px" } }, deploymentStatus.unit.name),
+                  React.createElement("span", { style: { fontSize: "11px", color: "#6c757d" } }, deploymentStatus.unit.online ? "Online" : "Offline")
+                ),
+                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d", fontFamily: "monospace" } }, deploymentStatus.unit.uid),
+                React.createElement("div", { style: { fontSize: "11px", color: "#6c757d" } }, deploymentStatus.unit.ip)
+              ),
+              // Last updated
+              React.createElement(
+                "div",
+                { style: { fontSize: "10px", color: "#999", marginTop: "8px", borderTop: "1px solid #eee", paddingTop: "6px" } },
+                `Updated: ${new Date(deploymentStatus.timestamp).toLocaleTimeString()}`
               )
             )
           )

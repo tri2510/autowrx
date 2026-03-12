@@ -235,6 +235,23 @@ export class AosService {
     return this.sendCommand('aos_stop_app', { appId })
   }
 
+  // Get deployment status from AosCloud
+  async getDeploymentStatus(): Promise<DeploymentStatusResponse> {
+    const response = await this.sendCommand('aos_get_deployment_status', {})
+
+    if (response.status === 'success' && response.service) {
+      return {
+        status: 'success',
+        service: response.service,
+        subject: response.subject,
+        unit: response.unit,
+        timestamp: response.timestamp
+      }
+    }
+
+    throw new Error(response.message || 'Failed to fetch deployment status')
+  }
+
   // Restart an AOS application
   async restartApp(appId: string): Promise<any> {
     return this.sendCommand('aos_restart_app', { appId })

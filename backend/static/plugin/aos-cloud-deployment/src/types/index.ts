@@ -101,6 +101,35 @@ export interface BuildResponse {
   output?: string
 }
 
+// Deployment status response from AosCloud
+export interface DeploymentStatusResponse {
+  status: 'success' | 'error'
+  service: {
+    uuid: string
+    name: string
+    description: string
+    currentVersion: string
+    totalVersions: number
+    versions: Array<{
+      version: string
+      state: string | null
+      createdAt: string
+    }>
+  }
+  subject: {
+    id: string
+    name: string
+  } | null
+  unit: {
+    uid: string
+    name: string
+    ip: string
+    online: boolean
+    lastSeen?: string
+  } | null
+  timestamp: string
+}
+
 // Deployment status
 export interface DeploymentStatus {
   appId: string

@@ -3,7 +3,7 @@ const React: any = (globalThis as any).React
 
 import { AosService } from '../services/aos.service'
 import { PRESETS } from '../presets'
-import type { PluginProps, AosApp } from '../types'
+import type { PluginProps, AosApp, DeploymentStatusResponse } from '../types'
 
 // Docker instance type
 interface DockerInstance {
@@ -32,6 +32,11 @@ export default function Page({ data, config }: PluginProps) {
   const [filterOnline, setFilterOnline] = React.useState<boolean>(false)
   const [selectedInstance, setSelectedInstance] = React.useState<string>('')
   const [showDockerPanel, setShowDockerPanel] = React.useState<boolean>(true)
+
+  // Deployment status state
+  const [deploymentStatus, setDeploymentStatus] = React.useState<DeploymentStatusResponse | null>(null)
+  const [isLoadingStatus, setIsLoadingStatus] = React.useState<boolean>(false)
+  const [statusError, setStatusError] = React.useState<string>('')
 
   const aosServiceRef = React.useRef<AosService | null>(null)
   const buildLogsRef = React.useRef<HTMLDivElement>(null)
@@ -659,6 +664,22 @@ export default function Page({ data, config }: PluginProps) {
     }
   }
 
+  const fetchDeploymentStatus = async () => {
+    if (!aosServiceRef.current) return
+    setIsLoadingStatus(true)
+    setStatusError('')
+    try {
+      const result = await aosServiceRef.current.getDeploymentStatus()
+      setDeploymentStatus(result)
+      addLog('[Status] Deployment status refreshed')
+    } catch (err: any) {
+      setStatusError(err.message || 'Failed to fetch deployment status')
+      console.error('[AOS] Failed to get deployment status:', err)
+    } finally {
+      setIsLoadingStatus(false)
+    }
+  }
+
   const handleBuildDeploy = async () => {
     if (!aosServiceRef.current || !aosServiceRef.current.isServiceConnected()) {
       addLog('[Error] Not connected to AOS service')
@@ -867,6 +888,77 @@ export default function Page({ data, config }: PluginProps) {
                   )
                 )
           )
+        )
+      ),
+
+      // Deployment Status Card
+      React.createElement('div', { style: styles.card },
+        React.createElement('div', { style: styles.cardHeader },
+          React.createElement('div', { style: styles.cardTitle },
+            React.createElement('span', { style: styles.cardIcon }, '📊'),
+            'AosCloud Deployment Status'
+          ),
+          React.createElement('button', {
+            onClick: fetchDeploymentStatus,
+            disabled: isLoadingStatus || connectionStatus !== 'connected',
+            style: { ...styles.iconButton, ...(isLoadingStatus ? { opacity: 0.5 } : {}) },
+            title: 'Refresh status'
+          }, isLoadingStatus ? '⟳' : '↻')
+        ),
+        // Status content
+        React.createElement('div', { style: { padding: '12px' } },
+          statusError
+            ? React.createElement('div', { style: { color: '#dc3545', fontSize: '12px', textAlign: 'center' } },
+                `⚠️ ${statusError}`
+              )
+            : !deploymentStatus
+            ? React.createElement('div', { style: { color: '#6c757d', fontSize: '12px', textAlign: 'center' } },
+                'Click ↻ to fetch deployment status from AosCloud'
+              )
+            : React.createElement(React.Fragment, null,
+                // Service info
+                React.createElement('div', { style: { marginBottom: '12px' } },
+                  React.createElement('div', { style: { fontSize: '11px', color: '#6c757d', marginBottom: '2px' } }, 'Service'),
+                  React.createElement('div', { style: { fontSize: '13px', fontWeight: '500', marginBottom: '2px' } }, deploymentStatus.service.name),
+                  React.createElement('div', { style: { fontSize: '11px', color: '#6c757d', fontFamily: 'monospace' } }, deploymentStatus.service.uuid),
+                  React.createElement('div', { style: { fontSize: '11px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' } },
+                    React.createElement('span', { style: { padding: '2px 6px', backgroundColor: '#e7f3ff', color: '#0066cc', borderRadius: '3px', fontSize: '10px' } },
+                      `v${deploymentStatus.service.currentVersion}`
+                    ),
+                    React.createElement('span', { style: { color: '#6c757d' } },
+                      `(${deploymentStatus.service.totalVersions} versions)`
+                    )
+                  )
+                ),
+                // Subject info
+                deploymentStatus.subject && React.createElement('div', { style: { marginBottom: '12px' } },
+                  React.createElement('div', { style: { fontSize: '11px', color: '#6c757d', marginBottom: '2px' } }, 'Subject'),
+                  React.createElement('div', { style: { fontSize: '12px' } }, deploymentStatus.subject.name),
+                  React.createElement('div', { style: { fontSize: '11px', color: '#6c757d', fontFamily: 'monospace' } }, deploymentStatus.subject.id)
+                ),
+                // Unit info
+                deploymentStatus.unit && React.createElement('div', { style: { marginBottom: '8px' } },
+                  React.createElement('div', { style: { fontSize: '11px', color: '#6c757d', marginBottom: '2px' } }, 'Unit'),
+                  React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+                    React.createElement('span', {
+                      style: {
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: deploymentStatus.unit.online ? '#28a745' : '#dc3545'
+                      }
+                    }),
+                    React.createElement('span', { style: { fontSize: '12px' } }, deploymentStatus.unit.name),
+                    React.createElement('span', { style: { fontSize: '11px', color: '#6c757d' } }, deploymentStatus.unit.online ? 'Online' : 'Offline')
+                  ),
+                  React.createElement('div', { style: { fontSize: '11px', color: '#6c757d', fontFamily: 'monospace' } }, deploymentStatus.unit.uid),
+                  React.createElement('div', { style: { fontSize: '11px', color: '#6c757d' } }, deploymentStatus.unit.ip)
+                ),
+                // Last updated
+                React.createElement('div', { style: { fontSize: '10px', color: '#999', marginTop: '8px', borderTop: '1px solid #eee', paddingTop: '6px' } },
+                  `Updated: ${new Date(deploymentStatus.timestamp).toLocaleTimeString()}`
+                )
+              )
         )
       ),
 
