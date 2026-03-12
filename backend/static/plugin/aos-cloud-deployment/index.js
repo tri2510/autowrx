@@ -4382,7 +4382,16 @@ configuration:
           yamlConfig
         });
         addLog(`[Build] Build started: ${response.appId}`);
-        setBuildStatus("Building...");
+        if (response.status === "success") {
+          setBuildStatus("Build completed successfully!");
+          setIsBuilding(false);
+          refreshApps();
+        } else if (response.status === "error") {
+          setBuildStatus(`Build failed: ${response.message || "Unknown error"}`);
+          setIsBuilding(false);
+        } else {
+          setBuildStatus("Building...");
+        }
       } catch (err) {
         addLog(`[Error] Build failed: ${err.message}`);
         setBuildStatus(`Build failed: ${err.message}`);

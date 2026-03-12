@@ -700,7 +700,19 @@ export default function Page({ data, config }: PluginProps) {
       })
 
       addLog(`[Build] Build started: ${response.appId}`)
-      setBuildStatus('Building...')
+
+      // Check if build completed immediately (broadcaster returns sync response)
+      if (response.status === 'success') {
+        setBuildStatus('Build completed successfully!')
+        setIsBuilding(false)
+        refreshApps()
+      } else if (response.status === 'error') {
+        setBuildStatus(`Build failed: ${response.message || 'Unknown error'}`)
+        setIsBuilding(false)
+      } else {
+        // Building in progress, wait for deploy status callback
+        setBuildStatus('Building...')
+      }
     } catch (err: any) {
       addLog(`[Error] Build failed: ${err.message}`)
       setBuildStatus(`Build failed: ${err.message}`)
