@@ -353,7 +353,7 @@ const ActionButtonsTab = ({
                     onHideIconChange={() => {}}
                     onLabelChange={() => {}}
                     onIconSvgChange={() => {}}
-                    onVariantChange={() => { }}
+                    onVariantChange={() => {}}
                     onOpenModeChange={() => {}}
                     onCornersChange={() => {}}
                   />
@@ -454,7 +454,9 @@ const ActionButtonsTab = ({
                             onOpenModeChange={(newOpenMode) => {
                               setLocalRightNavPlugins((prev) =>
                                 prev.map((b, idx) =>
-                                  idx === i ? { ...b, openMode: newOpenMode } : b,
+                                  idx === i
+                                    ? { ...b, openMode: newOpenMode }
+                                    : b,
                                 ),
                               )
                             }}
