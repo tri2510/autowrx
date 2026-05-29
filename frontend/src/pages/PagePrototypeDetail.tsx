@@ -44,6 +44,7 @@ import usePermissionHook from '@/hooks/usePermissionHook'
 import usePluginPreloader from '@/hooks/usePluginPreloader'
 import useSelfProfileQuery from '@/hooks/useSelfProfile'
 import PagePrototypePlugin from '@/pages/PagePrototypePlugin'
+import PrototypeRightAction from '@/pages/PrototypeRightAction'
 import { configManagementService } from '@/services/configManagement.service'
 import { updateModelService } from '@/services/model.service'
 import { Plugin } from '@/services/plugin.service'
@@ -427,8 +428,9 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
             </div>
           )}
           <div className="grow"></div>
-          <PrototypeRightActionButtons
-            tabs={model?.custom_template?.prototype_right_nav_buttons || []}
+          <PrototypeRightAction
+            prototype={prototype}
+            actions={model?.custom_template?.prototype_right_nav_buttons || []}
           />
           {canConfigurePrototypeAddons && (
             <DropdownMenu open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
