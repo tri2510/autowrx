@@ -32,10 +32,6 @@ const DaFilter = ({
   label,
 }: DaFilterProps) => {
   const [selectedOptions, setSelectedOptions] = useState<string[]>(() => {
-    console.log(
-      'Initializing selected options with defaultValue:',
-      defaultValue,
-    )
     const allOptions = Object.values(categories).flat()
     return singleSelect
       ? defaultValue && defaultValue.length > 0
