@@ -3,10 +3,7 @@ import { Input } from '@/components/atoms/input'
 import { Label } from '@/components/atoms/label'
 import { Spinner } from '@/components/atoms/spinner'
 import { PrototypeRightActionButton } from '@/components/molecules/PrototypeRightActionButtons'
-import {
-  RightNavPluginButton,
-  StagingConfig,
-} from '@/components/organisms/CustomTabEditor'
+import { RightNavPluginButton } from '@/components/organisms/CustomTabEditor'
 import { cn } from '@/lib/utils'
 import { Paged, Plugin } from '@/services/plugin.service'
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
@@ -44,6 +41,7 @@ const ActionButtonEditor = ({
   onHideIconChange,
   onLabelChange,
   onIconSvgChange,
+  onOpenModeChange,
   onVariantChange,
   onCornersChange,
 }: {
@@ -56,6 +54,7 @@ const ActionButtonEditor = ({
   onHideIconChange: (newHide: boolean) => void
   onLabelChange: (newLabel: string) => void
   onIconSvgChange: (newSvg: string) => void
+  onOpenModeChange: (newMode: 'dialog' | 'page') => void
   onVariantChange: (newVariant: 'tab' | 'primary' | 'outline' | 'ghost') => void
   onCornersChange: (newCorners: 'none' | 'round' | 'full') => void
 }) => {
@@ -225,6 +224,31 @@ const ActionButtonEditor = ({
               </div>
             </div>
           </div>
+          {/* Open as dialog or page */}
+          <div className="flex items-center gap-3">
+            <Label className="text-xs w-20 shrink-0 text-foreground mt-1">
+              Open mode
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {(['dialog', 'page'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => onOpenModeChange(mode)}
+                  className={cn(
+                    'px-3 py-1 text-xs rounded border capitalize transition-colors',
+                    ` ${
+                      (config.openMode || 'page') === mode
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-foreground border-border hover:bg-accent'
+                    }`,
+                  )}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
           {/* Preview */}
           <div className="flex items-center gap-3">
             <Label className="text-xs w-20 shrink-0 text-foreground">
@@ -330,6 +354,7 @@ const ActionButtonsTab = ({
                     onLabelChange={() => {}}
                     onIconSvgChange={() => {}}
                     onVariantChange={() => {}}
+                    onOpenModeChange={() => {}}
                     onCornersChange={() => {}}
                   />
                 </div>
@@ -426,6 +451,15 @@ const ActionButtonsTab = ({
                                 ),
                               )
                             }
+                            onOpenModeChange={(newOpenMode) => {
+                              setLocalRightNavPlugins((prev) =>
+                                prev.map((b, idx) =>
+                                  idx === i
+                                    ? { ...b, openMode: newOpenMode }
+                                    : b,
+                                ),
+                              )
+                            }}
                             onCornersChange={(newCorners) =>
                               setLocalRightNavPlugins((prev) =>
                                 prev.map((b, idx) =>

@@ -62,6 +62,7 @@ export interface TabConfig {
   iconSvg?: string
   builtin?: string
   variant?: 'tab' | 'primary' | 'outline' | 'ghost'
+  openMode?: 'dialog' | 'page'
   hideIcon?: boolean
   corners?: 'none' | 'round' | 'full'
 }
@@ -82,6 +83,7 @@ export interface RightNavPluginButton {
   iconSvg?: string
   hideIcon?: boolean // For staging: whether to hide the icon
   variant?: 'tab' | 'primary' | 'outline' | 'ghost'
+  openMode?: 'dialog' | 'page'
   hidden?: boolean
   corners?: 'none' | 'round' | 'full'
 }

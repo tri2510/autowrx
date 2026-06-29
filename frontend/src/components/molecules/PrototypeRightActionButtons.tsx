@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 export interface PrototypeRightActionButtonProps {
   tabs: TabConfig[]
+  onClick?: (tabConfig: TabConfig) => void
 }
 
 export const PrototypeRightActionButton = ({
@@ -78,6 +79,7 @@ export const PrototypeRightActionButton = ({
 
 const PrototypeRightActionButtons = ({
   tabs,
+  onClick,
 }: PrototypeRightActionButtonProps) => {
   const { model_id, prototype_id } = useParams()
   const navigate = useNavigate()
@@ -87,15 +89,17 @@ const PrototypeRightActionButtons = ({
       {visibleTabs.map((tabConfig) => {
         return (
           <PrototypeRightActionButton
-            key={`right-actions-${tabConfig}-${tabConfig.label}`}
+            key={`right-actions-btn-${JSON.stringify(tabConfig)}`}
             config={tabConfig}
             onClick={
-              tabConfig.type === 'builtin' || tabConfig.builtin
-                ? undefined
-                : () =>
-                    navigate(
-                      `/model/${model_id}/library/prototype/${prototype_id}/plug?plugid=${tabConfig.plugin}`,
-                    )
+              tabConfig.openMode === 'dialog'
+                ? () => onClick?.(tabConfig)
+                : tabConfig.type === 'builtin' || tabConfig.builtin
+                  ? undefined
+                  : () =>
+                      navigate(
+                        `/model/${model_id}/library/prototype/${prototype_id}/plug?plugid=${tabConfig.plugin}`,
+                      )
             }
           />
         )
