@@ -255,8 +255,7 @@ const EditAssetDialog = ({ asset, onDone, onCancel }: iPropEditAssetDialog) => {
   }, [asset])
 
   return (
-    <div className="flex flex-col w-full min-w-[400px] max-w-[540px] px-4">
-      <h2 className="text-xl font-semibold">Edit Asset</h2>
+    <div className="flex flex-col w-full min-w-[400px] max-w-[540px]">
       <div className="w-full min-h-[200px]">
         <div className="flex items-center space-x-2 mt-4">
           <label className="text-sm w-20">Name *</label>
@@ -445,6 +444,7 @@ const PageMyAssets = () => {
             <DaDialog
               open={editDialogState[0]}
               onOpenChange={editDialogState[1]}
+              dialogTitle="Edit Asset"
             >
               <EditAssetDialog
                 asset={activeAsset}

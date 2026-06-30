@@ -32,9 +32,9 @@ interface PrototypeTabsProps {
 const DEFAULT_BUILTIN_TABS: TabConfig[] = [
   { type: 'builtin', key: 'overview', label: 'Overview' },
   { type: 'builtin', key: 'journey', label: 'Customer Journey' },
-  { type: 'builtin', key: 'feedback', label: 'Feedback' },
   { type: 'builtin', key: 'code', label: 'SDV Code' },
   { type: 'builtin', key: 'dashboard', label: 'Dashboard' },
+  { type: 'builtin', key: 'feedback', label: 'Feedback' },
 ]
 
 // Migration helper: convert old format to new format

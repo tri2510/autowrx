@@ -132,31 +132,29 @@ const HomePrototypePopular = ({
       )}
 
       {/* Popup Dialog */}
-      <DaDialog open={openRemindDialog} onOpenChange={setOpenRemindDialog}>
-        <div className="flex flex-col max-w-xl">
-          <h3 className="text-lg font-semibold text-primary">
-            Sign In Required
-          </h3>
-          <p className="mt-4 text-base text-muted-foreground">
-            You must first sign in to explore SDV idea about
-            <span className="text-primary px-1 font-semibold">
-              {selectedPrototype?.name}
-            </span>
-          </p>
-          <div className="flex justify-end mt-6">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => {
-                setOpenRemindDialog(false)
-                setOpenLoginDialog(true)
-              }}
-              className="w-20"
-            >
-              Sign In
-            </Button>
-          </div>
-        </div>
+      <DaDialog
+        open={openRemindDialog}
+        onOpenChange={setOpenRemindDialog}
+        className="w-110"
+        dialogTitle="Sign In Required"
+        footer={
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => {
+              setOpenRemindDialog(false)
+              setOpenLoginDialog(true)
+            }}
+            className="w-20"
+          >
+            Sign In
+          </Button>
+        }
+      >
+        <p className="text-base text-muted-foreground">
+          You must first sign in to explore SDV idea about{' '}
+          <span className="text-primary font-semibold">{selectedPrototype?.name}</span>
+        </p>
       </DaDialog>
     </div>
   )

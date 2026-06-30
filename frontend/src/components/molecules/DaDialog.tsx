@@ -6,46 +6,20 @@
 //
 // SPDX-License-Identifier: MIT
 
-/**
- * DaDialog - A customizable dialog/modal component wrapper
- *
- * @example
- * // Uncontrolled usage with trigger
- * <DaDialog
- *   trigger={<Button>Open Dialog</Button>}
- *   dialogTitle="My Dialog"
- *   description="This is a description"
- * >
- *   <p>Dialog content here</p>
- * </DaDialog>
- *
- * @example
- * // Controlled usage
- * const [open, setOpen] = useState(false)
- * <DaDialog
- *   open={open}
- *   onOpenChange={setOpen}
- *   dialogTitle="Controlled Dialog"
- *   preventOutsideClose={true}
- * >
- *   <p>Content that prevents closing by clicking outside</p>
- * </DaDialog>
- */
-
 import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from '@/components/atoms/dialog'
 import { cn } from '@/lib/utils'
+import { TbX } from 'react-icons/tb'
 
 interface DaDialogProps {
   children: React.ReactNode
   dialogTitle?: React.ReactNode
   description?: React.ReactNode
+  footer?: React.ReactNode
   trigger?: React.ReactNode
   className?: string
   contentContainerClassName?: string
@@ -53,9 +27,7 @@ interface DaDialogProps {
   onOpenChange?: (open: boolean) => void
   showCloseButton?: boolean
   onClose?: () => void
-  // Prevent clicking outside to close
   preventOutsideClose?: boolean
-  // Disable the dialog
   disabled?: boolean
 }
 
@@ -63,6 +35,7 @@ const DaDialog = ({
   children,
   dialogTitle,
   description,
+  footer,
   trigger,
   className,
   contentContainerClassName,
@@ -74,23 +47,11 @@ const DaDialog = ({
   disabled = false,
 }: DaDialogProps) => {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
-
-  // Use controlled state if provided, otherwise use internal state
   const isOpen = controlledOpen ?? uncontrolledOpen
 
-  // Handle open change with prevention for outside clicks
   const handleOpenChange = (newOpenState: boolean) => {
-    // If disabled, prevent opening
-    if (disabled && newOpenState) {
-      return
-    }
-
-    // If trying to close and preventOutsideClose is true, don't allow closing
-    if (isOpen && !newOpenState && preventOutsideClose) {
-      return
-    }
-
-    // Otherwise use the provided handler or internal state setter
+    if (disabled && newOpenState) return
+    if (isOpen && !newOpenState && preventOutsideClose) return
     if (onOpenChange) {
       onOpenChange(newOpenState)
     } else {
@@ -104,48 +65,79 @@ const DaDialog = ({
     }
   }, [isOpen, onClose])
 
+  const canClose = !preventOutsideClose && showCloseButton
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {trigger && (
         <DialogTrigger asChild disabled={disabled}>
-          <div
-            className={cn(
-              disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
-            )}
-          >
+          <div className={cn(disabled && 'opacity-50 cursor-not-allowed pointer-events-none')}>
             {trigger}
           </div>
         </DialogTrigger>
       )}
       <DialogContent
-        className={className}
+        className={cn('p-0 flex flex-col gap-0 overflow-hidden', className)}
+        showCloseButton={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
-        showCloseButton={!preventOutsideClose && showCloseButton}
-        onPointerDownOutside={(e) => {
-          if (preventOutsideClose) {
-            e.preventDefault()
-          }
-        }}
-        onEscapeKeyDown={(e) => {
-          if (preventOutsideClose) {
-            e.preventDefault()
-          }
-        }}
-        aria-describedby={description ? undefined : undefined}
+        onPointerDownOutside={(e) => { if (preventOutsideClose) e.preventDefault() }}
+        onEscapeKeyDown={(e) => { if (preventOutsideClose) e.preventDefault() }}
+        aria-describedby={undefined}
       >
-        {dialogTitle && (
-          <DialogHeader className="text-primary space-y-1">
-            <DialogTitle>{dialogTitle}</DialogTitle>
-            {description && (
-              <div className="text-sm text-muted-foreground leading-loose">
-                {description}
-              </div>
+        {dialogTitle || description ? (
+          // Titled dialog: full header zone with inline close button.
+          <div className="flex items-center justify-between gap-2 px-6 py-3 border-b border-border shrink-0">
+            <div className="flex flex-col gap-0.5 min-w-0">
+              {dialogTitle && (
+                <h2 className="text-base font-semibold text-primary leading-tight">{dialogTitle}</h2>
+              )}
+              {description && (
+                <p className="text-sm text-muted-foreground leading-snug">{description}</p>
+              )}
+            </div>
+            {canClose && (
+              <button
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:outline-none"
+                onClick={() => handleOpenChange(false)}
+                aria-label="Close"
+                type="button"
+              >
+                <TbX className="w-5 h-5" />
+              </button>
             )}
-          </DialogHeader>
+          </div>
+        ) : (
+          // Untitled dialog (e.g. self-titled forms): float the close button in the
+          // corner with no header bar so it doesn't add an empty title row.
+          canClose && (
+            <button
+              className="absolute right-4 top-4 z-10 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:outline-none"
+              onClick={() => handleOpenChange(false)}
+              aria-label="Close"
+              type="button"
+            >
+              <TbX className="w-5 h-5" />
+            </button>
+          )
         )}
-        <div className={cn('flex flex-col w-full', contentContainerClassName)}>
+
+        <div
+          className={cn(
+            'flex-1 overflow-y-auto px-6 py-4',
+            // Neutralize a leading top margin on the first rendered child so forms
+            // that use `mt-*` for inter-field spacing don't double-pad under the header.
+            '[&>*:first-child]:mt-0! [&>form>*:first-child]:mt-0! [&>div>*:first-child]:mt-0!',
+            contentContainerClassName,
+          )}
+        >
           {children}
         </div>
+
+        {footer && (
+          <div className="shrink-0 border-t border-border px-6 py-4 flex justify-end gap-2">
+            {footer}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

@@ -113,8 +113,9 @@ export default function TemplateManager() {
       <DaDialog
         open={openForm}
         onOpenChange={setOpenForm}
-        className="w-[840px] max-w-[calc(100vw-80px)] max-h-[90vh] flex flex-col overflow-hidden"
-        contentContainerClassName="flex-1 min-h-0"
+        className="w-[840px] max-w-[calc(100vw-80px)] max-h-[90vh]"
+        dialogTitle={editId ? 'Edit Template' : 'Create Template'}
+        contentContainerClassName="p-0"
       >
         <TemplateForm
           open={openForm}

@@ -104,6 +104,7 @@ const PageHome = () => {
           }
         }}
         className="w-115 max-w-[calc(100vw-40px)]"
+        dialogTitle="Create New Model"
       >
         <FormCreateModel />
       </DaDialog>

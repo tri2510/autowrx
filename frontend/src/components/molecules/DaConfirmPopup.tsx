@@ -52,8 +52,24 @@ const DaConfirmPopup = ({
       onOpenChange={setIsOpen}
       trigger={React.cloneElement(children, { onClick: () => setIsOpen(true) })}
       dialogTitle={title}
+      className="w-125 max-w-[calc(100vw-40px)]"
+      footer={
+        <>
+          <Button variant="outline" size="sm" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={confirmText ? inputValue !== confirmText : false}
+            onClick={handleConfirm}
+          >
+            Confirm
+          </Button>
+        </>
+      }
     >
-      <div className="flex flex-col max-w-[500px] gap-4">
+      <div className="flex flex-col gap-4">
         <p className="text-base">{label}</p>
         {confirmText && (
           <div className="flex flex-col gap-2">
@@ -70,19 +86,6 @@ const DaConfirmPopup = ({
             />
           </div>
         )}
-        <div className="flex justify-end w-full space-x-2 mt-2">
-          <Button variant="outline" size="sm" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={confirmText ? inputValue !== confirmText : false}
-            onClick={handleConfirm}
-          >
-            Confirm
-          </Button>
-        </div>
       </div>
     </DaDialog>
   )

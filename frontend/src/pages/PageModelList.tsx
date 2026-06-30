@@ -29,6 +29,7 @@ import DaModelItem from '@/components/molecules/DaModelItem'
 import { Link } from 'react-router-dom'
 import useListAllModels from '@/hooks/useListAllModel'
 import { TbLock } from 'react-icons/tb'
+import { useAuthConfigs } from '@/hooks/useAuthConfigs'
 
 type ModelTab = 'myModel' | 'myContribution' | 'public'
 
@@ -37,6 +38,7 @@ const PageModelList = () => {
   const [isImporting, setIsImporting] = useState(false)
   const { data: user, isLoading: isUserLoading } = useSelfProfileQuery()
   const { authBootstrapped, setOpenLoginDialog } = useAuthStore()
+  const { authConfigs } = useAuthConfigs()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -260,7 +262,7 @@ const PageModelList = () => {
   // instead of the model list and offer a button to open the global login dialog.
   // We wait for `authBootstrapped` so we don't flash this gate while the
   // initial token refresh is still in flight.
-  if (authBootstrapped && !isUserLoading && !user) {
+  if (authBootstrapped && !isUserLoading && !user && !authConfigs.PUBLIC_VIEWING) {
     return (
       <div className="flex flex-col items-center justify-center w-full min-h-[60vh] px-6 text-center">
         <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
@@ -364,6 +366,7 @@ const PageModelList = () => {
                       <DaDialog
                         open={createDialogOpen}
                         onOpenChange={setCreateDialogOpen}
+                        dialogTitle="Create New Model"
                         trigger={
                           <Button
                             variant="default"

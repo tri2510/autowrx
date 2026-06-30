@@ -45,28 +45,28 @@ const DaRequireSignedIn = ({ children, message }: DaRequireSignedInProps) => {
           >
             {children}
           </div>
-          <DaDialog open={openRemindDialog} onOpenChange={setOpenRemindDialog}>
-            <div className="flex flex-col max-w-xl">
-              <h3 className="text-lg font-semibold text-primary">
-                Sign In Required
-              </h3>
-              <p className="mt-4 text-base text-muted-foreground">
-                {message || 'You must first sign in to explore this feature'}
-              </p>
-              <div className="flex justify-end mt-6">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    setOpenRemindDialog(false)
-                    setOpenLoginDialog(true)
-                  }}
-                  className="w-20"
-                >
-                  Sign In
-                </Button>
-              </div>
-            </div>
+          <DaDialog
+            open={openRemindDialog}
+            onOpenChange={setOpenRemindDialog}
+            dialogTitle="Sign In Required"
+            className="w-110"
+            footer={
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  setOpenRemindDialog(false)
+                  setOpenLoginDialog(true)
+                }}
+                className="w-20"
+              >
+                Sign In
+              </Button>
+            }
+          >
+            <p className="text-base text-muted-foreground">
+              {message || 'You must first sign in to explore this feature'}
+            </p>
           </DaDialog>
         </>
       ) : (

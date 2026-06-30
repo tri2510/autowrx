@@ -36,7 +36,6 @@ import PrototypeTabFeedback from '@/components/organisms/PrototypeTabFeedback'
 import PrototypeTabInfo from '@/components/organisms/PrototypeTabInfo'
 import PrototypeTabJourney from '@/components/organisms/PrototypeTabJourney'
 import PrototypeTabStaging from '@/components/organisms/PrototypeTabStaging'
-import TemplateForm from '@/components/organisms/TemplateForm'
 import { PERMISSIONS } from '@/data/permission'
 import useCurrentModel from '@/hooks/useCurrentModel'
 import useCurrentPrototype from '@/hooks/useCurrentPrototype'
@@ -55,7 +54,6 @@ import { Prototype } from '@/types/model.type'
 import { useSiteConfig } from '@/utils/siteConfig'
 import { useQueryClient } from '@tanstack/react-query'
 import { FC, useCallback, useEffect, useState } from 'react'
-import { GiSaveArrow } from 'react-icons/gi'
 import {
   TbDotsVertical,
   TbFileCode,
@@ -89,7 +87,6 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
   const [isModelOwner, setIsModelOwner] = useState(false)
   const [openAddonDialog, setOpenAddonDialog] = useState(false)
   const [openManageAddonsDialog, setOpenManageAddonsDialog] = useState(false)
-  const [openTemplateForm, setOpenTemplateForm] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [hasWritePermission, isAdmin] = usePermissionHook(
     [PERMISSIONS.WRITE_MODEL, model?.id],
@@ -103,18 +100,6 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
     'ALLOW_NON_ADMIN_ADDON_CONFIG',
     true,
   )
-  const [templateInitialData, setTemplateInitialData] = useState<
-    | {
-        name?: string
-        description?: string
-        image?: string
-        visibility?: string
-        config?: any
-        model_tabs?: Array<{ label: string; plugin: string }>
-        prototype_tabs?: TabConfig[]
-      }
-    | undefined
-  >(undefined)
 
   // Load staging config to extract plugins for preloading
   const [stagingPlugins, setStagingPlugins] = useState<Plugin[]>([])
@@ -456,52 +441,12 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
                 <DropdownMenuItem
                   onClick={() => {
                     setMoreMenuOpen(false)
-                    // Capture current model.custom_template data at the moment of click
-                    if (model) {
-                      // Normalize prototype_tabs to full TabConfig format (resolves old-format entries
-                      // where builtin tabs were stored as { label, plugin: "" } without type/key).
-                      const normalizedPrototypeTabs = getTabConfig(
-                        model.custom_template?.prototype_tabs,
-                      )
-                      const initialData = {
-                        name: model.name || '',
-                        description: '',
-                        image: model.model_home_image_file || '',
-                        visibility: model.visibility || 'public',
-                        config: {
-                          ...model.custom_template,
-                          prototype_tabs: normalizedPrototypeTabs,
-                        },
-                        model_tabs: model.custom_template?.model_tabs || [],
-                        prototype_tabs: normalizedPrototypeTabs,
-                      }
-                      console.log(
-                        '[PagePrototypeDetail] Setting templateInitialData:',
-                        {
-                          model,
-                          custom_template: model.custom_template,
-                          initialData,
-                        },
-                      )
-                      setTemplateInitialData(initialData)
-                    }
-                    setOpenTemplateForm(true)
+                    setOpenSaveProjectTemplate(true)
                   }}
                 >
-                  <GiSaveArrow className="w-5 h-5" />
-                  Save Solution as Template
+                  <TbFileCode className="w-5 h-5" />
+                  Save Prototype as Template
                 </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setMoreMenuOpen(false)
-                      setOpenSaveProjectTemplate(true)
-                    }}
-                  >
-                    <TbFileCode className="w-5 h-5" />
-                    Save Project as Template
-                  </DropdownMenuItem>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -585,44 +530,17 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
         description="Configure tabs, appearance, sidebar, and action buttons"
       />
 
-      {/* Template Form Dialog */}
-      <DaDialog
-        open={openTemplateForm}
-        onOpenChange={setOpenTemplateForm}
-        className="w-[840px] max-w-[calc(100vw-80px)] max-h-[90vh] overflow-hidden flex flex-col"
-      >
-        <TemplateForm
-          open={openTemplateForm}
-          templateId={undefined}
-          onClose={() => {
-            setOpenTemplateForm(false)
-            setTemplateInitialData(undefined)
-          }}
-          initialData={templateInitialData}
-        />
-      </DaDialog>
-
-      {/* Save Project as Template Dialog */}
+      {/* Save Prototype as Template Dialog */}
       <DaDialog
         open={openSaveProjectTemplate}
         onOpenChange={(v) => {
           setOpenSaveProjectTemplate(v)
           if (!v) setProjectTemplateName('')
         }}
-        className="w-[440px]"
-      >
-        <div className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Create Template</h2>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Name *</label>
-            <Input
-              placeholder="Template name"
-              value={projectTemplateName}
-              onChange={(e) => setProjectTemplateName(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
+        className="w-110"
+        dialogTitle="Create Template"
+        footer={
+          <>
             <Button
               variant="outline"
               size="sm"
@@ -640,7 +558,17 @@ const PagePrototypeDetail: FC<ViewPrototypeProps> = ({}) => {
             >
               {savingProjectTemplate ? 'Saving…' : 'Save'}
             </Button>
-          </div>
+          </>
+        }
+      >
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Name *</label>
+          <Input
+            placeholder="Template name"
+            value={projectTemplateName}
+            onChange={(e) => setProjectTemplateName(e.target.value)}
+            autoFocus
+          />
         </div>
       </DaDialog>
     </div>

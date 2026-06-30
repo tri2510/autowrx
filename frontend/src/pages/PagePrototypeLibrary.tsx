@@ -227,6 +227,7 @@ const PagePrototypeLibrary = () => {
                   <DaDialog
                     open={open}
                     onOpenChange={setOpen}
+                    dialogTitle="New Prototype"
                     trigger={
                       <Button
                         data-id="btn-create-new-prototype"
@@ -239,9 +240,7 @@ const PagePrototypeLibrary = () => {
                       </Button>
                     }
                   >
-                    <div className="p-0">
-                      <FormCreatePrototype onClose={() => setOpen(false)} />
-                    </div>
+                    <FormCreatePrototype onClose={() => setOpen(false)} />
                   </DaDialog>
                 </div>
               </div>

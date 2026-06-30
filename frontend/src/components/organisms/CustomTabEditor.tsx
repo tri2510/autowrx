@@ -327,7 +327,7 @@ const CustomTabEditor: FC<CustomTabEditorProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -771,11 +771,11 @@ const CustomTabEditor: FC<CustomTabEditorProps> = ({
 
           {/* Appearance Tab */}
           {activeDialogTab === 'style' && (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
               <p className="text-sm text-muted-foreground">
                 Choose the visual style for all tab bar buttons.
               </p>
-              <div className="gap-3 grid grid-cols-[auto_1fr]">
+              <div className="gap-y-6 gap-x-4 grid grid-cols-[auto_1fr]">
                 <Label className="text-xs w-20 shrink-0 text-foreground mt-1">
                   Style
                 </Label>

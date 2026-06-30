@@ -123,19 +123,15 @@ const DaVehicleProperties = ({
         dialogTitle="Update vehicle properties"
         className="max-w-[800px]"
       >
-        <div className="flex flex-col h-fit max-h-[90vh] w-full">
-          <div className="rounded-lg text-sm flex h-full w-full flex-col bg-background">
-            <FormUpdateVehicleProperties
-              onSaveProperties={() => {
-                handleSave()
-              }}
-              customProperties={vehicleProperties}
-              setCustomProperties={setVehicleProperties}
-              vehicleCategory={vehicleCategory}
-              setVehicleCategory={setVehicleCategory}
-            />
-          </div>
-        </div>
+        <FormUpdateVehicleProperties
+          onSaveProperties={() => {
+            handleSave()
+          }}
+          customProperties={vehicleProperties}
+          setCustomProperties={setVehicleProperties}
+          vehicleCategory={vehicleCategory}
+          setVehicleCategory={setVehicleCategory}
+        />
       </DaDialog>
     </div>
   )

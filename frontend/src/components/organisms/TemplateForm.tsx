@@ -404,9 +404,6 @@ export default function TemplateForm({
 
   return (
     <div className="flex flex-col w-full h-full overflow-auto">
-      <h2 className="text-xl font-semibold text-foreground mb-4">
-        {isCreate ? 'Create Template' : 'Edit Template'}
-      </h2>
       <div className="flex border-b border-input">
         <DaTabItem
           small

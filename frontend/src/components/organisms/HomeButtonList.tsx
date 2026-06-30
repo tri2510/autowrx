@@ -51,6 +51,7 @@ const HomeButtonList = ({ items, requiredLogin }: HomeButtonListProps) => {
               return (
                 <DaDialog
                   key={index}
+                  dialogTitle="Create New Model"
                   trigger={
                     <DaActionCard
                       title={button.title || 'New model'}

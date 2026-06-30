@@ -500,7 +500,7 @@ const DaDashboard = () => {
         dialogTitle="Override Existing Template?"
         className="w-105"
       >
-        <div className="space-y-4 pt-2">
+        <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             A template named <span className="font-semibold text-foreground">&quot;{conflictTemplate?.name}&quot;</span> already exists.
             Do you want to override it with the current dashboard layout?
@@ -535,7 +535,7 @@ const DaDashboard = () => {
         dialogTitle="Save Dashboard as Template"
         className="w-110"
       >
-        <div className="space-y-4 pt-2">
+        <div className="space-y-4">
           <div className="space-y-1">
             <label className="text-sm font-medium">Template Name *</label>
             <input

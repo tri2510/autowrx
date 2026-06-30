@@ -413,10 +413,6 @@ const FormCreatePrototype = ({
       onSubmit={createNewPrototype}
       className="flex flex-col bg-background"
     >
-      <h2 className="text-lg font-semibold text-primary">
-        {title ?? 'New Prototype'}
-      </h2>
-
       {!currentModel &&
         (contributionModels && !isFetchingModelContribution && localModel ? (
           <div className="flex flex-col mt-4">

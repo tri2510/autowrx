@@ -199,6 +199,7 @@ const DaDashboardGrid: FC<DaDashboardGridProps> = ({ widgetItems }) => {
         onOpenChange={setShowModal}
         trigger={<span></span>}
         showCloseButton={true}
+        contentContainerClassName="p-0"
       >
         <div className="max-h-[calc(100vh-200px)] m-auto max-w-[calc(100vw-200px)]">
           {payload?.type === 'video' && (

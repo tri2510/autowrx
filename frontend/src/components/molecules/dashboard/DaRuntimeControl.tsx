@@ -319,6 +319,7 @@ const DaRuntimeControl: FC = () => {
         trigger={<span></span>}
         className="w-[800px] max-w-[90vw]"
         showCloseButton={false}
+        contentContainerClassName="p-0"
       >
         <RuntimeAssetManager
           onClose={() => {
@@ -341,23 +342,9 @@ const DaRuntimeControl: FC = () => {
         trigger={<span></span>}
         className="w-[600px] max-w-[90vw]"
         showCloseButton={false}
-      >
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">
-            Configure Runtime Server
-          </h3>
-          <div className="mb-4 text-sm text-gray-600">
-            Runtime server URL: leave empty to use default server
-          </div>
-          <Input
-            className="w-full mb-4 text-primary"
-            value={tmpCustomKitServer}
-            onChange={(e) => {
-              setTmpCustomKitServer(e.target.value)
-            }}
-            placeholder="Custom server URL"
-          />
-          <div className="flex justify-end gap-2">
+        dialogTitle="Configure Runtime Server"
+        footer={
+          <>
             <Button
               variant="outline"
               onClick={() => {
@@ -381,7 +368,21 @@ const DaRuntimeControl: FC = () => {
             >
               Save
             </Button>
-          </div>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Runtime server URL: leave empty to use default server
+          </p>
+          <Input
+            className="w-full text-primary"
+            value={tmpCustomKitServer}
+            onChange={(e) => {
+              setTmpCustomKitServer(e.target.value)
+            }}
+            placeholder="Custom server URL"
+          />
         </div>
       </DaDialog>
 

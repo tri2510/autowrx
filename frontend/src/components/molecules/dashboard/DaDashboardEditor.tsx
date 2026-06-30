@@ -239,7 +239,7 @@ const DaDashboardWidgetEditor = ({
     >
       <div className="flex flex-col w-full h-full">
         <div className="flex relative w-full justify-between items-center mb-2">
-          <div className="flex-1"></div>
+          <div className="font-semibold text-slate-800">Options</div>
           {usedAPIs && usedAPIs.length > 0 && (
             <div ref={dropdownRef} className="flex flex-col relative">
               <div className="flex w-full justify-end">
@@ -291,10 +291,9 @@ const DaDashboardWidgetEditor = ({
           )}
         </div>
 
-        <div className="flex grow overflow-auto">
-          <div className="grow">
-            <div className="overflow-auto h-[220px] max-h-[262px]">
-              <div className="font-semibold text-slate-800">Options</div>
+        <div className="flex gap-4 h-110 overflow-hidden">
+          <div className="grow flex flex-col min-h-0 pt-3">
+            <div className="flex-1 min-h-0 overflow-auto rounded border border-border">
               <CodeEditor
                 language="json"
                 editable={true}
@@ -306,7 +305,7 @@ const DaDashboardWidgetEditor = ({
               />
             </div>
 
-            <div className="py-2 flex items-center">
+            <div className="py-2 flex items-center shrink-0">
               <div className="font-semibold text-slate-800">Boxes:</div>
               <div className="w-full pl-2">
                 <Input
@@ -317,7 +316,7 @@ const DaDashboardWidgetEditor = ({
                 />
               </div>
             </div>
-            <div className="py-2 flex items-center">
+            <div className="py-2 flex items-center shrink-0">
               <div className="font-semibold text-slate-800">URL/Path:</div>
               <div className="w-full pl-2">
                 <Input
@@ -329,7 +328,7 @@ const DaDashboardWidgetEditor = ({
               </div>
             </div>
           </div>
-          <div className="min-w-[500px] max-h-[400px] overflow-auto">
+          <div className="min-w-[500px] h-full overflow-auto">
             <ModelApiList fallbackApis={getDefaultApis()} />
           </div>
         </div>
@@ -926,7 +925,7 @@ const DaDashboardEditor = ({
         key={`${index}-${cell}`}
         onClick={() => handleWidgetClick(index)}
       >
-        <div className="absolute right-1 top-1 hidden w-fit rounded bg-white group-hover:block">
+        <div className="absolute right-1 top-1 z-10 w-fit rounded bg-white opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto">
           <div className="flex items-center">
             <DaTooltip tooltipMessage="Delete widget">
               <Button

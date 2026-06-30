@@ -852,7 +852,7 @@ const seedPredefinedSiteConfigs = async (predefinedConfigs, systemUserId) => {
       },
     }));
 
-    await SiteConfig.bulkWrite(operations, { ordered: false });
+    const result = await SiteConfig.bulkWrite(operations, { ordered: false });
 
     // Backfill created_by/updated_by for configs seeded before this fix
     if (systemUserId) {
@@ -862,7 +862,13 @@ const seedPredefinedSiteConfigs = async (predefinedConfigs, systemUserId) => {
       );
     }
 
-    console.log(`[SiteConfig] Seeded ${predefinedConfigs.length} predefined configs (skipped existing).`);
+    const inserted = result.upsertedCount;
+    const skipped = predefinedConfigs.length - inserted;
+    if (inserted === 0) {
+      console.log(`[SiteConfig] Skipped all ${skipped} predefined configs (already exist).`);
+    } else {
+      console.log(`[SiteConfig] Seeded ${inserted} predefined config(s); skipped ${skipped} existing.`);
+    }
   } catch (error) {
     console.error('[SiteConfig] Failed to seed predefined configs:', error.message);
   }

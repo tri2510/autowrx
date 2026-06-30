@@ -137,12 +137,8 @@ const FeedbackForm = ({ onClose }: FeedbackFormProps) => {
       onSubmit={submitFeedback}
       className="flex flex-col bg-background"
     >
-      <div className="flex flex-col overflow-y-auto px-4">
-        <h2 className="text-lg font-semibold text-primary">
-          End User Give Feedback
-        </h2>
-
-        <div className="flex flex-col mt-4">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col">
           <Label className="mb-2">Interviewee <span className="text-red-500">*</span></Label>
           <Input
             name="interviewee"
@@ -154,7 +150,7 @@ const FeedbackForm = ({ onClose }: FeedbackFormProps) => {
           />
         </div>
 
-        <div className="flex flex-col mt-4">
+        <div className="flex flex-col">
           <Label className="mb-2">From organization <span className="text-red-500">*</span></Label>
           <Input
             name="organization"
@@ -167,31 +163,31 @@ const FeedbackForm = ({ onClose }: FeedbackFormProps) => {
         </div>
 
         {/* Star ratings for Needs Addressed, Relevance, and Ease of Use */}
-        <div className="mt-4 flex items-center">
-          <p className="text-base font-medium mr-2">Needs addressed <span className="text-red-500">*</span></p>
+        <div className="flex items-center">
+          <p className="text-base font-medium w-44 shrink-0">Needs addressed <span className="text-red-500">*</span></p>
           <DaStarsRating
             initialRating={data.needsAddressed}
             onChange={(value) => handleChange('needsAddressed', value)}
           />
         </div>
 
-        <div className="mt-4 flex items-center">
-          <p className="text-base font-medium mr-2">Relevance <span className="text-red-500">*</span></p>
+        <div className="flex items-center">
+          <p className="text-base font-medium w-44 shrink-0">Relevance <span className="text-red-500">*</span></p>
           <DaStarsRating
             initialRating={data.relevance}
             onChange={(value) => handleChange('relevance', value)}
           />
         </div>
 
-        <div className="mt-4 flex items-center">
-          <p className="text-base font-medium mr-2">Ease of use <span className="text-red-500">*</span></p>
+        <div className="flex items-center">
+          <p className="text-base font-medium w-44 shrink-0">Ease of use <span className="text-red-500">*</span></p>
           <DaStarsRating
             initialRating={data.easeOfUse}
             onChange={(value) => handleChange('easeOfUse', value)}
           />
         </div>
 
-        <div className="flex flex-col mt-4">
+        <div className="flex flex-col">
           <Label className="mb-2">Questions</Label>
           <Input
             name="questions"
@@ -203,7 +199,7 @@ const FeedbackForm = ({ onClose }: FeedbackFormProps) => {
           />
         </div>
 
-        <div className="flex flex-col mt-4 mb-2">
+        <div className="flex flex-col">
           <Label className="mb-2">Recommendations</Label>
           <Textarea
             rows={5}
@@ -219,10 +215,10 @@ const FeedbackForm = ({ onClose }: FeedbackFormProps) => {
           />
         </div>
 
-        {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
 
-      <div className="px-4">
+      <div className="mt-6">
         <DaTooltip
           tooltipMessage={
             !isFormValid ? 'Please fill in all the required fields' : undefined
@@ -230,7 +226,7 @@ const FeedbackForm = ({ onClose }: FeedbackFormProps) => {
           side="top"
           tooltipDelay={200}
         >
-          <span className="w-full mt-8 block">
+          <span className="w-full block">
             <Button
               disabled={loading || !isFormValid}
               type="submit"

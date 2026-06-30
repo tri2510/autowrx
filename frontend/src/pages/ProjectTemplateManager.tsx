@@ -86,38 +86,9 @@ function ProjectTemplateEditForm({
         onOpenChange(v)
       }}
       className="w-[680px] max-w-[calc(100vw-80px)]"
-    >
-      <div className="p-6 space-y-4 min-w-0 overflow-hidden">
-        <h2 className="text-lg font-semibold">Edit Project Template</h2>
-
-        <div className="space-y-2">
-          <Label>Name *</Label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Template name"
-          />
-        </div>
-
-        <div className="space-y-2 w-full overflow-hidden">
-          <Label>Data (JSON) *</Label>
-          <Textarea
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-            placeholder='{"language": "python", "code": "...", ...}'
-            style={{ 
-              width: '100%',
-              maxWidth: '100%',
-              minWidth: '0',
-              display: 'block',
-              whiteSpace: 'pre-wrap',
-              overflowWrap: 'anywhere'
-            }}
-            className="h-64 resize-none font-mono text-sm border p-2"
-          />
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
+      dialogTitle="Edit Project Template"
+      footer={
+        <>
           <Button
             variant="outline"
             onClick={() => {
@@ -134,6 +105,35 @@ function ProjectTemplateEditForm({
           >
             {save.isPending ? 'Saving…' : 'Update'}
           </Button>
+        </>
+      }
+    >
+      <div className="space-y-4 min-w-0 overflow-hidden">
+        <div className="space-y-2">
+          <Label>Name *</Label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Template name"
+          />
+        </div>
+
+        <div className="space-y-2 w-full overflow-hidden">
+          <Label>Data (JSON) *</Label>
+          <Textarea
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+            placeholder='{"language": "python", "code": "...", ...}'
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: '0',
+              display: 'block',
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere'
+            }}
+            className="h-64 resize-none font-mono text-sm border p-2"
+          />
         </div>
       </div>
     </DaDialog>

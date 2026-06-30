@@ -96,6 +96,7 @@ const PrototypeTabFeedback = () => {
               <DaDialog
                 open={isOpenPopup}
                 onOpenChange={setIsOpenPopup}
+                dialogTitle="Add Feedback"
                 trigger={
                   <Button size="sm">
                     + Add Feedback

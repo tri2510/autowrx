@@ -25,10 +25,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/atoms/dropdown-menu'
 import { Dialog, DialogContent } from '@/components/atoms/dialog'
+import DaDialog from '@/components/molecules/DaDialog'
 import { TbPlus, TbDotsVertical, TbSettings } from 'react-icons/tb'
+import { GiSaveArrow } from 'react-icons/gi'
 import AddonSelect from '@/components/molecules/AddonSelect'
 import CustomModelTabs from '@/components/molecules/CustomModelTabs'
 import CustomTabEditor, { TabConfig } from '@/components/organisms/CustomTabEditor'
+import TemplateForm from '@/components/organisms/TemplateForm'
+import { getTabConfig } from '@/components/molecules/PrototypeTabs'
 import { Plugin } from '@/services/plugin.service'
 import { updateModelService } from '@/services/model.service'
 import { toast } from 'react-toastify'
@@ -58,6 +62,19 @@ const ModelDetailLayout = () => {
   // State for dialog management
   const [openAddonDialog, setOpenAddonDialog] = useState(false)
   const [openManageAddonsDialog, setOpenManageAddonsDialog] = useState(false)
+  const [openTemplateForm, setOpenTemplateForm] = useState(false)
+  const [templateInitialData, setTemplateInitialData] = useState<
+    | {
+        name?: string
+        description?: string
+        image?: string
+        visibility?: string
+        config?: any
+        model_tabs?: Array<{ label: string; plugin: string }>
+        prototype_tabs?: TabConfig[]
+      }
+    | undefined
+  >(undefined)
   const [isModelOwner, setIsModelOwner] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [hasWritePermission] = usePermissionHook([PERMISSIONS.WRITE_MODEL, model?.id])
@@ -298,6 +315,27 @@ const ModelDetailLayout = () => {
               <DropdownMenuItem
                 onClick={() => {
                   setMoreMenuOpen(false)
+                  if (model) {
+                    const normalizedPrototypeTabs = getTabConfig(model.custom_template?.prototype_tabs)
+                    setTemplateInitialData({
+                      name: model.name || '',
+                      description: '',
+                      image: model.model_home_image_file || '',
+                      visibility: model.visibility || 'public',
+                      config: { ...model.custom_template, prototype_tabs: normalizedPrototypeTabs },
+                      model_tabs: model.custom_template?.model_tabs || [],
+                      prototype_tabs: normalizedPrototypeTabs,
+                    })
+                  }
+                  setOpenTemplateForm(true)
+                }}
+              >
+                <GiSaveArrow className="w-5 h-5" />
+                Save Model as Template
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setMoreMenuOpen(false)
                   setOpenManageAddonsDialog(true)
                 }}
               >
@@ -345,6 +383,25 @@ const ModelDetailLayout = () => {
         title="Manage Model Tabs"
         description="Edit labels, reorder, hide/show, and remove custom model tabs"
       />
+
+      {/* Save Model as Template Dialog */}
+      <DaDialog
+        open={openTemplateForm}
+        onOpenChange={setOpenTemplateForm}
+        className="w-210 max-w-[calc(100vw-80px)] max-h-[90vh]"
+        dialogTitle="Create Template"
+        contentContainerClassName="p-0"
+      >
+        <TemplateForm
+          open={openTemplateForm}
+          templateId={undefined}
+          onClose={() => {
+            setOpenTemplateForm(false)
+            setTemplateInitialData(undefined)
+          }}
+          initialData={templateInitialData}
+        />
+      </DaDialog>
     </div>
   )
 }

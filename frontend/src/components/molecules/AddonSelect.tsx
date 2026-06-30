@@ -106,27 +106,27 @@ const AddonSelect: FC<AddonSelectProps> = ({ onSelect, onCancel }) => {
     return (
       <div className="flex flex-col w-full max-w-2xl">
         {/* Header */}
-        <div className="flex flex-col gap-2 p-6 border-b border-border">
+        <div className="flex flex-col gap-0.5 px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={handleBack}
-              className="h-8 w-8"
+              className="h-7 w-7"
             >
               <TbArrowLeft className="w-4 h-4" />
             </Button>
-            <h2 className="text-lg font-semibold text-primary">
+            <h2 className="text-base font-semibold text-primary">
               Configure Tab Label
             </h2>
           </div>
-          <p className="text-sm text-muted-foreground ml-10">
+          <p className="text-sm text-muted-foreground ml-9">
             Set the label name for this addon tab
           </p>
         </div>
 
         {/* Selected Plugin Info */}
-        <div className="p-6 border-b border-border">
+        <div className="px-6 py-4 border-b border-border">
           <div className="flex items-start gap-4 p-4 bg-accent rounded">
             {selectedPlugin.image ? (
               <img
@@ -155,7 +155,7 @@ const AddonSelect: FC<AddonSelectProps> = ({ onSelect, onCancel }) => {
         </div>
 
         {/* Label Input */}
-        <div className="p-6 flex flex-col gap-4">
+        <div className="px-6 py-4 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="label-input">Tab Label</Label>
             <Input
@@ -173,7 +173,7 @@ const AddonSelect: FC<AddonSelectProps> = ({ onSelect, onCancel }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 p-6 border-t border-border">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
           <Button variant="outline" onClick={handleBack}>
             Back
           </Button>
@@ -191,15 +191,15 @@ const AddonSelect: FC<AddonSelectProps> = ({ onSelect, onCancel }) => {
   return (
     <div className="flex flex-col w-full max-w-2xl">
       {/* Header */}
-      <div className="flex flex-col gap-2 p-6 border-b border-border">
-        <h2 className="text-lg font-semibold text-primary">Select an Addon</h2>
+      <div className="flex flex-col gap-0.5 px-6 py-4 border-b border-border">
+        <h2 className="text-base font-semibold text-primary">Select an Addon</h2>
         <p className="text-sm text-muted-foreground">
           Choose an addon to add to your prototype tabs
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="px-6 pt-4">
+      <div className="px-6 pt-3">
         <div className="flex border-b border-border">
           <button
             type="button"
@@ -246,7 +246,7 @@ const AddonSelect: FC<AddonSelectProps> = ({ onSelect, onCancel }) => {
       </div>
 
       {/* Search */}
-      <div className="p-6 border-b border-border">
+      <div className="px-6 py-4 border-b border-border">
         <div className="relative">
           <TbSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -356,7 +356,7 @@ const AddonSelect: FC<AddonSelectProps> = ({ onSelect, onCancel }) => {
 
       {/* Footer */}
       {onCancel && (
-        <div className="flex justify-end gap-2 p-6 border-t border-border">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>

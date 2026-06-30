@@ -649,7 +649,7 @@ const PageNewPrototypeDetail: FC<ViewPrototypeProps> = ({ }) => {
                             navigate('/')
                         }
                     }}
-                    dialogTitle=""
+                    dialogTitle="Create New Model"
                     className="w-115 max-w-[calc(100vw-40px)]"
                 >
                     <FormCreateModel />
