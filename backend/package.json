@@ -88,9 +88,12 @@
     "winston": "^3.15.0"
   },
   "devDependencies": {
+    "@babel/core": "7",
+    "@babel/preset-env": "7",
     "@faker-js/faker": "^8.0.0",
     "@types/lodash": "^4.17.12",
     "@types/mongoose": "^5.11.97",
+    "babel-jest": "29",
     "eslint": "^8.57.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^9.0.0",
