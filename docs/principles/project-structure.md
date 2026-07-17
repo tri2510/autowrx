@@ -1,4 +1,13 @@
 # Project structure
+
+> ⚠️ **Outdated.** This describes an earlier layout (`routes/api/*-management`,
+> a top-level `frontend-dist`, and a root `Dockerfile`/`docker-compose.yml`).
+> The current code uses `backend/src/routes/v2/{user-management,vehicle-data,content,system}`,
+> `backend/src/index.js`, `backend/static/global.css` + `backend/static/frontend-dist/`,
+> `backend/Dockerfile`, and `instance-setup/docker-compose.prod.yml`. For the
+> up-to-date layout see [../architecture/README.md](../architecture/README.md)
+> and [../getting-started/codebase-tour.md](../getting-started/codebase-tour.md).
+
 ```
 - project-root
     - backend                           <= domain: https://domain.name

@@ -2,6 +2,13 @@
 
 In Autowrx, the UI is not hardcoded but is instead dynamically rendered based on configuration objects. This powerful approach, which we refer to as "Dynamic Components," allows for creating flexible and easily customizable layouts without needing to change the underlying application code.
 
+> ⚠️ **Aspirational — not currently implemented.** The `ComponentRegistry` /
+> `renderComponentByTypeName` system described here does **not** exist in the
+> codebase. Today, pages like `frontend/src/pages/PageHome.tsx` render
+> components via a simple config + `switch` statement, and route-level code
+> splitting uses `React.lazy()` in `configs/routes.tsx`. This document
+> describes a proposed design, not the current implementation.
+
 This architecture is built on three core principles:
 
 1.  **A Central Component Registry:** A single source of truth for all available components, preventing monolithic rendering logic.

@@ -1,5 +1,10 @@
 # Sample Page: The Models Page
 
+> ℹ️ **Conceptual / illustrative.** The names here (`ModelsPage`,
+> `ModelsActionBar`) do not exist in the current codebase; the real models list
+> is `PageModelList` at `/model`. See
+> [../architecture/frontend.md](../architecture/frontend.md).
+
 This document provides a reference implementation for a built-in, fixed-function page. Unlike the fully dynamic `HomePage`, the layout of the `ModelsPage` is static, but it is still constructed following our core design principles.
 
 It demonstrates how to build a clear and maintainable page by composing self-contained, high-level "Organism" components.

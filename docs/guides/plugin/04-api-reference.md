@@ -18,7 +18,11 @@ Complete reference documentation for all Plugin API methods available to plugins
 
 ## API Overview
 
-The Plugin API provides **14 methods** across 5 categories:
+The Plugin API documented here covers the **core** methods (model, prototype,
+runtime, dashboard, navigation, etc.). The full surface is larger — it also
+includes **asset** operations and **kit/runtime** operations (signal mapping,
+VSS read/replace); see `frontend/src/types/plugin.types.ts` for the complete
+list. (This page is a work in progress and undercounts the total.)
 
 ```typescript
 interface PluginAPI {

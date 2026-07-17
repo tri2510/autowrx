@@ -1,5 +1,11 @@
 # Sample Page: The HomePage
 
+> ℹ️ **Conceptual / illustrative.** The "Dynamic Component Architecture" shown
+> here is **not implemented**; the real `PageHome.tsx` composes components
+> directly via a config + `switch` statement. See
+> [../reference/component-design/dynamic-components.md](../reference/component-design/dynamic-components.md)
+> and [../architecture/frontend.md](../architecture/frontend.md).
+
 This document provides a reference implementation for a page that is dynamically composed of other components. It demonstrates how pages act as simple composers, delegating all rendering logic to the **Dynamic Component Architecture**.
 
 > **Relevant Principles:**

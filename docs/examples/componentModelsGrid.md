@@ -1,5 +1,10 @@
 # Sample Organism: The `ModelsGrid`
 
+> ℹ️ **Conceptual / illustrative.** The names here (`ModelsGrid`,
+> `StandardGrid`, `ModelCard`) do not exist in the current codebase; real
+> components live under `frontend/src/components/`
+> ([../architecture/frontend.md](../architecture/frontend.md)).
+
 This document provides a reference implementation for an "Organism" level component, `ModelsGrid`. It is a built-in component designed to be composed within a fixed-layout page like the [**Sample Models Page**](./pageModels.md).
 
 Most importantly, it demonstrates the principle of **composition**, showing how a higher-level Organism is built by consuming a more generic, lower-level "Molecule" component (`StandardGrid`).

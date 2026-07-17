@@ -1,5 +1,10 @@
 # Sample Hook: `useMyModels`
 
+> ℹ️ **Conceptual / illustrative.** `useMyModels` does not exist in the current
+> codebase, and the `useState`/`useEffect` pattern shown here is **not** the
+> real pattern — actual hooks under `frontend/src/hooks/` use TanStack Query
+> (`useQuery`/`useMutation`) ([../architecture/frontend.md](../architecture/frontend.md)).
+
 This document provides a reference implementation for a custom React hook responsible for fetching data. It demonstrates how we encapsulate data-fetching and state management logic, keeping our components clean and focused on their primary responsibility: rendering the UI.
 
 This hook is used by the [**Sample Models Page**](./pageModels.md).

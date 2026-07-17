@@ -1,5 +1,11 @@
 # Sample Component: The Banner
 
+> ℹ️ **Conceptual / illustrative.** Built on the "Dynamic Component
+> Architecture", which is **not implemented** in the current codebase (see
+> [../reference/component-design/dynamic-components.md](../reference/component-design/dynamic-components.md)).
+> The names here (`Banner`, etc.) do not exist; real components live under
+> `frontend/src/components/` ([../architecture/frontend.md](../architecture/frontend.md)).
+
 This document provides a reference implementation for a standard "Organism" level component, the `Banner`. It is designed to be used within our **Dynamic Component Architecture**.
 
 > **Relevant Principles:**
